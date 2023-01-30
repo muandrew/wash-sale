@@ -1,12 +1,73 @@
-use chrono::prelude::*;
-use std::{fmt, usize};
+use chrono::{prelude::*, Duration, ParseError};
+use serde::{
+    de::{self, Visitor},
+    Deserialize,
+};
+use std::{error::Error, fmt, fs::File, io::BufReader, usize};
 
-pub fn a_fn() {
-    println!("test");
+#[derive(Copy, Clone)]
+pub struct StockBin {
+    date: NaiveDate,
+    generation: usize, // tracking stock splits
+    shares: usize,
+    cost_basis: Thou,
 }
 
-#[derive(Debug, PartialEq)]
+pub struct TheWorld {
+    bins: Vec<StockBin>,
+}
+
+impl TheWorld {
+    pub fn new() -> TheWorld {
+        TheWorld { bins: vec![] }
+    }
+
+    pub fn accept_event(&self, event: Event) -> String {
+        match event.event_type {
+            EventType::RELEASE => "i got something!".to_string(),
+            EventType::SALE => {
+                let before = event.date.0 - Duration::days(30);
+                let after = event.date.0 + Duration::days(30);
+                let wash_sale: Vec<StockBin> = self
+                    .bins
+                    .iter()
+                    .filter(|x| x.date >= before || x.date <= after)
+                    .copied()
+                    .collect();
+                if wash_sale.len() > 0 {
+                    print!("wash sale disallowed")
+                } else {
+                    print!("you are ok")
+                }
+                "i sold something!".to_string()
+            }
+            EventType::PURCHASE => "i bought something!".to_string(),
+        }
+    }
+}
+
+pub fn example(file_path: &str) -> Result<(), Box<dyn Error>> {
+    let file = File::open(file_path)?;
+    let mut buf_reader = BufReader::new(file);
+
+    let mut rdr = csv::Reader::from_reader(buf_reader);
+
+    let world = TheWorld::new();
+    for result in rdr.deserialize() {
+        // Notice that we need to provide a type hint for automatic
+        // deserialization.
+        let record: Event = result?;
+        let msg = world.accept_event(record);
+        println!("{}", msg);
+    }
+    return Ok(());
+}
+
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq)]
 pub struct Thou(pub usize);
+
+#[derive(Debug)]
+pub struct ND(NaiveDate);
 
 impl fmt::Display for Thou {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -58,15 +119,17 @@ impl Thou {
 }
 
 // from the perspective of my account
-
+#[derive(Debug, Deserialize)]
 pub enum EventType {
     RELEASE,
     SALE,
     PURCHASE,
 }
+
+#[derive(Debug, Deserialize)]
 pub struct Event {
     batch_id: String,
-    date: NaiveDate,
+    date: ND,
     event_type: EventType,
     market_price: Thou, // used to compute gain / loss
     shares: usize,
@@ -88,16 +151,50 @@ impl Event {
     }
 }
 
+impl<'de> Deserialize<'de> for ND {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct TimestampVisitor;
+
+        impl<'de> Visitor<'de> for TimestampVisitor {
+            type Value = ND;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("Timestamp in RFC3339 format")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                match NaiveDate::parse_from_str(value, "%Y-%m-%d") {
+                    Ok(a) => Ok(ND(a)),
+                    Err(e) => Err(de::Error::custom("no clue")),
+                }
+            }
+        }
+        deserializer.deserialize_str(TimestampVisitor)
+    }
+}
+
+pub fn naive_data_parse_ymd(input: &str) -> NaiveDate {
+    NaiveDate::parse_from_str(input, "%Y-%m-%d").unwrap()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Event, EventType, Thou};
-    use chrono::prelude::*;
+    use crate::timeline::ND;
+
+    use super::{naive_data_parse_ymd, Event, EventType, Thou};
+    use chrono::{prelude::*, Duration};
 
     #[test]
     fn test_value_per_share() {
         let event = Event {
             batch_id: "some_id".to_string(),
-            date: NaiveDate::parse_from_str("2015-09-05", "%Y-%m-%d").unwrap(),
+            date: ND(naive_data_parse_ymd("2015-09-05")),
             event_type: EventType::RELEASE,
             market_price: Thou::from_dollars(1),
             shares: 5,
@@ -110,5 +207,12 @@ mod tests {
 
         let gains = event.total_gains();
         assert_eq!(gains, Thou::from_dollars(95));
+    }
+
+    #[test]
+    fn test_days() {
+        let date = naive_data_parse_ymd("2024-02-28");
+        let after = date + Duration::days(30);
+        assert_eq!(after, date);
     }
 }
