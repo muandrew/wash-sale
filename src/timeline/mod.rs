@@ -1,18 +1,11 @@
 use chrono::{prelude::*, Duration};
+use crate::money::Thou;
+use crate::shares::StockBin;
 use serde::{
     de::{self, Visitor},
     Deserialize,
 };
-use std::{error::Error, fmt, fs::File, io::BufReader, usize};
-
-#[derive(Copy, Clone)]
-pub struct StockBin {
-    date: NaiveDate,
-    generation: usize, // tracking stock splits
-    shares: usize,
-    cost_basis: Thou,
-    is_replacement: bool, // true if this was adjusted for replacement
-}
+use std::{error::Error, fs::File, io::BufReader, usize};
 
 pub struct TheWorld {
     bins: Vec<StockBin>,
@@ -63,60 +56,9 @@ pub fn example(file_path: &str) -> Result<(), Box<dyn Error>> {
     return Ok(());
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, PartialEq)]
-pub struct Thou(pub usize);
 
 #[derive(Debug)]
 pub struct ND(NaiveDate);
-
-impl fmt::Display for Thou {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let dollars = self.0 / THOUS_PER_DOLLAR;
-        let cents = self.0 % THOUS_PER_DOLLAR / THOUS_PER_CENT;
-        let thous = self.0 % THOUS_PER_CENT;
-        write!(f, "${}.{:0>2}_{:0>3}", dollars, cents, thous)
-    }
-}
-
-const THOUS_PER_DOLLAR: usize = 100_000;
-const THOUS_PER_CENT: usize = 1_000;
-
-impl Thou {
-    /// Convert from dollars
-    ///
-    /// ```
-    /// use wash_sale::timeline::Thou;
-    ///
-    /// assert_eq!(format!("{}",Thou::from_dollars(1)),  "$1.00_000");
-    /// ```
-    pub fn from_dollars(dollars: usize) -> Thou {
-        Thou(dollars * THOUS_PER_DOLLAR)
-    }
-
-    /// Convert from dollars and cents
-    ///
-    /// ```
-    /// use wash_sale::timeline::Thou;
-    ///
-    /// assert_eq!(format!("{}", Thou::from_dc(2, 3)), "$2.03_000");
-    /// assert_eq!(format!("{}", Thou::from_dc(4, 51)), "$4.51_000");
-    /// assert_eq!(format!("{}", Thou::from_dc(5, 101)), "$6.01_000");
-    /// ```
-    pub fn from_dc(dollars: usize, cents: usize) -> Thou {
-        Thou(dollars * THOUS_PER_DOLLAR + cents * THOUS_PER_CENT)
-    }
-
-    /// Convert from dollars, cents, and thous
-    ///
-    /// ```
-    /// use wash_sale::timeline::Thou;
-    ///
-    /// assert_eq!(format!("{}", Thou::from_dct(1, 2, 3)), "$1.02_003");
-    /// ```
-    pub fn from_dct(dollars: usize, cents: usize, thous: usize) -> Thou {
-        Thou(dollars * THOUS_PER_DOLLAR + cents * THOUS_PER_CENT + thous)
-    }
-}
 
 // from the perspective of my account
 #[derive(Debug, Deserialize)]
