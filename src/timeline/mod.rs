@@ -1,4 +1,4 @@
-use chrono::{prelude::*, Duration, ParseError};
+use chrono::{prelude::*, Duration};
 use serde::{
     de::{self, Visitor},
     Deserialize,
@@ -11,6 +11,7 @@ pub struct StockBin {
     generation: usize, // tracking stock splits
     shares: usize,
     cost_basis: Thou,
+    is_replacement: bool, // true if this was adjusted for replacement
 }
 
 pub struct TheWorld {
@@ -22,9 +23,9 @@ impl TheWorld {
         TheWorld { bins: vec![] }
     }
 
-    pub fn accept_event(&self, event: Event) -> String {
+    pub fn accept_event(&self, event: Event) -> &str {
         match event.event_type {
-            EventType::RELEASE => "i got something!".to_string(),
+            EventType::RELEASE => "i got something!",
             EventType::SALE => {
                 let before = event.date.0 - Duration::days(30);
                 let after = event.date.0 + Duration::days(30);
@@ -35,20 +36,19 @@ impl TheWorld {
                     .copied()
                     .collect();
                 if wash_sale.len() > 0 {
-                    print!("wash sale disallowed")
+                    "wash sale disallowed"
                 } else {
-                    print!("you are ok")
-                }
-                "i sold something!".to_string()
+                    "i sold something!"  
+                } 
             }
-            EventType::PURCHASE => "i bought something!".to_string(),
+            EventType::PURCHASE => "i bought something!",
         }
     }
 }
 
 pub fn example(file_path: &str) -> Result<(), Box<dyn Error>> {
     let file = File::open(file_path)?;
-    let mut buf_reader = BufReader::new(file);
+    let buf_reader = BufReader::new(file);
 
     let mut rdr = csv::Reader::from_reader(buf_reader);
 
@@ -188,7 +188,7 @@ mod tests {
     use crate::timeline::ND;
 
     use super::{naive_data_parse_ymd, Event, EventType, Thou};
-    use chrono::{prelude::*, Duration};
+    use chrono::{Duration};
 
     #[test]
     fn test_value_per_share() {
