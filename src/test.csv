@@ -1,3 +1,4 @@
 batch_id,date,event_type,market_price,shares,transaction_amount
 a,2019-12-01,RELEASE,1000,10,10000
 b,2019-12-01,RELEASE,1000,2,2000
+c,2019-12-02,SALE,900,8,7200

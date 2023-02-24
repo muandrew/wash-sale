@@ -1,7 +1,7 @@
 use wash_sale::timeline::example;
 
 fn main() {
-    println!("Hello, world!");
+    println!("Walking through stock events");
 
     match example("src/test.csv") {
         Ok(()) => {}

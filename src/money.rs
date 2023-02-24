@@ -18,6 +18,14 @@ const THOUS_PER_DOLLAR: usize = 100_000;
 const THOUS_PER_CENT: usize = 1_000;
 
 impl Thou {
+    pub fn add(&self, other: &Thou) -> Thou {
+        Thou(self.0 + other.0)
+    }
+
+    pub fn multiply(&self, scaler: usize) -> Thou {
+        Thou(self.0 * scaler)
+    }
+
     /// Convert from dollars
     ///
     /// ```

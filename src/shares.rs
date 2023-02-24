@@ -2,12 +2,11 @@ use chrono::NaiveDate;
 
 use crate::money::Thou;
 
-
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct StockBin {
     pub date: NaiveDate,
-    generation: usize, // tracking stock splits
-    shares: usize,
-    cost_basis: Thou,
-    is_replacement: bool, // true if this was adjusted for replacement
+    pub generation: usize, // tracking stock splits
+    pub shares: usize,
+    pub cost_basis: Thou,
+    pub is_replacement: bool, // true if this was adjusted for replacement
 }
