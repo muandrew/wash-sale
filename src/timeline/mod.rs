@@ -82,16 +82,12 @@ impl TheWorld {
                         let bin1 = time_bin.1;
                         // everything will be consumed
                         if bin1.shares <= shares_to_consume {
-                            let bin2 = StockBin {
-                                date: bin1.date,
-                                generation: bin1.generation,
-                                shares: bin1.shares,
-                                cost_basis: bin1
-                                    .cost_basis
-                                    // TODO: double check math
-                                    .add(&event.market_price.multiply(event.shares)),
-                                is_replacement: true,
-                            };
+                            let mut bin2 = bin1.clone();
+                            bin2.cost_basis = bin1
+                                .cost_basis
+                                // TODO: double check math
+                                .add(&event.market_price.multiply(event.shares));
+                            bin2.is_replacement = true;
                             // remove bin, should exist so unwrap should be ok
                             self.bins.remove(&time_bin.0).unwrap();
                             new_bins.push(bin2);
@@ -99,25 +95,18 @@ impl TheWorld {
                         // some leftovers to break out
                         } else {
                             let bin1 = time_bin.1;
-                            let bin1leftover = StockBin {
-                                date: bin1.date,
-                                generation: bin1.generation,
-                                shares: bin1.shares - shares_to_consume,
-                                // left over not consumed, so the same
-                                cost_basis: bin1.cost_basis,
-                                is_replacement: false,
-                            };
-                            let bin2 = StockBin {
-                                date: bin1.date,
-                                // watch out for different generations
-                                generation: bin1.generation,
-                                shares: shares_to_consume,
-                                // TODO: double check math
-                                cost_basis: bin1
-                                    .cost_basis
-                                    .add(&event.market_price.multiply(event.shares)),
-                                is_replacement: true,
-                            };
+
+                            let mut bin1leftover = bin1;
+                            bin1leftover.shares = bin1.shares - shares_to_consume;
+
+                            let mut bin2 = bin1;
+                            bin2.shares = shares_to_consume;
+                            // TODO: double check math
+                            bin2.cost_basis = bin1
+                                .cost_basis
+                                .add(&event.market_price.multiply(event.shares));
+                            bin2.is_replacement = true;
+                            
                             // replace bin now since we don't want to calculate a new number for it
                             self.bins.insert(time_bin.0, bin1leftover);
                             new_bins.push(bin2);
