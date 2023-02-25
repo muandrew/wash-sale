@@ -10,22 +10,22 @@ use std::{collections::HashMap, error::Error, fs::File, io::BufReader, ops::Dere
 
 pub struct TheWorld {
     date_counter: HashMap<NaiveDate, usize>,
-    bins2: BTreeMap<TimeKey, StockBin>,
+    bins: BTreeMap<TimeKey, StockBin>,
 }
 
 #[derive(Copy, Clone)]
-struct Cheat(TimeKey, StockBin);
+struct TimeKeyStockBin(TimeKey, StockBin);
 
 impl TheWorld {
     pub fn new() -> TheWorld {
         TheWorld {
             date_counter: HashMap::new(),
-            bins2: BTreeMap::new(),
+            bins: BTreeMap::new(),
         }
     }
 
     pub fn print_world(&self) {
-        self.bins2
+        self.bins
             .iter()
             .for_each(|(k, v)| println!("time: {k:?} content: {v:?}"))
     }
@@ -37,7 +37,7 @@ impl TheWorld {
         };
         let counter = *counter;
         self.date_counter.insert(event.date.0, counter + 1);
-        self.bins2.insert(
+        self.bins.insert(
             TimeKey(event.date.0, counter),
             StockBin {
                 date: event.date.0,
@@ -50,14 +50,14 @@ impl TheWorld {
         "got some stocks!"
     }
 
-    fn addBinAndIncrementTimeKeyCounter(&mut self, bin: StockBin) {
+    fn add_bin_and_inc_tk_counter(&mut self, bin: StockBin) {
         let counter = match self.date_counter.get(&bin.date) {
             Some(x) => x,
             None => &0,
         };
         let counter = *counter;
         self.date_counter.insert(bin.date, counter + 1);
-        self.bins2.insert(TimeKey(bin.date, counter), bin);
+        self.bins.insert(TimeKey(bin.date, counter), bin);
     }
 
     pub fn accept_event(&mut self, event: Event) -> &str {
@@ -66,60 +66,60 @@ impl TheWorld {
             EventType::SALE => {
                 let before = event.date.0 - Duration::days(30);
                 let after = event.date.0 + Duration::days(30);
-                let wash_sale: Vec<Cheat> = self
-                    .bins2
+                let wash_sale: Vec<TimeKeyStockBin> = self
+                    .bins
                     .iter()
                     .filter(|(time, bin)| {
                         let date = time.0;
                         date >= before && date <= after && !bin.is_replacement
                     })
-                    .map(|(k, v)| Cheat(*k, *v))
+                    .map(|(k, v)| TimeKeyStockBin(*k, *v))
                     .collect();
                 if wash_sale.len() > 0 {
                     let mut new_bins: Vec<StockBin> = vec![];
                     let mut shares_to_consume = event.shares;
-                    for bin in wash_sale {
+                    for time_bin in wash_sale {
+                        let bin1 = time_bin.1;
                         // everything will be consumed
-                        if bin.1.shares <= shares_to_consume {
+                        if bin1.shares <= shares_to_consume {
                             let bin2 = StockBin {
-                                date: bin.1.date,
-                                generation: bin.1.generation,
-                                shares: bin.1.shares,
-                                cost_basis: bin
-                                    .1
+                                date: bin1.date,
+                                generation: bin1.generation,
+                                shares: bin1.shares,
+                                cost_basis: bin1
                                     .cost_basis
                                     // TODO: double check math
                                     .add(&event.market_price.multiply(event.shares)),
                                 is_replacement: true,
                             };
                             // remove bin, should exist so unwrap should be ok
-                            self.bins2.remove(&bin.0).unwrap();
+                            self.bins.remove(&time_bin.0).unwrap();
                             new_bins.push(bin2);
-                            shares_to_consume = shares_to_consume - bin.1.shares;
+                            shares_to_consume = shares_to_consume - time_bin.1.shares;
                         // some leftovers to break out
                         } else {
-                            let bin1 = StockBin {
-                                date: bin.1.date,
-                                generation: bin.1.generation,
-                                shares: bin.1.shares - shares_to_consume,
+                            let bin1 = time_bin.1;
+                            let bin1leftover = StockBin {
+                                date: bin1.date,
+                                generation: bin1.generation,
+                                shares: bin1.shares - shares_to_consume,
                                 // left over not consumed, so the same
-                                cost_basis: bin.1.cost_basis,
+                                cost_basis: bin1.cost_basis,
                                 is_replacement: false,
                             };
                             let bin2 = StockBin {
-                                date: bin.1.date,
+                                date: bin1.date,
                                 // watch out for different generations
-                                generation: bin.1.generation,
+                                generation: bin1.generation,
                                 shares: shares_to_consume,
                                 // TODO: double check math
-                                cost_basis: bin
-                                    .1
+                                cost_basis: bin1
                                     .cost_basis
                                     .add(&event.market_price.multiply(event.shares)),
                                 is_replacement: true,
                             };
                             // replace bin now since we don't want to calculate a new number for it
-                            self.bins2.insert(bin.0, bin1);
+                            self.bins.insert(time_bin.0, bin1leftover);
                             new_bins.push(bin2);
                             shares_to_consume = 0
                         }
@@ -128,7 +128,7 @@ impl TheWorld {
                         }
                     }
                     for new_bin in new_bins {
-                        self.addBinAndIncrementTimeKeyCounter(new_bin)
+                        self.add_bin_and_inc_tk_counter(new_bin)
                     }
                     if shares_to_consume > 0 {
                         "some losses allowed"
