@@ -1,5 +1,5 @@
-use crate::money::Thou;
 use crate::shares::StockBin;
+use crate::{money::Thou, shares::StockBinType};
 use chrono::{prelude::*, Duration};
 use serde::{
     de::{self, Visitor},
@@ -30,26 +30,6 @@ impl TheWorld {
             .for_each(|(k, v)| println!("time: {k:?} content: {v:?}"))
     }
 
-    fn accept_purchase_or_release(&mut self, event: Event) -> &str {
-        let counter = match self.date_counter.get(&event.date.0) {
-            Some(x) => x,
-            None => &0,
-        };
-        let counter = *counter;
-        self.date_counter.insert(event.date.0, counter + 1);
-        self.bins.insert(
-            TimeKey(event.date.0, counter),
-            StockBin {
-                date: event.date.0,
-                generation: 0,
-                shares: event.shares,
-                cost_basis: event.transaction_amount,
-                is_replacement: false,
-            },
-        );
-        "got some stocks!"
-    }
-
     fn add_bin_and_inc_tk_counter(&mut self, bin: StockBin) {
         let counter = match self.date_counter.get(&bin.date) {
             Some(x) => x,
@@ -60,21 +40,42 @@ impl TheWorld {
         self.bins.insert(TimeKey(bin.date, counter), bin);
     }
 
+    fn accept_purchase_or_release(&mut self, event: Event) -> &str {
+        // claimed losses may be annihilated by this new release
+        let wash_sale = self.filter_last_30(event.date.0, StockBinType::CLAIMED_LOSS);
+        if wash_sale.len() == 0 {
+            self.add_bin_and_inc_tk_counter(StockBin {
+                bin_type: StockBinType::AVAILABLE,
+                date: event.date.0,
+                generation: 0,
+                shares: event.shares,
+                cost_basis: event.transaction_amount,
+            });
+            "got some stocks!"
+        } else {
+            "wash sale calculations!"
+        }
+    }
+
+    // dont need to check after because processing in order, will check when sale or release occurs
+    fn filter_last_30(&self, date: NaiveDate, bin_type: StockBinType) -> Vec<TimeKeyStockBin> {
+        let before = date - Duration::days(30);
+        self
+            .bins
+            .iter()
+            .filter(|(time, bin)| {
+                let date = time.0;
+                date >= before && bin.bin_type == bin_type
+            })
+            .map(|(k, v)| TimeKeyStockBin(*k, *v))
+            .collect()
+    }
+
     pub fn accept_event(&mut self, event: Event) -> &str {
         match event.event_type {
             EventType::RELEASE => self.accept_purchase_or_release(event),
             EventType::SALE => {
-                let before = event.date.0 - Duration::days(30);
-                let after = event.date.0 + Duration::days(30);
-                let wash_sale: Vec<TimeKeyStockBin> = self
-                    .bins
-                    .iter()
-                    .filter(|(time, bin)| {
-                        let date = time.0;
-                        date >= before && date <= after && !bin.is_replacement
-                    })
-                    .map(|(k, v)| TimeKeyStockBin(*k, *v))
-                    .collect();
+                let wash_sale = self.filter_last_30(event.date.0, StockBinType::AVAILABLE);
                 if wash_sale.len() > 0 {
                     let mut new_bins: Vec<StockBin> = vec![];
                     let mut shares_to_consume = event.shares;
@@ -87,7 +88,7 @@ impl TheWorld {
                                 .cost_basis
                                 // TODO: double check math
                                 .add(&event.market_price.multiply(event.shares));
-                            bin2.is_replacement = true;
+                            bin2.bin_type = StockBinType::REPLACEMENT;
                             // remove bin, should exist so unwrap should be ok
                             self.bins.remove(&time_bin.0).unwrap();
                             new_bins.push(bin2);
@@ -105,8 +106,8 @@ impl TheWorld {
                             bin2.cost_basis = bin1
                                 .cost_basis
                                 .add(&event.market_price.multiply(event.shares));
-                            bin2.is_replacement = true;
-                            
+                            bin2.bin_type = StockBinType::REPLACEMENT;
+
                             // replace bin now since we don't want to calculate a new number for it
                             self.bins.insert(time_bin.0, bin1leftover);
                             new_bins.push(bin2);
@@ -120,11 +121,25 @@ impl TheWorld {
                         self.add_bin_and_inc_tk_counter(new_bin)
                     }
                     if shares_to_consume > 0 {
+                        self.add_bin_and_inc_tk_counter(StockBin {
+                            bin_type: StockBinType::CLAIMED_LOSS,
+                            date: event.date.0,
+                            generation: 0,
+                            shares: shares_to_consume,
+                            cost_basis: event.market_price.multiply(shares_to_consume),
+                        });
                         "some losses allowed"
                     } else {
                         "all wash sale disallowed"
                     }
                 } else {
+                    self.add_bin_and_inc_tk_counter(StockBin {
+                        bin_type: StockBinType::CLAIMED_LOSS,
+                        date: event.date.0,
+                        generation: 0,
+                        shares: event.shares,
+                        cost_basis: event.transaction_amount,
+                    });
                     "i sold something!"
                 }
             }
