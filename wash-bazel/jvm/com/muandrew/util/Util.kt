@@ -1,6 +1,5 @@
 package com.muandrew.util
 
-
 object Util {
 
 	@JvmStatic

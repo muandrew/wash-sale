@@ -1,6 +1,6 @@
-package com.example.cmdline;
+package com.muandrew.washsale;
 
-import com.muandrew.util.*;
+import com.muandrew.util.Util;
 
 public class Runner {
     public static void main(String args[]) {
