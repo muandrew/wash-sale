@@ -5,4 +5,6 @@
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
 
+bazel_dep(name = "contrib_rules_jvm", version = "0.18.0")
+bazel_dep(name = "gazelle", version = "0.35.0")
 bazel_dep(name = "rules_kotlin", version = "1.9.0")
