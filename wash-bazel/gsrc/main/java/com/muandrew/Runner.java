@@ -1,4 +1,4 @@
-package com.muandrew.washsale;
+package com.muandrew;
 
 import com.muandrew.util.Util;
 

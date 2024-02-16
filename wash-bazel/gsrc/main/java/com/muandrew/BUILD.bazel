@@ -1,0 +1,19 @@
+load("@rules_java//java:defs.bzl", "java_binary", "java_library")
+
+java_library(
+    name = "muandrew",
+    srcs = [
+        "Runner.java",
+    ],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//jvm/com/muandrew/util",  #keep
+    ],
+)
+
+java_binary(
+    name = "Runner",
+    main_class = "com.muandrew.Runner",
+    visibility = ["//visibility:public"],
+    runtime_deps = [":muandrew"],
+)

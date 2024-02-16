@@ -5,6 +5,39 @@
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
 
-bazel_dep(name = "contrib_rules_jvm", version = "0.18.0")
-bazel_dep(name = "gazelle", version = "0.35.0")
 bazel_dep(name = "rules_kotlin", version = "1.9.0")
+bazel_dep(name = "gazelle", version = "0.35.0")
+
+bazel_dep(name = "contrib_rules_jvm", version = "0.0.0")
+local_path_override(
+    module_name = "contrib_rules_jvm",
+    path = "/Users/amu/ext-proj/bazel-contrib/rules_jvm",
+)
+
+bazel_dep(
+    name = "rules_jvm_external",
+    version = "5.3",
+)
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    name = "maven",
+    artifacts = [
+        "org.junit.jupiter:junit-jupiter-api:5.8.2",
+        "org.junit.jupiter:junit-jupiter-engine:5.8.2",
+        "org.junit.platform:junit-platform-launcher:1.8.2",
+        "org.junit.platform:junit-platform-reporting:1.8.2",
+    ],
+     fetch_sources = True,
+            lock_file = "//:maven_install.json",
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+
+)
+
+use_repo(
+    maven,
+    "maven",
+    "unpinned_maven",
+)

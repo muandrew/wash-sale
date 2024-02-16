@@ -23,7 +23,7 @@ Cargo.lock
 .gradle
 **/build/
 xcuserdata
-!src/**/build/
+!gsrc/**/build/
 local.properties
 .idea
 .DS_Store

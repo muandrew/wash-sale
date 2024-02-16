@@ -1,0 +1,1 @@
+https://github.com/bazel-contrib/rules_jvm/tree/main/java/gazelle
