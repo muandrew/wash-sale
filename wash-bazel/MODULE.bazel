@@ -7,7 +7,6 @@
 
 bazel_dep(name = "rules_kotlin", version = "1.9.0")
 bazel_dep(name = "gazelle", version = "0.35.0")
-
 bazel_dep(name = "contrib_rules_jvm", version = "0.0.0")
 local_path_override(
     module_name = "contrib_rules_jvm",
@@ -20,22 +19,24 @@ bazel_dep(
 )
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+
+# usage below
+# https://github.com/bazelbuild/rules_jvm_external/blob/master/docs/bzlmod.md
 maven.install(
     name = "maven",
     artifacts = [
+        "junit:junit:4.13.2",
         "org.junit.jupiter:junit-jupiter-api:5.8.2",
         "org.junit.jupiter:junit-jupiter-engine:5.8.2",
         "org.junit.platform:junit-platform-launcher:1.8.2",
         "org.junit.platform:junit-platform-reporting:1.8.2",
     ],
-     fetch_sources = True,
-            lock_file = "//:maven_install.json",
+    fetch_sources = True,
+    lock_file = "//:maven_install.json",
     repositories = [
         "https://repo1.maven.org/maven2",
     ],
-
 )
-
 use_repo(
     maven,
     "maven",
