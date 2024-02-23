@@ -12,3 +12,5 @@ gazelle_binary(
         "@contrib_rules_jvm//java/gazelle",
     ],
 )
+
+exports_files(["MODULE.bazel.lock"])

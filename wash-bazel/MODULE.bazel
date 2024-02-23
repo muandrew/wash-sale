@@ -7,16 +7,8 @@
 
 bazel_dep(name = "rules_kotlin", version = "1.9.0")
 bazel_dep(name = "gazelle", version = "0.35.0")
-bazel_dep(name = "contrib_rules_jvm", version = "0.0.0")
-local_path_override(
-    module_name = "contrib_rules_jvm",
-    path = "/Users/amu/ext-proj/bazel-contrib/rules_jvm",
-)
-
-bazel_dep(
-    name = "rules_jvm_external",
-    version = "5.3",
-)
+bazel_dep(name = "contrib_rules_jvm", version = "0.24.0")
+bazel_dep(name = "rules_jvm_external", version = "6.0")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 
