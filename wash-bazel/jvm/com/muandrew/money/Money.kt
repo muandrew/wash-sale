@@ -1,7 +1,7 @@
 package com.muandrew.money
 
 @JvmInline
-value class Money(private val value: Long) {
+value class Money(val value: Long) {
 
     infix operator fun plus(other: Money): Money {
         return Money(this.value + other.value)
@@ -30,10 +30,22 @@ value class Money(private val value: Long) {
         return DivRes(Money(res), Money(rem))
     }
 
+    infix operator fun compareTo(other: Money): Int {
+        return this.value.compareTo(other.value)
+    }
+
     companion object {
         val ZERO = Money(0)
         val MIN_VALUE = Money(Long.MIN_VALUE)
+
+        fun min(lhs: Money, rhs: Money) : Money {
+            return Money(Math.min(lhs.value, rhs.value))
+        }
     }
+}
+
+infix operator fun Long.times(other: Money): Money {
+    return Money(this * other.value)
 }
 
 data class DivRes(val res: Money, val rem: Money)

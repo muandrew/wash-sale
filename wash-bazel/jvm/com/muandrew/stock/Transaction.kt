@@ -25,10 +25,10 @@ sealed interface Transaction {
 
     companion object {
         fun createRelease(date: LocalDate, shares: Long, value: Money): ReleaseTransaction{
-            val date = DateTime(date = date)
+            val dateTime = DateTime(date = date)
             return  ReleaseTransaction(
-                id = TransactionId.DateId(date = date),
-                date = date,
+                id = TransactionId.DateId(date = dateTime),
+                date = dateTime,
                 value = value,
                 shares = shares,
             )
@@ -40,10 +40,10 @@ sealed interface Transaction {
             value: Money,
             lotDate: LocalDate,
             ): SaleTransaction {
-            val date = DateTime(date = date)
+            val dateTime = DateTime(date = date)
             return SaleTransaction(
-                id = TransactionId.DateId(date = date),
-                date = date,
+                id = TransactionId.DateId(date = dateTime),
+                date = dateTime,
                 value = value,
                 shares = shares,
                 lotId = LotIdentifier.DateLotIdentifier(date = DateTime(date = lotDate))

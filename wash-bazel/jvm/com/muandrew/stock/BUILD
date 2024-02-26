@@ -16,3 +16,13 @@ kt_jvm_library(
         "//jvm/com/muandrew/stock/time",
     ],
 )
+
+kt_jvm_test(
+    name = "test",
+    srcs = ["WorldTest.kt"],
+    test_class = "com.muandrew.stock.WorldTest",
+    deps = [
+        ":stock",
+        "@maven//:junit_junit",
+    ],
+)

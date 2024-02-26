@@ -16,6 +16,12 @@ object StockCli {
             shares = 10,
             value = Money(1000))
         )
+        w.acceptTransaction(Transaction.createSale(
+            date = LocalDate.parse("2024-01-02"),
+            shares = 1,
+            value = Money(10),
+            lotDate = LocalDate.parse("2024-01-01"),
+        ))
 
         println(w)
     }
