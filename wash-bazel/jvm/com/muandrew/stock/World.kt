@@ -11,7 +11,7 @@ class World {
         when (transaction) {
             is Transaction.ReleaseTransaction -> {
                 lots.add(
-                    Lot(
+                    Lot.create(
                         id = LotIdentifier.DateLotIdentifier(transaction.date),
                         date = transaction.date,
                         initial = LotSnapshot(

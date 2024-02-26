@@ -3,25 +3,22 @@ package com.muandrew.stock
 import com.muandrew.money.Money
 import com.muandrew.money.times
 import com.muandrew.stock.time.DateTime
+import com.squareup.moshi.JsonClass
 
-class Lot(
+@JsonClass(generateAdapter = true)
+class Lot internal constructor(
     val id: LotIdentifier,
     val date: DateTime,
-    sourceTransaction: TransactionId,
     val initial: LotSnapshot,
+    var current: LotSnapshot,
     val transformed: TransformedFrom? = null,
 ) {
-    var current: LotSnapshot = initial
     val isReplacement get() = transformed != null
 
     /**
      * Includes the initial transaction
      */
-    private val transactions: MutableList<TransactionId> = mutableListOf()
-
-    init {
-        transactions.add(sourceTransaction)
-    }
+    internal val transactions: MutableList<TransactionId> = mutableListOf()
 
     override fun toString(): String {
         return "{id: `$id`, value: ${current.costBasis}, shares: ${current.shares}}"
@@ -41,10 +38,30 @@ class Lot(
             val pricePerShareWithRem = old.costBasis / old.shares
             val new = LotSnapshot(
                 shares = old.shares - sharesToRemove,
-                costBasis =  old.costBasis - (sharesToRemove * pricePerShareWithRem.res),
+                costBasis = old.costBasis - (sharesToRemove * pricePerShareWithRem.res),
             )
             current = new
         }
         transactions.add(transactionId)
+    }
+
+    companion object {
+        fun create(
+            id: LotIdentifier,
+            date: DateTime,
+            initial: LotSnapshot,
+            sourceTransaction: TransactionId,
+            transformed: TransformedFrom? = null,
+        ): Lot {
+            val lot = Lot(
+                id = id,
+                date = date,
+                initial = initial,
+                current = initial,
+                transformed = transformed,
+            )
+            lot.transactions.add(sourceTransaction)
+            return lot
+        }
     }
 }

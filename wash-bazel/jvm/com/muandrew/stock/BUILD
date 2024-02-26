@@ -10,10 +10,14 @@ kt_jvm_library(
         "TransactionId.kt",
         "World.kt",
     ],
+    plugins = [
+        "//:moshi-kotlin-codegen",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//jvm/com/muandrew/money",
         "//jvm/com/muandrew/stock/time",
+        "@maven//:com_squareup_moshi_moshi",
     ],
 )
 

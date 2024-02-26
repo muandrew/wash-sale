@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "4552c302aa672d08b955d26279d4a887a10d41c81ecd66eb4ee287d631124c57",
+  "moduleFileHash": "d94000339e0d083078e83abb65c1e0fdadfdef6ce39a7353660d265567fe531d",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -44,6 +44,9 @@
               "attributeValues": {
                 "name": "maven",
                 "artifacts": [
+                  "com.squareup.moshi:moshi:1.15.0",
+                  "com.squareup.moshi:moshi-kotlin:1.15.0",
+                  "com.squareup.moshi:moshi-kotlin-codegen:1.15.0",
                   "junit:junit:4.13.2",
                   "org.junit.jupiter:junit-jupiter-api:5.8.2",
                   "org.junit.jupiter:junit-jupiter-engine:5.8.2",
@@ -2227,6 +2230,596 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "@@contrib_rules_jvm~0.24.0//java/private:non-module-deps.bzl%non_module_deps": {
+      "general": {
+        "bzlTransitiveDigest": "Y+cIblxyDy+doHKb3eRouHksADpivl5PiFPxV0Ob7F8=",
+        "accumulatedFileDigests": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "io_grpc_grpc_java": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_archive",
+            "attributes": {
+              "name": "contrib_rules_jvm~0.24.0~non_module_deps~io_grpc_grpc_java",
+              "sha256": "17dd91014032a147c978ae99582fddd950f5444388eae700cf51eda0326ad2f9",
+              "strip_prefix": "grpc-java-1.56.1",
+              "urls": [
+                "https://github.com/grpc/grpc-java/archive/v1.56.1.tar.gz"
+              ]
+            }
+          }
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "contrib_rules_jvm~0.24.0",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
+    "@@gazelle~0.35.0//:extensions.bzl%go_deps": {
+      "general": {
+        "bzlTransitiveDigest": "zP01muRk4s4xWGK3gNPXOyDMQkOPsIhu99akeKWFFQ0=",
+        "accumulatedFileDigests": {
+          "@@rules_go~0.44.0//:go.mod": "15454724af1504c4ce1782c2a7f423d596a1d8490125eb7c5bd9c95fea1991f0",
+          "@@gazelle~0.35.0//:go.mod": "48dc6e771c3028ee1c18b9ffc81e596fd5f6d7e0016c5ef280e30f2821f60473",
+          "@@contrib_rules_jvm~0.24.0//:go.sum": "189e303356034acf571d1440de3a04e0bda29d588d97fa61eb33c35dd061c050",
+          "@@gazelle~0.35.0//:go.sum": "7c4460e8ecb5dd8691a51d4fa2e9e4751108b933636497ce46db499fc2e7a88d",
+          "@@rules_go~0.44.0//:go.sum": "b5938730bf7d3581421928b0385d99648dd9634becead96fca0594ac491b2f49",
+          "@@contrib_rules_jvm~0.24.0//:go.mod": "f5cee857977bb6e766824ae95273d5b9657ea60e0e47a785956dec060e31b7ba"
+        },
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "org_golang_x_tools_go_vcs": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_tools_go_vcs",
+              "importpath": "golang.org/x/tools/go/vcs",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:cOIJqWBl99H1dH5LWizPa+0ImeeJq3t3cJjaeOWUAL4=",
+              "replace": "",
+              "version": "v0.1.0-deprecated"
+            }
+          },
+          "com_github_fsnotify_fsnotify": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_fsnotify_fsnotify",
+              "importpath": "github.com/fsnotify/fsnotify",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=",
+              "replace": "",
+              "version": "v1.7.0"
+            }
+          },
+          "org_golang_google_grpc_cmd_protoc_gen_go_grpc": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_google_grpc_cmd_protoc_gen_go_grpc",
+              "importpath": "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:rNBFJjBCOgVr9pWD7rs/knKL4FRTKgpZmsRfV214zcA=",
+              "replace": "",
+              "version": "v1.3.0"
+            }
+          },
+          "com_github_bmatcuk_doublestar_v4": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_bmatcuk_doublestar_v4",
+              "importpath": "github.com/bmatcuk/doublestar/v4",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:FH9SifrbvJhnlQpztAx++wlkk70QBf0iBWDwNy7PA4I=",
+              "replace": "",
+              "version": "v4.6.1"
+            }
+          },
+          "com_github_pmezard_go_difflib": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_pmezard_go_difflib",
+              "importpath": "github.com/pmezard/go-difflib",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=",
+              "replace": "",
+              "version": "v1.0.0"
+            }
+          },
+          "com_github_davecgh_go_spew": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_davecgh_go_spew",
+              "importpath": "github.com/davecgh/go-spew",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=",
+              "replace": "",
+              "version": "v1.1.1"
+            }
+          },
+          "org_golang_x_tools": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_tools",
+              "importpath": "golang.org/x/tools",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:zdAyfUGbYmuVokhzVmghFl2ZJh5QhcfebBgmVPFYA+8=",
+              "replace": "",
+              "version": "v0.15.0"
+            }
+          },
+          "com_github_bazelbuild_buildtools": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_bazelbuild_buildtools",
+              "importpath": "github.com/bazelbuild/buildtools",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:2Gc2Q6hVR1SJ8bBI9Ybzoggp8u/ED2WkM4MfvEIn9+c=",
+              "replace": "",
+              "version": "v0.0.0-20231115204819-d4c9dccdfbb1"
+            }
+          },
+          "org_golang_x_net": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_net",
+              "importpath": "golang.org/x/net",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:mIYleuAkSbHh0tCv7RvjL3F6ZVbLjq4+R7zbOn3Kokg=",
+              "replace": "",
+              "version": "v0.18.0"
+            }
+          },
+          "com_github_google_btree": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_google_btree",
+              "importpath": "github.com/google/btree",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:xf4v41cLI2Z6FxbKm+8Bu+m8ifhj15JuZ9sa0jZCMUU=",
+              "replace": "",
+              "version": "v1.1.2"
+            }
+          },
+          "org_golang_google_genproto": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_google_genproto",
+              "importpath": "google.golang.org/genproto",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:W12Pwm4urIbRdGhMEg2NM9O3TWKjNcxQhs46V0ypf/k=",
+              "replace": "",
+              "version": "v0.0.0-20231127180814-3a041ad873d4"
+            }
+          },
+          "net_starlark_go": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~net_starlark_go",
+              "importpath": "go.starlark.net",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:xwwDQW5We85NaTk2APgoN9202w/l0DVGp+GZMfsrh7s=",
+              "replace": "",
+              "version": "v0.0.0-20210223155950-e043a3d3c984"
+            }
+          },
+          "com_github_gogo_protobuf": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_gogo_protobuf",
+              "importpath": "github.com/gogo/protobuf",
+              "build_directives": [
+                "gazelle:proto disable"
+              ],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=",
+              "replace": "",
+              "version": "v1.3.2"
+            }
+          },
+          "com_github_stretchr_testify": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_stretchr_testify",
+              "importpath": "github.com/stretchr/testify",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=",
+              "replace": "",
+              "version": "v1.7.0"
+            }
+          },
+          "org_golang_x_sync": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_sync",
+              "importpath": "golang.org/x/sync",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:60k92dhOjHxJkrqnwsfl8KuaHbn/5dl0lUPUklKo3qE=",
+              "replace": "",
+              "version": "v0.5.0"
+            }
+          },
+          "com_github_golang_mock": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_golang_mock",
+              "importpath": "github.com/golang/mock",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:YojYx61/OLFsiv6Rw1Z96LpldJIy31o+UHmwAUMJ6/U=",
+              "replace": "",
+              "version": "v1.7.0-rc.1"
+            }
+          },
+          "org_golang_google_grpc": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_google_grpc",
+              "importpath": "google.golang.org/grpc",
+              "build_directives": [
+                "gazelle:proto disable"
+              ],
+              "build_file_generation": "on",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:Z5Iec2pjwb+LEOqzpB2MR12/eKFhDPhuqW91O+4bwUk=",
+              "replace": "",
+              "version": "v1.59.0"
+            }
+          },
+          "org_golang_google_genproto_googleapis_rpc": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_google_genproto_googleapis_rpc",
+              "importpath": "google.golang.org/genproto/googleapis/rpc",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:ultW7fxlIvee4HYrtnaRPon9HpEgFk5zYpmfMgtKB5I=",
+              "replace": "",
+              "version": "v0.0.0-20231120223509-83a465c0220f"
+            }
+          },
+          "com_github_google_go_cmp": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_google_go_cmp",
+              "importpath": "github.com/google/go-cmp",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=",
+              "replace": "",
+              "version": "v0.6.0"
+            }
+          },
+          "com_github_hashicorp_golang_lru": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_hashicorp_golang_lru",
+              "importpath": "github.com/hashicorp/golang-lru",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:YDjusn29QI/Das2iO9M0BHnIbxPeyuCHsjMW+lJfyTc=",
+              "replace": "",
+              "version": "v0.5.4"
+            }
+          },
+          "org_golang_x_text": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_text",
+              "importpath": "golang.org/x/text",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:ScX5w1eTa3QqT8oi6+ziP7dTV1S2+ALU0bI+0zXKWiQ=",
+              "replace": "",
+              "version": "v0.14.0"
+            }
+          },
+          "com_github_google_uuid": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_google_uuid",
+              "importpath": "github.com/google/uuid",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=",
+              "replace": "",
+              "version": "v1.1.2"
+            }
+          },
+          "org_golang_google_protobuf": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_google_protobuf",
+              "importpath": "google.golang.org/protobuf",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:g0LDEJHgrBl9N9r17Ru3sqWhkIx2NB67okBHPwC7hs8=",
+              "replace": "",
+              "version": "v1.31.0"
+            }
+          },
+          "org_golang_x_mod": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_mod",
+              "importpath": "golang.org/x/mod",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:dGoOF9QVLYng8IHTm7BAyWqCqSheQ5pYWGhzW00YJr0=",
+              "replace": "",
+              "version": "v0.14.0"
+            }
+          },
+          "in_gopkg_yaml_v3": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~in_gopkg_yaml_v3",
+              "importpath": "gopkg.in/yaml.v3",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:dUUwHk2QECo/6vqA44rthZ8ie2QXMNeKRTHCNY2nXvo=",
+              "replace": "",
+              "version": "v3.0.0-20200313102051-9f266ea9e77c"
+            }
+          },
+          "com_github_sergi_go_diff": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_sergi_go_diff",
+              "importpath": "github.com/sergi/go-diff",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=",
+              "replace": "",
+              "version": "v1.2.0"
+            }
+          },
+          "com_github_aristanetworks_goarista": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_aristanetworks_goarista",
+              "importpath": "github.com/aristanetworks/goarista",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:xnu1MpGNjnEooJ8lWa3YiU3330zMZISReAosjpZpLzg=",
+              "replace": "",
+              "version": "v0.0.0-20220328143245-64c8d3945829"
+            }
+          },
+          "com_github_golang_protobuf": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_golang_protobuf",
+              "importpath": "github.com/golang/protobuf",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg=",
+              "replace": "",
+              "version": "v1.5.3"
+            }
+          },
+          "bazel_gazelle_go_repository_config": {
+            "bzlFile": "@@gazelle~0.35.0//internal/bzlmod:go_deps.bzl",
+            "ruleClassName": "_go_repository_config",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~bazel_gazelle_go_repository_config",
+              "importpaths": {
+                "org_golang_x_tools": "golang.org/x/tools",
+                "com_github_bazelbuild_buildtools": "github.com/bazelbuild/buildtools",
+                "@rules_go~0.44.0": "github.com/bazelbuild/rules_go",
+                "com_github_bmatcuk_doublestar_v4": "github.com/bmatcuk/doublestar/v4",
+                "com_github_fsnotify_fsnotify": "github.com/fsnotify/fsnotify",
+                "com_github_google_go_cmp": "github.com/google/go-cmp",
+                "com_github_pmezard_go_difflib": "github.com/pmezard/go-difflib",
+                "org_golang_x_mod": "golang.org/x/mod",
+                "org_golang_x_sync": "golang.org/x/sync",
+                "org_golang_x_tools_go_vcs": "golang.org/x/tools/go/vcs",
+                "org_golang_x_sys": "golang.org/x/sys",
+                "com_github_aristanetworks_goarista": "github.com/aristanetworks/goarista",
+                "com_github_google_btree": "github.com/google/btree",
+                "com_github_google_uuid": "github.com/google/uuid",
+                "com_github_hashicorp_golang_lru": "github.com/hashicorp/golang-lru",
+                "com_github_rs_zerolog": "github.com/rs/zerolog",
+                "com_github_sergi_go_diff": "github.com/sergi/go-diff",
+                "com_github_stretchr_testify": "github.com/stretchr/testify",
+                "net_starlark_go": "go.starlark.net",
+                "org_golang_google_grpc": "google.golang.org/grpc",
+                "com_github_davecgh_go_spew": "github.com/davecgh/go-spew",
+                "com_github_golang_protobuf": "github.com/golang/protobuf",
+                "org_golang_x_net": "golang.org/x/net",
+                "org_golang_x_text": "golang.org/x/text",
+                "org_golang_google_genproto": "google.golang.org/genproto",
+                "org_golang_google_protobuf": "google.golang.org/protobuf",
+                "in_gopkg_yaml_v3": "gopkg.in/yaml.v3",
+                "com_github_gogo_protobuf": "github.com/gogo/protobuf",
+                "com_github_golang_mock": "github.com/golang/mock",
+                "org_golang_google_grpc_cmd_protoc_gen_go_grpc": "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
+                "org_golang_google_genproto_googleapis_rpc": "google.golang.org/genproto/googleapis/rpc",
+                "@gazelle~0.35.0": "github.com/bazelbuild/bazel-gazelle",
+                "@contrib_rules_jvm~0.24.0": "github.com/bazel-contrib/rules_jvm"
+              },
+              "module_names": {
+                "@gazelle~0.35.0": "gazelle",
+                "@contrib_rules_jvm~0.24.0": "contrib_rules_jvm",
+                "@rules_go~0.44.0": "rules_go"
+              },
+              "build_naming_conventions": {}
+            }
+          },
+          "org_golang_x_sys": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~org_golang_x_sys",
+              "importpath": "golang.org/x/sys",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:h48lPFYpsTvQJZF4EKyI4aLHaev3CxivZmv7yZig9pc=",
+              "replace": "",
+              "version": "v0.15.0"
+            }
+          },
+          "com_github_rs_zerolog": {
+            "bzlFile": "@@gazelle~0.35.0//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "name": "gazelle~0.35.0~go_deps~com_github_rs_zerolog",
+              "importpath": "github.com/rs/zerolog",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:/ihwxqH+4z8UxyI70wM1z9yCvkWcfz/a3mj48k/Zngc=",
+              "replace": "",
+              "version": "v1.26.1"
+            }
+          }
+        },
+        "moduleExtensionMetadata": {
+          "explicitRootModuleDirectDeps": [
+            "bazel_gazelle_go_repository_config"
+          ],
+          "explicitRootModuleDirectDevDeps": [],
+          "useAllRepos": "NO"
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "gazelle~0.35.0",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
     "@@gazelle~0.35.0//internal/bzlmod:non_module_deps.bzl%non_module_deps": {
       "general": {
         "bzlTransitiveDigest": "myisAzY8g7s6m4JEXO0jl0v9s/jVaKVnpLyplO9+HKM=",
@@ -3478,7 +4071,7 @@
       "general": {
         "bzlTransitiveDigest": "vOkppYc6wE/3x4HnEmuAd/USfcKbaNTBbUEl7bKmhsY=",
         "accumulatedFileDigests": {
-          "@@//:maven_install.json": "67af01d6473d6be8ee0818957427a85fb98b1df2a171df563149ef50c1d01970",
+          "@@//:maven_install.json": "dd0b54183040738cc8d940eedda606989ef298ee407ab8cc2ab9e25c808b5da3",
           "@@rules_jvm_external~6.0//:rules_jvm_external_deps_install.json": "cafb5d2d8119391eb2b322ce3840d3352ea82d496bdb8cbd4b6779ec4d044dda"
         },
         "envVariables": {},
@@ -3582,6 +4175,18 @@
               "downloaded_file_path": "v1/com/google/api/gax-grpc/2.32.0/gax-grpc-2.32.0.jar"
             }
           },
+          "org_jetbrains_kotlin_kotlin_stdlib_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_1_8_21",
+              "sha256": "042a1cd1ac976cdcfe5eb63f1d8e0b0b892c9248e15a69c8cfba495d546ea52a",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.8.21/kotlin-stdlib-1.8.21.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib/1.8.21/kotlin-stdlib-1.8.21.jar"
+            }
+          },
           "com_google_truth_truth": {
             "bzlFile": "@@rules_jvm_external~6.0//private:compat_repository.bzl",
             "ruleClassName": "compat_repository",
@@ -3669,6 +4274,18 @@
               "downloaded_file_path": "v1/io/netty/netty-codec-http/4.1.94.Final/netty-codec-http-4.1.94.Final.jar"
             }
           },
+          "com_google_auto_service_auto_service_annotations_jar_sources_1_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_google_auto_service_auto_service_annotations_jar_sources_1_0",
+              "sha256": "a063f495c8aaa763726529a241ca1510a6ff3d9c92f511dffd131c4303caed44",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/google/auto/service/auto-service-annotations/1.0/auto-service-annotations-1.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/google/auto/service/auto-service-annotations/1.0/auto-service-annotations-1.0-sources.jar"
+            }
+          },
           "org_junit_jupiter_junit_jupiter_api": {
             "bzlFile": "@@rules_jvm_external~6.0//private:compat_repository.bzl",
             "ruleClassName": "compat_repository",
@@ -3724,6 +4341,18 @@
                 "https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar"
               ],
               "downloaded_file_path": "v1/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar"
+            }
+          },
+          "org_jetbrains_kotlin_kotlin_stdlib_jar_sources_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_jar_sources_1_8_21",
+              "sha256": "e60342da94ab52368157917916775b7f2f03bbd728aad3c9e86c3f02a93dbeec",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.8.21/kotlin-stdlib-1.8.21-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib/1.8.21/kotlin-stdlib-1.8.21-sources.jar"
             }
           },
           "com_google_api_grpc_proto_google_iam_v1_1_18_0": {
@@ -3947,6 +4576,9 @@
                 "{ \"repo_url\": \"https://repo1.maven.org/maven2\" }"
               ],
               "artifacts": [
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi\", \"version\": \"1.15.0\" }",
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin\", \"version\": \"1.15.0\" }",
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin-codegen\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"junit\", \"artifact\": \"junit\", \"version\": \"4.13.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-api\", \"version\": \"5.8.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-engine\", \"version\": \"5.8.2\" }",
@@ -4050,6 +4682,18 @@
               "downloaded_file_path": "v1/com/google/protobuf/protobuf-java-util/3.23.2/protobuf-java-util-3.23.2.jar"
             }
           },
+          "com_squareup_okio_okio_jar_sources_2_10_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_okio_okio_jar_sources_2_10_0",
+              "sha256": "4f255d11829d7e1949be042efa70f933650a7d929e68d594c1608f97884a0535",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/okio/okio/2.10.0/okio-2.10.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/okio/okio/2.10.0/okio-2.10.0-sources.jar"
+            }
+          },
           "net_bytebuddy_byte_buddy_1_12_7": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -4062,16 +4706,16 @@
               "downloaded_file_path": "v1/net/bytebuddy/byte-buddy/1.12.7/byte-buddy-1.12.7.jar"
             }
           },
-          "org_ow2_asm_asm_9_0": {
+          "org_ow2_asm_asm_9_3": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
             "attributes": {
-              "name": "rules_jvm_external~6.0~maven~org_ow2_asm_asm_9_0",
-              "sha256": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0",
+              "name": "rules_jvm_external~6.0~maven~org_ow2_asm_asm_9_3",
+              "sha256": "1263369b59e29c943918de11d6d6152e2ec6085ce63e5710516f8c67d368e4bc",
               "urls": [
-                "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar"
+                "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.3/asm-9.3.jar"
               ],
-              "downloaded_file_path": "v1/org/ow2/asm/asm/9.0/asm-9.0.jar"
+              "downloaded_file_path": "v1/org/ow2/asm/asm/9.3/asm-9.3.jar"
             }
           },
           "software_amazon_awssdk_apache_client_2_20_128": {
@@ -4173,6 +4817,18 @@
               "downloaded_file_path": "v1/com/google/cloud/google-cloud-storage/2.26.1/google-cloud-storage-2.26.1.jar"
             }
           },
+          "org_jetbrains_kotlin_kotlin_stdlib_jdk8_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_jdk8_1_8_21",
+              "sha256": "3db752a30074f06ee6c57984aa6f27da44f4d2bbc7f5442651f6988f1cb2b7d7",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.8.21/kotlin-stdlib-jdk8-1.8.21.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.8.21/kotlin-stdlib-jdk8-1.8.21.jar"
+            }
+          },
           "software_amazon_awssdk_http_client_spi_2_20_128": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -4231,6 +4887,30 @@
                 "https://repo1.maven.org/maven2/org/threeten/threetenbp/1.6.8/threetenbp-1.6.8.jar"
               ],
               "downloaded_file_path": "v1/org/threeten/threetenbp/1.6.8/threetenbp-1.6.8.jar"
+            }
+          },
+          "com_squareup_moshi_moshi_kotlin_codegen_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_kotlin_codegen_1_15_0",
+              "sha256": "f84eb5e0988820b95b15088a166918be4d965b7e397b6c32da3c6b55425dc345",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi-kotlin-codegen/1.15.0/moshi-kotlin-codegen-1.15.0.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi-kotlin-codegen/1.15.0/moshi-kotlin-codegen-1.15.0.jar"
+            }
+          },
+          "org_jetbrains_kotlin_kotlin_reflect_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_reflect_1_8_21",
+              "sha256": "8a6cd5a3cf092acee274ce2c444dc36eefdb631579859dd4d857b3309a529c91",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.8.21/kotlin-reflect-1.8.21.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-reflect/1.8.21/kotlin-reflect-1.8.21.jar"
             }
           },
           "io_netty_netty_handler_proxy": {
@@ -4490,6 +5170,42 @@
               "downloaded_file_path": "v1/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3-sources.jar"
             }
           },
+          "com_squareup_okio_okio_2_10_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_okio_okio_2_10_0",
+              "sha256": "a27f091d34aa452e37227e2cfa85809f29012a8ef2501a9b5a125a978e4fcbc1",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/okio/okio/2.10.0/okio-2.10.0.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/okio/okio/2.10.0/okio-2.10.0.jar"
+            }
+          },
+          "com_google_auto_service_auto_service_annotations_1_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_google_auto_service_auto_service_annotations_1_0",
+              "sha256": "44752893119fdaf01b4c5ee74e46e5dab86f2dcda18114c562f877355c6ed26e",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/google/auto/service/auto-service-annotations/1.0/auto-service-annotations-1.0.jar"
+              ],
+              "downloaded_file_path": "v1/com/google/auto/service/auto-service-annotations/1.0/auto-service-annotations-1.0.jar"
+            }
+          },
+          "org_jetbrains_kotlin_kotlin_stdlib_jdk7_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_jdk7_1_8_21",
+              "sha256": "33d148db0e11debd0d90677d28242bced907f9c77730000fd597867089039d86",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.8.21/kotlin-stdlib-jdk7-1.8.21.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.8.21/kotlin-stdlib-jdk7-1.8.21.jar"
+            }
+          },
           "com_google_api_grpc_proto_google_cloud_storage_v2_2_26_1_alpha": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -4500,6 +5216,18 @@
                 "https://repo1.maven.org/maven2/com/google/api/grpc/proto-google-cloud-storage-v2/2.26.1-alpha/proto-google-cloud-storage-v2-2.26.1-alpha.jar"
               ],
               "downloaded_file_path": "v1/com/google/api/grpc/proto-google-cloud-storage-v2/2.26.1-alpha/proto-google-cloud-storage-v2-2.26.1-alpha.jar"
+            }
+          },
+          "com_squareup_moshi_moshi_jar_sources_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_jar_sources_1_15_0",
+              "sha256": "d658332c2b2b57f94d6c26bb747e5dbb65a2d5b47cc3e0a15036977fe832996e",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0-sources.jar"
             }
           },
           "com_google_guava_guava_testlib_31_1_jre": {
@@ -4712,6 +5440,18 @@
               "downloaded_file_path": "v1/com/google/guava/guava/31.1-jre/guava-31.1-jre-sources.jar"
             }
           },
+          "org_jetbrains_kotlin_kotlin_reflect_jar_sources_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_reflect_jar_sources_1_8_21",
+              "sha256": "3b1b29047a65940f2da4e2e71f969e2e2de343e69dce00c6fe9e333b99565d44",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.8.21/kotlin-reflect-1.8.21-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-reflect/1.8.21/kotlin-reflect-1.8.21-sources.jar"
+            }
+          },
           "com_google_cloud_google_cloud_core_http_2_22_0": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -4746,6 +5486,18 @@
                 "https://repo1.maven.org/maven2/com/google/auth/google-auth-library-credentials/1.19.0/google-auth-library-credentials-1.19.0.jar"
               ],
               "downloaded_file_path": "v1/com/google/auth/google-auth-library-credentials/1.19.0/google-auth-library-credentials-1.19.0.jar"
+            }
+          },
+          "com_squareup_moshi_moshi_kotlin_jar_sources_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_kotlin_jar_sources_1_15_0",
+              "sha256": "5b40a79012daa9b3bb0c8f9c61483aa4b01dbec8d7841db66e90e7fead9eb6af",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0-sources.jar"
             }
           },
           "io_grpc_grpc_xds_1_56_1": {
@@ -4842,6 +5594,18 @@
                 "https://repo1.maven.org/maven2/com/google/googlejavaformat/google-java-format/1.17.0/google-java-format-1.17.0.jar"
               ],
               "downloaded_file_path": "v1/com/google/googlejavaformat/google-java-format/1.17.0/google-java-format-1.17.0.jar"
+            }
+          },
+          "org_jetbrains_annotations_jar_sources_13_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_annotations_jar_sources_13_0",
+              "sha256": "42a5e144b8e81d50d6913d1007b695e62e614705268d8cf9f13dbdc478c2c68e",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/annotations/13.0/annotations-13.0-sources.jar"
             }
           },
           "com_google_guava_failureaccess_1_0_1": {
@@ -5018,6 +5782,18 @@
               "target_name": "com_google_auto_value_auto_value_annotations"
             }
           },
+          "com_squareup_kotlinpoet_ksp_jar_sources_1_13_2": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_kotlinpoet_ksp_jar_sources_1_13_2",
+              "sha256": "a586f33933b1a5a908723db9a0de7a3854833648f7bc8d40b52cf146c9b6b7e3",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/kotlinpoet-ksp/1.13.2/kotlinpoet-ksp-1.13.2-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/kotlinpoet-ksp/1.13.2/kotlinpoet-ksp-1.13.2-sources.jar"
+            }
+          },
           "software_amazon_awssdk_json_utils_2_20_128": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -5040,6 +5816,18 @@
                 "https://repo1.maven.org/maven2/io/grpc/grpc-protobuf/1.56.1/grpc-protobuf-1.56.1.jar"
               ],
               "downloaded_file_path": "v1/io/grpc/grpc-protobuf/1.56.1/grpc-protobuf-1.56.1.jar"
+            }
+          },
+          "com_squareup_moshi_moshi_kotlin_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_kotlin_1_15_0",
+              "sha256": "874029dcba5a558a57c86cbe91a6f9ea59dfbc2a17ee4bc41e2e5b9a106f0a5f",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0.jar"
             }
           },
           "org_opentest4j_opentest4j_1_2_0": {
@@ -5118,6 +5906,18 @@
               "name": "rules_jvm_external~6.0~maven~io_grpc_grpc_core",
               "generating_repository": "contrib_rules_jvm_deps",
               "target_name": "io_grpc_grpc_core"
+            }
+          },
+          "com_squareup_kotlinpoet_jar_sources_1_13_2": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_kotlinpoet_jar_sources_1_13_2",
+              "sha256": "57313a605d93021318e6dd3aad20758183783644311732de4afa19b94a269664",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/kotlinpoet/1.13.2/kotlinpoet-1.13.2-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/kotlinpoet/1.13.2/kotlinpoet-1.13.2-sources.jar"
             }
           },
           "com_squareup_okhttp_okhttp": {
@@ -5264,16 +6064,16 @@
               "downloaded_file_path": "v1/software/amazon/awssdk/arns/2.20.128/arns-2.20.128.jar"
             }
           },
-          "org_ow2_asm_asm_jar_sources_9_0": {
+          "org_ow2_asm_asm_jar_sources_9_3": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
             "attributes": {
-              "name": "rules_jvm_external~6.0~maven~org_ow2_asm_asm_jar_sources_9_0",
-              "sha256": "829bc5eb0ccd705a7c8afbf7cdc4b7e9a9f733d3a1a954b9afffd99c8e063366",
+              "name": "rules_jvm_external~6.0~maven~org_ow2_asm_asm_jar_sources_9_3",
+              "sha256": "5ceb3d0b41a8eb8b416f28778b27c0e290143b6dc29d887b1cf40e2c0727f096",
               "urls": [
-                "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0-sources.jar"
+                "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.3/asm-9.3-sources.jar"
               ],
-              "downloaded_file_path": "v1/org/ow2/asm/asm/9.0/asm-9.0-sources.jar"
+              "downloaded_file_path": "v1/org/ow2/asm/asm/9.3/asm-9.3-sources.jar"
             }
           },
           "io_opencensus_opencensus_api": {
@@ -5283,6 +6083,18 @@
               "name": "rules_jvm_external~6.0~maven~io_opencensus_opencensus_api",
               "generating_repository": "contrib_rules_jvm_deps",
               "target_name": "io_opencensus_opencensus_api"
+            }
+          },
+          "org_jetbrains_kotlin_kotlin_stdlib_common_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_common_1_8_21",
+              "sha256": "6a44c9ecc9d7754d9e943fb1e3588c74d4a3f1785be51074f49d6c5723682a73",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-common/1.8.21/kotlin-stdlib-common-1.8.21.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib-common/1.8.21/kotlin-stdlib-common-1.8.21.jar"
             }
           },
           "net_bytebuddy_byte_buddy_agent_1_12_7": {
@@ -5574,6 +6386,30 @@
               "downloaded_file_path": "v1/org/junit/platform/junit-platform-launcher/1.8.2/junit-platform-launcher-1.8.2.jar"
             }
           },
+          "com_squareup_moshi_moshi_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_1_15_0",
+              "sha256": "350d48c34df4a8ef4f1475aa65ef0e54c4d8302a71efc9f6c09d0e98fd4c63c6",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0.jar"
+            }
+          },
+          "com_squareup_moshi_moshi_kotlin_codegen_jar_sources_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_kotlin_codegen_jar_sources_1_15_0",
+              "sha256": "1a07a0751b0949c52a7a4333587421699537489e05a2e5820876c18855ebf337",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi-kotlin-codegen/1.15.0/moshi-kotlin-codegen-1.15.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi-kotlin-codegen/1.15.0/moshi-kotlin-codegen-1.15.0-sources.jar"
+            }
+          },
           "org_junit_jupiter_junit_jupiter_api_5_8_2": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -5638,6 +6474,18 @@
                 "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar"
               ],
               "downloaded_file_path": "v1/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar"
+            }
+          },
+          "org_jetbrains_annotations_13_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_annotations_13_0",
+              "sha256": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/annotations/13.0/annotations-13.0.jar"
             }
           },
           "io_netty_netty_transport": {
@@ -5773,6 +6621,9 @@
                 "{ \"repo_url\": \"https://repo1.maven.org/maven2\" }"
               ],
               "artifacts": [
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi\", \"version\": \"1.15.0\" }",
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin\", \"version\": \"1.15.0\" }",
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin-codegen\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"junit\", \"artifact\": \"junit\", \"version\": \"4.13.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-api\", \"version\": \"5.8.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-engine\", \"version\": \"5.8.2\" }",
@@ -5920,6 +6771,18 @@
               "target_name": "io_netty_netty_tcnative_boringssl_static"
             }
           },
+          "org_jetbrains_kotlin_kotlin_stdlib_common_jar_sources_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_common_jar_sources_1_8_21",
+              "sha256": "24c7a84f2f45711735a15c8f68c90803a8c12f885092c598a297f41ac7cdce5b",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-common/1.8.21/kotlin-stdlib-common-1.8.21-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib-common/1.8.21/kotlin-stdlib-common-1.8.21-sources.jar"
+            }
+          },
           "junit_junit": {
             "bzlFile": "@@rules_jvm_external~6.0//private:compat_repository.bzl",
             "ruleClassName": "compat_repository",
@@ -6004,6 +6867,30 @@
               "downloaded_file_path": "v1/org/mockito/mockito-core/4.3.1/mockito-core-4.3.1-sources.jar"
             }
           },
+          "com_squareup_kotlinpoet_1_13_2": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_kotlinpoet_1_13_2",
+              "sha256": "7cbf7f4330170f9459d15c105fae6e13784cb37855fd68cf2826dfa0b5deb676",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/kotlinpoet/1.13.2/kotlinpoet-1.13.2.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/kotlinpoet/1.13.2/kotlinpoet-1.13.2.jar"
+            }
+          },
+          "org_jetbrains_kotlin_kotlin_stdlib_jdk8_jar_sources_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_jdk8_jar_sources_1_8_21",
+              "sha256": "40e9a80f6b953d12389623760d438e69914098d0c4d7053f70f90533ec041259",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.8.21/kotlin-stdlib-jdk8-1.8.21-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.8.21/kotlin-stdlib-jdk8-1.8.21-sources.jar"
+            }
+          },
           "com_google_android_annotations_4_1_1_4": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -6038,6 +6925,30 @@
                 "https://repo1.maven.org/maven2/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1-sources.jar"
               ],
               "downloaded_file_path": "v1/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1-sources.jar"
+            }
+          },
+          "com_squareup_kotlinpoet_ksp_1_13_2": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_kotlinpoet_ksp_1_13_2",
+              "sha256": "d1de5e3d6f7405dc10cb14a43f39400ba75604e1cf86da1fe08e9007a8a17d08",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/kotlinpoet-ksp/1.13.2/kotlinpoet-ksp-1.13.2.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/kotlinpoet-ksp/1.13.2/kotlinpoet-ksp-1.13.2.jar"
+            }
+          },
+          "org_jetbrains_kotlin_kotlin_stdlib_jdk7_jar_sources_1_8_21": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~org_jetbrains_kotlin_kotlin_stdlib_jdk7_jar_sources_1_8_21",
+              "sha256": "ea10d3e5e6e695d8a5283cbf116321acae6ba42d0bdd3eda50f7c34a26fa25cb",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.8.21/kotlin-stdlib-jdk7-1.8.21-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.8.21/kotlin-stdlib-jdk7-1.8.21-sources.jar"
             }
           },
           "com_google_api_grpc_proto_google_common_protos": {
