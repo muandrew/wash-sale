@@ -22,6 +22,7 @@ class World {
                     )
                 )
             }
+
             is Transaction.SaleTransaction -> {
                 val lots = lots.findLotsForId(transaction.lotId)
                 if (lots.isEmpty()) {
@@ -69,7 +70,7 @@ fun List<Lot>.findLotsForId(id: LotIdentifier): List<Lot> {
                 filter {
                     it.current.shares > 0 && it.date == id.date
                 }
-            // picking fifo for the day
+                // picking fifo for the day
             } else {
                 filter {
                     it.current.shares > 0 && it.date.date == id.date.date
@@ -83,7 +84,7 @@ sealed interface TransformedFrom {
     data class WashSale(
         val originalLot: LotIdentifier,
         val fromTransaction: TransactionId,
-    )
+    ) : TransformedFrom
 }
 
 

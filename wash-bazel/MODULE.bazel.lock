@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "d94000339e0d083078e83abb65c1e0fdadfdef6ce39a7353660d265567fe531d",
+  "moduleFileHash": "e3dd6e85f0f42aa5bea3394fa2e38461db9df6f0f4caf759fc2b5094eef25db2",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -45,6 +45,7 @@
                 "name": "maven",
                 "artifacts": [
                   "com.squareup.moshi:moshi:1.15.0",
+                  "com.squareup.moshi:moshi-adapters:1.15.0",
                   "com.squareup.moshi:moshi-kotlin:1.15.0",
                   "com.squareup.moshi:moshi-kotlin-codegen:1.15.0",
                   "junit:junit:4.13.2",
@@ -4071,7 +4072,7 @@
       "general": {
         "bzlTransitiveDigest": "vOkppYc6wE/3x4HnEmuAd/USfcKbaNTBbUEl7bKmhsY=",
         "accumulatedFileDigests": {
-          "@@//:maven_install.json": "dd0b54183040738cc8d940eedda606989ef298ee407ab8cc2ab9e25c808b5da3",
+          "@@//:maven_install.json": "1dd55cedae6650526cd2623ac36c21d38ad37106069f187f7ccab76a4b34cd28",
           "@@rules_jvm_external~6.0//:rules_jvm_external_deps_install.json": "cafb5d2d8119391eb2b322ce3840d3352ea82d496bdb8cbd4b6779ec4d044dda"
         },
         "envVariables": {},
@@ -4577,6 +4578,7 @@
               ],
               "artifacts": [
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi\", \"version\": \"1.15.0\" }",
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-adapters\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin-codegen\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"junit\", \"artifact\": \"junit\", \"version\": \"4.13.2\" }",
@@ -4770,6 +4772,18 @@
                 "https://repo1.maven.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"
               ],
               "downloaded_file_path": "v1/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"
+            }
+          },
+          "com_squareup_moshi_moshi_adapters_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_adapters_1_15_0",
+              "sha256": "b747d391b59b58ae4f6ae157f67084645d5ad3e4d5d2cbb9f24e00772c06e34e",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0.jar"
             }
           },
           "com_google_oauth_client_google_oauth_client_1_34_1": {
@@ -5273,6 +5287,18 @@
               "name": "rules_jvm_external~6.0~maven~com_google_j2objc_j2objc_annotations",
               "generating_repository": "contrib_rules_jvm_deps",
               "target_name": "com_google_j2objc_j2objc_annotations"
+            }
+          },
+          "com_squareup_moshi_moshi_adapters_jar_sources_1_15_0": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "name": "rules_jvm_external~6.0~maven~com_squareup_moshi_moshi_adapters_jar_sources_1_15_0",
+              "sha256": "5e1c2bc49f2497ba8e5b1d55a323232ecc9a485ad55761d797626421496e7aa6",
+              "urls": [
+                "https://repo1.maven.org/maven2/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0-sources.jar"
+              ],
+              "downloaded_file_path": "v1/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0-sources.jar"
             }
           },
           "unpinned_rules_jvm_external_deps": {
@@ -6622,6 +6648,7 @@
               ],
               "artifacts": [
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi\", \"version\": \"1.15.0\" }",
+                "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-adapters\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin-codegen\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"junit\", \"artifact\": \"junit\", \"version\": \"4.13.2\" }",
