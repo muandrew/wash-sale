@@ -5,7 +5,6 @@ import com.muandrew.moshi.adapters.LocalDateAdapter
 import com.muandrew.moshi.adapters.LocalTimeAdapter
 import com.muandrew.stock.*
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.adapter
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.time.LocalDate

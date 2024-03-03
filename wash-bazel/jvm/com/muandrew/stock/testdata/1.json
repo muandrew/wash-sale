@@ -1,0 +1,34 @@
+[
+  {
+    "id":
+    {
+      "type": "date",
+      "date":
+      {
+        "date": "2000-01-01",
+        "time": "null"
+      }
+    },
+    "date":
+    {
+      "date": "2000-01-01",
+      "time": "null"
+    },
+    "initial":
+    {
+      "shares": 10,
+      "costBasis":
+      {
+        "value": 10000
+      }
+    },
+    "current":
+    {
+      "shares": 10,
+      "costBasis":
+      {
+        "value": 10000
+      }
+    }
+  }
+]

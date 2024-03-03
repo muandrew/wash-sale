@@ -21,6 +21,6 @@ class LocalDateAdapter : JsonAdapter<LocalDate>() {
 
     @ToJson
     override fun toJson(writer: JsonWriter, value: LocalDate?) {
-        value?.let { writer.value(value.toString()) }
+        writer.value(value.toString())
     }
 }
