@@ -1,5 +1,7 @@
 package com.muandrew.money
 
+import kotlin.math.abs
+
 @JvmInline
 value class Money(val value: Long) {
 
@@ -32,6 +34,17 @@ value class Money(val value: Long) {
 
     infix operator fun compareTo(other: Money): Int {
         return this.value.compareTo(other.value)
+    }
+
+    override fun toString(): String {
+        val abs = abs(value)
+        val dollar = abs / 100
+        val cents = abs % 100
+        return if( value < 0) {
+            "$($dollar.$cents)"
+        } else {
+            "$$dollar.$cents"
+        }
     }
 
     companion object {

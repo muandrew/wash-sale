@@ -1,5 +1,6 @@
 package com.muandrew.stock
 
+import com.muandrew.money.Money
 import kotlin.math.min
 
 class World {
@@ -21,6 +22,8 @@ class World {
                         sourceTransaction = transaction.id
                     )
                 )
+                val valuePerShareWithRem = transaction.value / transaction.shares
+                println("${transaction.date}: rcv ${transaction.shares} share(s) totalling ${transaction.value}. [${valuePerShareWithRem.res} per share]")
             }
 
             is Transaction.SaleTransaction -> {
@@ -31,33 +34,31 @@ class World {
 
                 // if we can just transfer the costs
                 val firstLot = lots[0]
-                if (transaction.shares <= firstLot.current.shares) {
-                    firstLot.logTransaction(transaction.id, transaction.shares)
+                val costBasis = if (transaction.shares <= firstLot.current.shares) {
+                    firstLot.transactForBasis(transaction.id, transaction.shares)
                 } else {
                     // we will need to split
                     var shares = transaction.shares
-//                val valuePerShareWithRem = (transaction.value / transaction.shares)
                     var lotI = 0;
+                    var costBasis = Money.ZERO
                     while (shares > 0) {
                         val operatingLot = lots[lotI]
                         val sharesFromOperatingLot = min(operatingLot.current.shares, shares)
-                        operatingLot.logTransaction(transaction.id, sharesFromOperatingLot)
+                        costBasis += operatingLot.transactForBasis(transaction.id, sharesFromOperatingLot)
                         shares -= sharesFromOperatingLot
-                        //TODO
-                        //account for remaider when shares hit zero
                     }
+                    Money.ZERO
                 }
+                val net = transaction.value - costBasis
+                println("${transaction.date}: sld ${transaction.shares} share(s) for ${transaction.value} against cost basis of $costBasis. [net: $net]")
+                // check for wash sale
             }
         }
         transactions.add(transaction)
     }
 
     override fun toString(): String {
-        return """
-            {
-                lots: $lots
-            }
-        """.trimIndent()
+        return "{lots: $lots}"
     }
 }
 

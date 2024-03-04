@@ -25,24 +25,30 @@ class Lot internal constructor(
     }
 
     /**
-     * Will remove the approporate amount of cost basis
+     * Will remove the appropriate amount of cost basis
+     *
+     * @return The amount of cost basis removed
      */
-    fun logTransaction(transactionId: TransactionId, sharesToRemove: Long) {
+    fun transactForBasis(transactionId: TransactionId, sharesToRemove: Long) : Money {
         if (sharesToRemove > current.shares) {
             throw IllegalStateException("shares are not expected to go below zero from $transactionId")
         }
+        transactions.add(transactionId)
         if (sharesToRemove == current.shares) {
+            val costBasisConsumed = current.costBasis
             current = LotSnapshot(0, Money.ZERO)
+            return costBasisConsumed
         } else {
             val old = current
             val pricePerShareWithRem = old.costBasis / old.shares
+            val costBasisConsumed = sharesToRemove * pricePerShareWithRem.res
             val new = LotSnapshot(
                 shares = old.shares - sharesToRemove,
-                costBasis = old.costBasis - (sharesToRemove * pricePerShareWithRem.res),
+                costBasis = old.costBasis - costBasisConsumed,
             )
             current = new
+            return costBasisConsumed
         }
-        transactions.add(transactionId)
     }
 
     companion object {
