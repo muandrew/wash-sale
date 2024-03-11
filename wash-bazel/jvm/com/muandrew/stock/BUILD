@@ -5,8 +5,8 @@ kt_jvm_library(
     srcs = [
         "Lot.kt",
         "LotIdentifier.kt",
-        "LotSnapshot.kt",
         "MoshiExt.kt",
+        "ReportEvent.kt",
         "Transaction.kt",
         "TransactionId.kt",
         "World.kt",
@@ -18,6 +18,7 @@ kt_jvm_library(
     deps = [
         "//jvm/com/muandrew/money",
         "//jvm/com/muandrew/moshi/adapters",
+        "//jvm/com/muandrew/stock/lot",
         "//jvm/com/muandrew/stock/time",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_adapters",

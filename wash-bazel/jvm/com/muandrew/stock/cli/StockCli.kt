@@ -11,7 +11,6 @@ import java.time.LocalDate
 
 object StockCli {
 
-    @OptIn(ExperimentalStdlibApi::class)
     @JvmStatic
     fun main(args: Array<String>) {
         val moshi = Moshi.Builder()
@@ -50,6 +49,18 @@ object StockCli {
                 lotDate = LocalDate.parse("2024-01-01"),
             )
         )
+        w.acceptTransaction(
+            Transaction.createSale(
+                date = LocalDate.parse("2024-01-02"),
+                shares = 1,
+                value = Money(1),
+                lotDate = LocalDate.parse("2024-01-01"),
+            )
+        )
+
+        w.events.forEach {
+            it.print()
+        }
 
         println(w)
     }

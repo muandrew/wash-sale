@@ -17,7 +17,7 @@
     "initial":
     {
       "shares": 10,
-      "costBasis":
+      "value":
       {
         "value": 10000
       }
@@ -25,7 +25,7 @@
     "current":
     {
       "shares": 9,
-      "costBasis":
+      "value":
       {
         "value": 9000
       }

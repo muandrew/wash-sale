@@ -61,6 +61,43 @@ class WorldTest {
         assertLots("2.json", w.lots)
     }
 
+    @Test
+    fun testWashSale() {
+        val w = World()
+
+        val releaseShares = 100L
+        val releaseValuePerShare = 2_00L
+        w.release(
+            "1999-01-01",
+            releaseShares,
+            releaseShares * releaseValuePerShare,
+        )
+        w.release(
+            "2000-01-01",
+            5,
+            100_00
+        )
+        w.release(
+            "2000-01-02",
+            5,
+            200_00
+        )
+        val saleTotalShares = 11L
+        w.sale(
+            "2000-01-03",
+            saleTotalShares,
+            11_00,
+            "1999-01-01",
+        )
+
+        val wash = w.events.filterIsInstance<ReportEvent.WashSaleEvent>().first()
+        assertEquals(1, wash.allowedShares)
+        assertEquals(Money(-1_00), wash.allowedValue)
+        assertEquals(10, wash.disallowedShares)
+        assertEquals(Money(-10_00), wash.disallowedValue)
+        assertEquals(saleTotalShares, wash.allowedShares + wash.disallowedShares)
+    }
+
     private fun assertLots(recordingFile: String, actual: List<Lot>) {
         val expected = Paths.get(testDataDir, recordingFile).readAsFileToString().filterNot { it.isWhitespace() }
         val res = moshi.adapter<List<Lot>>().toJson(actual)

@@ -1,7 +1,8 @@
 package com.muandrew.stock
 
 import com.muandrew.money.Money
-import com.muandrew.money.times
+import com.muandrew.stock.lot.ShareValue
+import com.muandrew.stock.lot.splitOut
 import com.muandrew.stock.time.DateTime
 import com.squareup.moshi.JsonClass
 
@@ -9,8 +10,8 @@ import com.squareup.moshi.JsonClass
 class Lot internal constructor(
     val id: LotIdentifier,
     val date: DateTime,
-    val initial: LotSnapshot,
-    var current: LotSnapshot,
+    val initial: ShareValue,
+    var current: ShareValue,
     val transformed: TransformedFrom? = null,
 ) {
     val isReplacement get() = transformed != null
@@ -21,7 +22,7 @@ class Lot internal constructor(
     internal val transactions: MutableList<TransactionId> = mutableListOf()
 
     override fun toString(): String {
-        return "{id: `$id`, value: ${current.costBasis}, shares: ${current.shares}}"
+        return "{id: `$id`, value: ${current.value}, shares: ${current.shares}}"
     }
 
     /**
@@ -34,28 +35,16 @@ class Lot internal constructor(
             throw IllegalStateException("shares are not expected to go below zero from $transactionId")
         }
         transactions.add(transactionId)
-        if (sharesToRemove == current.shares) {
-            val costBasisConsumed = current.costBasis
-            current = LotSnapshot(0, Money.ZERO)
-            return costBasisConsumed
-        } else {
-            val old = current
-            val pricePerShareWithRem = old.costBasis / old.shares
-            val costBasisConsumed = sharesToRemove * pricePerShareWithRem.res
-            val new = LotSnapshot(
-                shares = old.shares - sharesToRemove,
-                costBasis = old.costBasis - costBasisConsumed,
-            )
-            current = new
-            return costBasisConsumed
-        }
+        val res = current.splitOut(sharesToRemove)
+        current = res.remainder ?: ShareValue(0, Money.ZERO)
+        return res.split.value
     }
 
     companion object {
         fun create(
             id: LotIdentifier,
             date: DateTime,
-            initial: LotSnapshot,
+            initial: ShareValue,
             sourceTransaction: TransactionId,
             transformed: TransformedFrom? = null,
         ): Lot {

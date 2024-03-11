@@ -1,12 +1,16 @@
 package com.muandrew.stock
 
 import com.muandrew.money.Money
-import kotlin.math.min
+import com.muandrew.stock.lot.ShareValue
+import com.muandrew.stock.lot.applySharesAmongCandidates
+import com.muandrew.stock.lot.splitOut
+import java.time.LocalDate
 
 class World {
 
     val transactions: MutableList<Transaction> = mutableListOf()
     val lots: MutableList<Lot> = mutableListOf()
+    val events: MutableList<ReportEvent> = mutableListOf()
 
     fun acceptTransaction(transaction: Transaction) {
         when (transaction) {
@@ -15,43 +19,77 @@ class World {
                     Lot.create(
                         id = LotIdentifier.DateLotIdentifier(transaction.date),
                         date = transaction.date,
-                        initial = LotSnapshot(
+                        initial = ShareValue(
                             shares = transaction.shares,
-                            costBasis = transaction.value,
+                            value = transaction.value,
                         ),
                         sourceTransaction = transaction.id
                     )
                 )
-                val valuePerShareWithRem = transaction.value / transaction.shares
-                println("${transaction.date}: rcv ${transaction.shares} share(s) totalling ${transaction.value}. [${valuePerShareWithRem.res} per share]")
+                events.add(
+                    ReportEvent.ReceivedEvent(
+                        transaction.date,
+                        transaction.shares,
+                        transaction.value
+                    )
+                )
             }
 
             is Transaction.SaleTransaction -> {
-                val lots = lots.findLotsForId(transaction.lotId)
-                if (lots.isEmpty()) {
+                val saleSourceLots = lots.findLotsForId(transaction.lotId)
+                if (saleSourceLots.isEmpty()) {
                     throw IllegalStateException("couldn't find applicable lot(s) based on id: ${transaction.lotId}")
                 }
 
-                // if we can just transfer the costs
-                val firstLot = lots[0]
-                val costBasis = if (transaction.shares <= firstLot.current.shares) {
-                    firstLot.transactForBasis(transaction.id, transaction.shares)
-                } else {
-                    // we will need to split
-                    var shares = transaction.shares
-                    var lotI = 0;
-                    var costBasis = Money.ZERO
-                    while (shares > 0) {
-                        val operatingLot = lots[lotI]
-                        val sharesFromOperatingLot = min(operatingLot.current.shares, shares)
-                        costBasis += operatingLot.transactForBasis(transaction.id, sharesFromOperatingLot)
-                        shares -= sharesFromOperatingLot
-                    }
-                    Money.ZERO
-                }
+                val saleRes = applySharesAmongCandidates(
+                    ShareValue(transaction.shares, transaction.value),
+                    saleSourceLots,
+                    Lot::current,
+                    updateCandidate = {
+                        val res = transactForBasis(transaction.id, it.shares)
+                        ShareValue(it.shares, res)
+                    },
+                )
+                assert(saleRes.targetRemaining.shares == 0L)
+                assert(saleRes.targetRemaining.value == Money.ZERO)
+
+                val costBasis = saleRes.accumulatedChanges.value
                 val net = transaction.value - costBasis
-                println("${transaction.date}: sld ${transaction.shares} share(s) for ${transaction.value} against cost basis of $costBasis. [net: $net]")
+                events.add(ReportEvent.SaleEvent(
+                    transaction.date,
+                    transaction.shares,
+                    transaction.value,
+                    costBasis
+                ))
                 // check for wash sale
+                if (net < Money.ZERO) {
+                    // check 30 days before and 30 days after
+                    val washCandidates = lots.queryForWashSale(transaction.date.date)
+                    val washRes = applySharesAmongCandidates(
+                        ShareValue(transaction.shares, net),
+                        washCandidates,
+                        Lot::current,
+                        updateCandidate = {
+                            // shares split will be transferred to replacement lot
+                            val res = current.splitOut(it.shares)
+                            // TODO create replacement lot
+
+                            current = res.remainder
+
+                            // return wash disallowed
+                            it
+                        },
+                    )
+                    val washAllowed = washRes.targetRemaining
+                    val accumulatedWashDisallowed = washRes.accumulatedChanges
+                    events.add(ReportEvent.WashSaleEvent(
+                        transaction.date,
+                        washAllowed.shares,
+                        washAllowed.value,
+                        accumulatedWashDisallowed.shares,
+                        accumulatedWashDisallowed.value,
+                    ))
+                }
             }
         }
         transactions.add(transaction)
@@ -59,6 +97,22 @@ class World {
 
     override fun toString(): String {
         return "{lots: $lots}"
+    }
+}
+
+fun List<Lot>.queryForWashSale(date: LocalDate): List<Lot> {
+    val before = date.minusDays(30)
+    val after = date.plusDays(30)
+    return filter { it.date.date >= before && it.date.date <= after && it.current.shares > 0 && !it.isReplacement }
+}
+
+operator fun LocalDate.compareTo(other: LocalDate): Int {
+    return if (isBefore(other)) {
+        -1
+    } else if (isAfter(other)) {
+        1
+    } else {
+        0
     }
 }
 
