@@ -1,0 +1,10 @@
+[
+  {
+    "value": { "description":  "abc", "something": 1},
+    "values": []
+  },
+  {
+    "value": { "description":  "abc", "shares":  "1"},
+    "values_csv": [ "sample.csv" ]
+  }
+]

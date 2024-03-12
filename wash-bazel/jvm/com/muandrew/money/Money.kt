@@ -54,6 +54,11 @@ value class Money(val value: Long) {
         fun min(lhs: Money, rhs: Money) : Money {
             return Money(Math.min(lhs.value, rhs.value))
         }
+
+        fun parse(value: String): Money {
+            //TODO
+            return ZERO
+        }
     }
 }
 

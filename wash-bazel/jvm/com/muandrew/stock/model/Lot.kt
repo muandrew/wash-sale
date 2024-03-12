@@ -1,8 +1,6 @@
-package com.muandrew.stock
+package com.muandrew.stock.model
 
 import com.muandrew.money.Money
-import com.muandrew.stock.lot.ShareValue
-import com.muandrew.stock.lot.splitOut
 import com.muandrew.stock.time.DateTime
 import com.squareup.moshi.JsonClass
 
@@ -36,7 +34,7 @@ class Lot internal constructor(
         }
         transactions.add(transactionId)
         val res = current.splitOut(sharesToRemove)
-        current = res.remainder ?: ShareValue(0, Money.ZERO)
+        current = res.remainder
         return res.split.value
     }
 
@@ -59,4 +57,11 @@ class Lot internal constructor(
             return lot
         }
     }
+}
+
+sealed interface TransformedFrom {
+    data class WashSale(
+        val originalLot: LotIdentifier,
+        val fromTransaction: TransactionId,
+    ) : TransformedFrom
 }

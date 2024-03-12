@@ -14,9 +14,11 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 
 # usage below
 # https://github.com/bazelbuild/rules_jvm_external/blob/master/docs/bzlmod.md
+# bazel run @maven//:pin
 maven.install(
     name = "maven",
     artifacts = [
+        "com.github.doyaaaaaken:kotlin-csv-jvm:1.9.3",
         "com.squareup.moshi:moshi:1.15.0",
         "com.squareup.moshi:moshi-adapters:1.15.0",
         "com.squareup.moshi:moshi-kotlin:1.15.0",

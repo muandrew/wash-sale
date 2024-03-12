@@ -1,4 +1,4 @@
-package com.muandrew.stock
+package com.muandrew.stock.model
 
 import com.muandrew.money.Money
 import com.muandrew.stock.time.DateTime
@@ -24,7 +24,7 @@ sealed interface Transaction {
     ) : Transaction
 
     companion object {
-        fun createRelease(date: LocalDate, shares: Long, value: Money): ReleaseTransaction{
+        fun createRelease(date: LocalDate, shares: Long, value: Money): ReleaseTransaction {
             val dateTime = DateTime(date = date)
             return  ReleaseTransaction(
                 id = TransactionId.DateId(date = dateTime),

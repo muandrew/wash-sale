@@ -1,9 +1,7 @@
 package com.muandrew.stock
 
 import com.muandrew.money.Money
-import com.muandrew.stock.lot.ShareValue
-import com.muandrew.stock.lot.applySharesAmongCandidates
-import com.muandrew.stock.lot.splitOut
+import com.muandrew.stock.model.*
 import java.time.LocalDate
 
 class World {
@@ -55,7 +53,8 @@ class World {
 
                 val costBasis = saleRes.accumulatedChanges.value
                 val net = transaction.value - costBasis
-                events.add(ReportEvent.SaleEvent(
+                events.add(
+                    ReportEvent.SaleEvent(
                     transaction.date,
                     transaction.shares,
                     transaction.value,
@@ -82,7 +81,8 @@ class World {
                     )
                     val washAllowed = washRes.targetRemaining
                     val accumulatedWashDisallowed = washRes.accumulatedChanges
-                    events.add(ReportEvent.WashSaleEvent(
+                    events.add(
+                        ReportEvent.WashSaleEvent(
                         transaction.date,
                         washAllowed.shares,
                         washAllowed.value,
@@ -134,12 +134,3 @@ fun List<Lot>.findLotsForId(id: LotIdentifier): List<Lot> {
         }
     }
 }
-
-sealed interface TransformedFrom {
-    data class WashSale(
-        val originalLot: LotIdentifier,
-        val fromTransaction: TransactionId,
-    ) : TransformedFrom
-}
-
-

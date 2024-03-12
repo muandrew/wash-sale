@@ -2,6 +2,9 @@ package com.muandrew.stock
 
 import com.muandrew.money.Money
 import com.muandrew.stock.MoshiExt.addStockAdapters
+import com.muandrew.stock.model.Lot
+import com.muandrew.stock.model.ReportEvent
+import com.muandrew.stock.model.Transaction
 import com.muandrew.testtool.TestFiles
 import com.muandrew.testtool.TestFiles.readAsFileToString
 import com.squareup.moshi.Moshi

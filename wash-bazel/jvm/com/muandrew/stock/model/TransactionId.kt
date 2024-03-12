@@ -1,4 +1,4 @@
-package com.muandrew.stock
+package com.muandrew.stock.model
 
 import com.muandrew.stock.time.DateTime
 
