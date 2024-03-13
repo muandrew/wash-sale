@@ -1,7 +1,7 @@
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library", "kt_jvm_test")
 
 kt_jvm_library(
-    name = "stock",
+    name = "default",
     srcs = [
         "MoshiExt.kt",
         "StockTransactionReader.kt",
@@ -25,9 +25,9 @@ kt_jvm_test(
         "testdata/1.json",
         "testdata/2.json",
     ],
-    test_class = "com.muandrew.stock.WorldTest",
+    test_class = "com.muandrew.stock.world.WorldTest",
     deps = [
-        ":stock",
+        ":default",
         "//jvm/com/muandrew/testtool",
         "@bazel_tools//tools/java/runfiles",
         "@maven//:com_squareup_moshi_moshi_kotlin",
@@ -42,9 +42,9 @@ kt_jvm_test(
         "testdata/sample.csv",
         "testdata/test.json",
     ],
-    test_class = "com.muandrew.stock.StockTransactionReaderTest",
+    test_class = "com.muandrew.stock.world.StockTransactionReaderTest",
     deps = [
-        ":stock",
+        ":default",
         "//jvm/com/muandrew/stock/model:default",
         "//jvm/com/muandrew/testtool",
         "@maven//:com_squareup_moshi_moshi",

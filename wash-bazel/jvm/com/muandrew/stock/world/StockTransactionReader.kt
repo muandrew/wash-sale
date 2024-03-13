@@ -1,4 +1,4 @@
-package com.muandrew.stock
+package com.muandrew.stock.world
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.muandrew.money.Money

@@ -1,4 +1,4 @@
-package com.muandrew.stock
+package com.muandrew.stock.world
 
 import com.muandrew.moshi.adapters.LocalDateAdapter
 import com.muandrew.moshi.adapters.LocalTimeAdapter

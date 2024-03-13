@@ -1,7 +1,7 @@
-package com.muandrew.stock
+package com.muandrew.stock.world
 
 import com.muandrew.money.Money
-import com.muandrew.stock.MoshiExt.addStockAdapters
+import com.muandrew.stock.world.MoshiExt.addStockAdapters
 import com.muandrew.stock.model.Lot
 import com.muandrew.stock.model.ReportEvent
 import com.muandrew.stock.model.Transaction
@@ -29,7 +29,7 @@ class WorldTest {
             .addStockAdapters()
             .addLast(KotlinJsonAdapterFactory())
             .build()
-        testDataDir = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/testdata")
+        testDataDir = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/world/testdata")
     }
 
     @Test

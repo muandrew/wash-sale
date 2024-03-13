@@ -1,4 +1,4 @@
-package com.muandrew.stock
+package com.muandrew.stock.world
 
 import com.muandrew.testtool.TestFiles
 import org.junit.Assert.assertNotNull
@@ -11,7 +11,7 @@ class StockTransactionReaderTest {
 
     @Before
     fun setUp() {
-        testData = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/testdata")
+        testData = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/world/testdata")
     }
 
     @Test
