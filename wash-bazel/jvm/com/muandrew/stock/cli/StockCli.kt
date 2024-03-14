@@ -7,6 +7,7 @@ import com.muandrew.stock.model.LotIdentifier
 import com.muandrew.stock.model.Transaction
 import com.muandrew.stock.model.TransactionId
 import com.muandrew.stock.model.TransformedFrom
+import com.muandrew.stock.world.StockTransactionReader
 import com.muandrew.stock.world.World
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
@@ -67,5 +68,21 @@ object StockCli {
         }
 
         println(w)
+    }
+
+    fun read(i: String): World {
+        val ts = StockTransactionReader.readTransactions(i)
+        val w = World()
+
+        val ss = ts.filterIsInstance<Transaction.SaleTransaction>().sortedBy { it.date.date }
+        val rs = ts.filterIsInstance<Transaction.ReleaseTransaction>().sortedBy { it.date.date }
+
+        for (r in rs) {
+            w.acceptTransaction(r)
+        }
+        ss.forEach {
+            w.acceptTransaction(it)
+        }
+        return w
     }
 }

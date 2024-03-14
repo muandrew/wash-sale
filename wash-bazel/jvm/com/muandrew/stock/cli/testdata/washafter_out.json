@@ -1,0 +1,85 @@
+{
+  "lots": [
+    {
+      "id": {
+        "type": "date",
+        "date": {
+          "date": "1000-01-01",
+          "time": "null"
+        }
+      },
+      "date": {
+        "date": "1000-01-01",
+        "time": "null"
+      },
+      "initial": {
+        "shares": 10,
+        "value": {
+          "value": 10000
+        }
+      },
+      "current": {
+        "shares": 9,
+        "value": {
+          "value": 9000
+        }
+      }
+    },
+    {
+      "id": {
+        "type": "date",
+        "date": {
+          "date": "2000-01-02",
+          "time": "null"
+        }
+      },
+      "date": {
+        "date": "2000-01-02",
+        "time": "null"
+      },
+      "initial": {
+        "shares": 1,
+        "value": {
+          "value": 10000
+        }
+      },
+      "current": {
+        "shares": 0,
+        "value": {
+          "value": 0
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "sale",
+      "date": {
+        "date": "2000-01-01",
+        "time": "null"
+      },
+      "shares": 1,
+      "saleValue": {
+        "value": 900
+      },
+      "costBasis": {
+        "value": 1000
+      }
+    },
+    {
+      "type": "wash",
+      "date": {
+        "date": "2000-01-01",
+        "time": "null"
+      },
+      "allowedShares": 0,
+      "allowedValue": {
+        "value": 0
+      },
+      "disallowedShares": 1,
+      "disallowedValue": {
+        "value": -100
+      }
+    }
+  ]
+}

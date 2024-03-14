@@ -61,7 +61,7 @@ object StockTransactionReader {
             } else if (value != null) {
                 transactions.add(parseData(defaultValues, defaultValues))
             } else {
-                IllegalArgumentException("need values or values_csv")
+                throw IllegalArgumentException("need values or values_csv")
             }
         }
     }

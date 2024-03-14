@@ -1,5 +1,6 @@
 package com.muandrew.money
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 
@@ -69,5 +70,21 @@ class MoneyTest {
 
         assert(res.res == Money(1))
         assert(res.rem == Money(2))
+    }
+
+    @Test
+    fun parseSuccess() {
+        val inputs = listOf(
+            "$10" to Money(10_00),
+            "$10.00" to Money(10_00),
+            "$10.01" to Money(10_01),
+            "($10.01)" to Money(-10_01),
+        )
+
+        for (input in inputs) {
+            val res = Money.parse(input.first)
+
+            assertEquals(input.second, res)
+        }
     }
 }

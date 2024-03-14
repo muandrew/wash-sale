@@ -1,0 +1,4 @@
+date,event_type,shares,value,sale_lot
+1000-01-01, release, 10, $100.00, ""
+2000-01-01, sale, 1, $9.00, 1000-01-01
+2000-01-02, release, 1, $100.000, ""

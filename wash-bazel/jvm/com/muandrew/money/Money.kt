@@ -40,7 +40,7 @@ value class Money(val value: Long) {
         val abs = abs(value)
         val dollar = abs / 100
         val cents = abs % 100
-        return if( value < 0) {
+        return if (value < 0) {
             "$($dollar.$cents)"
         } else {
             "$$dollar.$cents"
@@ -50,14 +50,29 @@ value class Money(val value: Long) {
     companion object {
         val ZERO = Money(0)
         val MIN_VALUE = Money(Long.MIN_VALUE)
+        private val regex = Regex("""^\w*(\()?\$(\d+)(\.(\d{2}))?(\))?\w*$""")
 
-        fun min(lhs: Money, rhs: Money) : Money {
+        fun min(lhs: Money, rhs: Money): Money {
             return Money(Math.min(lhs.value, rhs.value))
         }
 
         fun parse(value: String): Money {
-            //TODO
-            return ZERO
+            val res = regex.find(value) ?: throw IllegalArgumentException("could not parse $value as Money")
+            val (negStart, dollars, _ /*dot*/, strCents, negEnd) = res.destructured
+            if (negStart.isNotEmpty() xor negEnd.isNotEmpty()) {
+                throw IllegalArgumentException("you need to start and end parenthesis")
+            }
+            val sign = if (negStart.isNotEmpty() && negEnd.isNotEmpty()) {
+                -1
+            } else {
+                1
+            }
+            val cents = if (strCents.isNotEmpty()) {
+                strCents.toLong()
+            } else {
+                0
+            }
+            return Money(sign * (dollars.toLong() * 100 + cents))
         }
     }
 }
