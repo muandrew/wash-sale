@@ -2,10 +2,9 @@ package com.muandrew.stock.world
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.muandrew.money.Money
-import com.muandrew.stock.model.LotIdentifier
+import com.muandrew.stock.model.LotReference
 import com.muandrew.stock.model.RawInput
 import com.muandrew.stock.model.Transaction
-import com.muandrew.stock.model.TransactionId
 import com.muandrew.stock.time.DateTime
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
@@ -76,7 +75,6 @@ object StockTransactionReader {
             "release" -> {
                 val date = DateTime(date = LocalDate.parse(getData(default, instance, "date")!!))
                 Transaction.ReleaseTransaction(
-                    TransactionId.DateId(date),
                     date,
                     Money.parse(getData(default, instance, "value")!!),
                     getData(default, instance, "shares")!!.toLong(),
@@ -86,11 +84,10 @@ object StockTransactionReader {
                 val date = DateTime(date = LocalDate.parse(getData(default, instance, "date")!!))
                 val lotDate = DateTime(date = LocalDate.parse(getData(default, instance, "sale_lot")!!))
                 Transaction.SaleTransaction(
-                    TransactionId.DateId(date),
                     date,
                     Money.parse(getData(default, instance, "value")!!),
                     getData(default, instance, "shares")!!.toLong(),
-                    LotIdentifier.DateLotIdentifier(date = lotDate),
+                    LotReference.DateLotReference(date = lotDate),
                 )
             }
             else -> {

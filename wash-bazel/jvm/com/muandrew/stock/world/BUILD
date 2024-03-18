@@ -22,8 +22,8 @@ kt_jvm_test(
     name = "test",
     srcs = ["WorldTest.kt"],
     data = [
-        "testdata/1.json",
-        "testdata/2.json",
+        "testdata/release.json",
+        "testdata/sale.json",
     ],
     test_class = "com.muandrew.stock.world.WorldTest",
     deps = [

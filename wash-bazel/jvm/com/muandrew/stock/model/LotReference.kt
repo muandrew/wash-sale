@@ -2,8 +2,8 @@ package com.muandrew.stock.model
 
 import com.muandrew.stock.time.DateTime
 
-sealed interface LotIdentifier {
-    data class DateLotIdentifier(
+sealed interface LotReference {
+    data class DateLotReference(
         val date: DateTime
-    ): LotIdentifier
+    ): LotReference
 }

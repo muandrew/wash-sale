@@ -5,19 +5,16 @@ import com.muandrew.stock.time.DateTime
 import java.time.LocalDate
 
 sealed interface Transaction {
-    val id: TransactionId
     val date: DateTime
 
     data class SaleTransaction(
-        override val id: TransactionId,
         override val date: DateTime,
         val value: Money,
         val shares: Long,
-        val lotId: LotIdentifier,
+        val lotId: LotReference,
     ) : Transaction
 
     data class ReleaseTransaction(
-        override val id: TransactionId,
         override val date: DateTime,
         val value: Money,
         val shares: Long
@@ -27,7 +24,6 @@ sealed interface Transaction {
         fun createRelease(date: LocalDate, shares: Long, value: Money): ReleaseTransaction {
             val dateTime = DateTime(date = date)
             return  ReleaseTransaction(
-                id = TransactionId.DateId(date = dateTime),
                 date = dateTime,
                 value = value,
                 shares = shares,
@@ -42,11 +38,10 @@ sealed interface Transaction {
             ): SaleTransaction {
             val dateTime = DateTime(date = date)
             return SaleTransaction(
-                id = TransactionId.DateId(date = dateTime),
                 date = dateTime,
                 value = value,
                 shares = shares,
-                lotId = LotIdentifier.DateLotIdentifier(date = DateTime(date = lotDate))
+                lotId = LotReference.DateLotReference(date = DateTime(date = lotDate))
             )
         }
     }

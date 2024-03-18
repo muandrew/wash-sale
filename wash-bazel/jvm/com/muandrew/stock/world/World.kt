@@ -15,13 +15,12 @@ class World {
             is Transaction.ReleaseTransaction -> {
                 lots.add(
                     Lot.create(
-                        id = LotIdentifier.DateLotIdentifier(transaction.date),
                         date = transaction.date,
                         initial = ShareValue(
                             shares = transaction.shares,
                             value = transaction.value,
                         ),
-                        sourceTransaction = transaction.id
+                        sourceTransaction = TransactionReference.DateReference(date = transaction.date)
                     )
                 )
                 events.add(
@@ -44,7 +43,7 @@ class World {
                     saleSourceLots,
                     Lot::current,
                     updateCandidate = {
-                        val res = transactForBasis(transaction.id, it.shares)
+                        val res = transactForBasis(TransactionReference.DateReference(date = transaction.date), it.shares)
                         ShareValue(it.shares, res)
                     },
                 )
@@ -116,9 +115,9 @@ operator fun LocalDate.compareTo(other: LocalDate): Int {
     }
 }
 
-fun List<Lot>.findLotsForId(id: LotIdentifier): List<Lot> {
+fun List<Lot>.findLotsForId(id: LotReference): List<Lot> {
     return when (id) {
-        is LotIdentifier.DateLotIdentifier -> {
+        is LotReference.DateLotReference -> {
             val time = id.date.time
             // picking very specific lot
             if (time != null) {

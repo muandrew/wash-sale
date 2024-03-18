@@ -1,13 +1,6 @@
 {
   "lots": [
     {
-      "id": {
-        "type": "date",
-        "date": {
-          "date": "1000-01-01",
-          "time": "null"
-        }
-      },
       "date": {
         "date": "1000-01-01",
         "time": "null"
@@ -26,13 +19,6 @@
       }
     },
     {
-      "id": {
-        "type": "date",
-        "date": {
-          "date": "2000-01-02",
-          "time": "null"
-        }
-      },
       "date": {
         "date": "2000-01-02",
         "time": "null"

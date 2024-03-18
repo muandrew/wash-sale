@@ -1,13 +1,6 @@
 {
   "lots": [
     {
-      "id": {
-        "type": "date",
-        "date": {
-          "date": "1000-01-01",
-          "time": "null"
-        }
-      },
       "date": {
         "date": "1000-01-01",
         "time": "null"

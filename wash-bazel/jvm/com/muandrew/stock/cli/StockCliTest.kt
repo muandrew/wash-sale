@@ -26,12 +26,12 @@ class StockCliTest {
                 .withSubtype(TransformedFrom.WashSale::class.java, "wash_sale")
         )
         .add(
-            PolymorphicJsonAdapterFactory.of(LotIdentifier::class.java, "type")
-                .withSubtype(LotIdentifier.DateLotIdentifier::class.java, "date")
+            PolymorphicJsonAdapterFactory.of(LotReference::class.java, "type")
+                .withSubtype(LotReference.DateLotReference::class.java, "date")
         )
         .add(
-            PolymorphicJsonAdapterFactory.of(TransactionId::class.java, "type")
-                .withSubtype(TransactionId.DateId::class.java, "date")
+            PolymorphicJsonAdapterFactory.of(TransactionReference::class.java, "type")
+                .withSubtype(TransactionReference.DateReference::class.java, "date")
         )
         .add(
             PolymorphicJsonAdapterFactory.of(ReportEvent::class.java, "type")
@@ -48,7 +48,7 @@ class StockCliTest {
     }
 
     @Test
-    fun a() {
+    fun example() {
         val w = StockCli.read("$testData/example_input.json")
 
         val out = Out(w.lots, w.events.filter { it is ReportEvent.SaleEvent || it is ReportEvent.WashSaleEvent })

@@ -4,12 +4,12 @@ kt_jvm_library(
     name = "default",
     srcs = [
         "Lot.kt",
-        "LotIdentifier.kt",
+        "LotReference.kt",
         "RawInput.kt",
         "ReportEvent.kt",
         "ShareValue.kt",
         "Transaction.kt",
-        "TransactionId.kt",
+        "TransactionReference.kt",
     ],
     plugins = [
         "//:moshi-kotlin-codegen",

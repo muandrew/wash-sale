@@ -42,7 +42,7 @@ class WorldTest {
             10_000
         )
 
-        assertLots("1.json", w.lots)
+        assertLots("release.json", w.lots)
     }
 
     @Test
@@ -61,7 +61,7 @@ class WorldTest {
             "2000-01-01",
         )
 
-        assertLots("2.json", w.lots)
+        assertLots("sale.json", w.lots)
     }
 
     @Test
