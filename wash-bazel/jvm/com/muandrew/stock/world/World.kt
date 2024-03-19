@@ -2,6 +2,7 @@ package com.muandrew.stock.world
 
 import com.muandrew.money.Money
 import com.muandrew.stock.model.*
+import com.muandrew.stock.time.DateTime
 import java.time.LocalDate
 
 class World {
@@ -54,11 +55,12 @@ class World {
                 val net = transaction.value - costBasis
                 events.add(
                     ReportEvent.SaleEvent(
-                    transaction.date,
-                    transaction.shares,
-                    transaction.value,
-                    costBasis
-                ))
+                        transaction.date,
+                        transaction.shares,
+                        transaction.value,
+                        costBasis
+                    )
+                )
                 // check for wash sale
                 if (net < Money.ZERO) {
                     // check 30 days before and 30 days after
@@ -72,6 +74,21 @@ class World {
                             val res = current.splitOut(it.shares)
                             // TODO create replacement lot
 
+                            // using subtraction since the value is negative from loss.
+                            val newLot = ShareValue(it.shares, res.split.value - it.value)
+                            addWashSale(
+                                Lot(
+                                    date = transaction.date, // use the new time for calculating long/short term sale
+                                    initial = newLot,
+                                    current = newLot,
+                                    transformed = TransformedFrom.WashSale(
+                                        originalLot = LotReference.DateLotReference(this.date),
+                                        fromTransaction = TransactionReference.DateReference(transaction.date)
+                                    )
+                                ),
+                                this.date,
+                            )
+
                             current = res.remainder
 
                             // return wash disallowed
@@ -82,16 +99,32 @@ class World {
                     val accumulatedWashDisallowed = washRes.accumulatedChanges
                     events.add(
                         ReportEvent.WashSaleEvent(
-                        transaction.date,
-                        washAllowed.shares,
-                        washAllowed.value,
-                        accumulatedWashDisallowed.shares,
-                        accumulatedWashDisallowed.value,
-                    ))
+                            transaction.date,
+                            washAllowed.shares,
+                            washAllowed.value,
+                            accumulatedWashDisallowed.shares,
+                            accumulatedWashDisallowed.value,
+                        )
+                    )
                 }
             }
         }
         transactions.add(transaction)
+    }
+
+    fun addWashSale(lot: Lot, date: DateTime) {
+        var addIndex = 0
+        var i = 0
+        for (lotc in lots) {
+            i++
+            //TODO warning, need to use the whole datetime
+            if (lotc.date.date <= date.date) {
+                addIndex = i
+            } else {
+                break
+            }
+        }
+        lots.add(addIndex, lot)
     }
 
     override fun toString(): String {

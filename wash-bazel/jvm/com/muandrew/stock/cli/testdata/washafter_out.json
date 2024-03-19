@@ -35,6 +35,41 @@
           "value": 0
         }
       }
+    },
+    {
+      "date": {
+        "date": "2000-01-01",
+        "time": "null"
+      },
+      "initial": {
+        "shares": 1,
+        "value": {
+          "value": 10100
+        }
+      },
+      "current": {
+        "shares": 1,
+        "value": {
+          "value": 10100
+        }
+      },
+      "transformed": {
+        "type": "wash_sale",
+        "originalLot": {
+          "type": "date",
+          "date": {
+            "date": "2000-01-02",
+            "time": "null"
+          }
+        },
+        "fromTransaction": {
+          "type": "date",
+          "date": {
+            "date": "2000-01-01",
+            "time": "null"
+          }
+        }
+      }
     }
   ],
   "events": [

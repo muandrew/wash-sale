@@ -8,7 +8,7 @@ import com.squareup.moshi.JsonClass
  * @param overrideDateForSalesCalculation sometimes a different date is used, in case of wash sale
  */
 @JsonClass(generateAdapter = true)
-class Lot internal constructor(
+class Lot(
     val date: DateTime,
     val initial: ShareValue,
     var current: ShareValue,
