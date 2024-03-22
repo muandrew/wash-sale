@@ -2,6 +2,8 @@ package com.muandrew.stock.model
 
 import com.muandrew.money.Money
 import com.muandrew.money.times
+import kotlin.math.abs
+import kotlin.math.min
 
 data class LotValue(
     val shares: Long,
@@ -65,11 +67,15 @@ fun LotValue.splitOut(splitShares: Long): SplitResult {
     if (splitShares == shares) {
         return SplitResult(this.copy())
     }
-    val perShare = value / shares
-    val splitValue = splitShares * perShare.res
+    val sign = if (value.value < 0L) { -1 } else { 1 }
+    val workingValue = abs(value.value)
+    val perShare = workingValue / shares
+    val remainder = workingValue % shares
+    val splitValue = splitShares * perShare + min(splitShares, remainder)
+    val splitResult = Money(sign * splitValue)
     return SplitResult(
-        LotValue(splitShares, splitValue),
-        LotValue(shares - splitShares, value - splitValue)
+        LotValue(splitShares, splitResult),
+        LotValue(shares - splitShares, value - splitResult)
     )
 }
 
