@@ -17,7 +17,7 @@ class World {
                 lots.add(
                     Lot.create(
                         date = transaction.date,
-                        initial = ShareValue(
+                        initial = LotValue(
                             shares = transaction.shares,
                             value = transaction.value,
                         ),
@@ -40,12 +40,12 @@ class World {
                 }
 
                 val saleRes = applySharesAmongCandidates(
-                    ShareValue(transaction.shares, transaction.value),
+                    LotValue(transaction.shares, transaction.value),
                     saleSourceLots,
                     Lot::current,
                     updateCandidate = {
                         val res = transactForBasis(TransactionReference.DateReference(date = transaction.date), it.shares)
-                        ShareValue(it.shares, res)
+                        LotValue(it.shares, res)
                     },
                 )
                 assert(saleRes.targetRemaining.shares == 0L)
@@ -66,7 +66,7 @@ class World {
                     // check 30 days before and 30 days after
                     val washCandidates = lots.queryForWashSale(transaction.date.date)
                     val washRes = applySharesAmongCandidates(
-                        ShareValue(transaction.shares, net),
+                        LotValue(transaction.shares, net),
                         washCandidates,
                         Lot::current,
                         updateCandidate = {
@@ -75,7 +75,7 @@ class World {
                             // TODO create replacement lot
 
                             // using subtraction since the value is negative from loss.
-                            val newLot = ShareValue(it.shares, res.split.value - it.value)
+                            val newLot = LotValue(it.shares, res.split.value - it.value)
                             addWashSale(
                                 Lot(
                                     date = transaction.date, // use the new time for calculating long/short term sale

@@ -10,8 +10,8 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 class Lot(
     val date: DateTime,
-    val initial: ShareValue,
-    var current: ShareValue,
+    val initial: LotValue,
+    var current: LotValue,
     val overrideDateForSalesCalculation: DateTime? = null,
     val transformed: TransformedFrom? = null,
 ) {
@@ -44,7 +44,7 @@ class Lot(
     companion object {
         fun create(
             date: DateTime,
-            initial: ShareValue,
+            initial: LotValue,
             sourceTransaction: TransactionReference,
             transformed: TransformedFrom? = null,
         ): Lot {

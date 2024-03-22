@@ -5,9 +5,9 @@ kt_jvm_library(
     srcs = [
         "Lot.kt",
         "LotReference.kt",
+        "LotValue.kt",
         "RawInput.kt",
         "ReportEvent.kt",
-        "ShareValue.kt",
         "Transaction.kt",
         "TransactionReference.kt",
     ],
@@ -26,8 +26,8 @@ kt_jvm_library(
 
 kt_jvm_test(
     name = "test",
-    srcs = ["ShareValueTest.kt"],
-    test_class = "com.muandrew.stock.model.ShareValueTest",
+    srcs = ["LotValueTest.kt"],
+    test_class = "com.muandrew.stock.model.LotValueTest",
     deps = [
         ":default",
         "@maven//:junit_junit",

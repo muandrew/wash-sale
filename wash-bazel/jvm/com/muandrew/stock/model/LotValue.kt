@@ -3,25 +3,25 @@ package com.muandrew.stock.model
 import com.muandrew.money.Money
 import com.muandrew.money.times
 
-data class ShareValue(
+data class LotValue(
     val shares: Long,
     val value: Money,
 ) {
     companion object {
-        val ZERO = ShareValue(0, Money.ZERO)
+        val ZERO = LotValue(0, Money.ZERO)
     }
 }
 
 data class ApplicationResult(
-    val targetRemaining: ShareValue,
-    val accumulatedChanges: ShareValue,
+    val targetRemaining: LotValue,
+    val accumulatedChanges: LotValue,
 )
 
 fun <T : Any> applySharesAmongCandidates(
-    source: ShareValue,
+    source: LotValue,
     candidates: List<T>,
-    getLotSnapshotFromCandidate: T.() -> ShareValue,
-    updateCandidate: T.(targetToApply: ShareValue) -> ShareValue,
+    getLotSnapshotFromCandidate: T.() -> LotValue,
+    updateCandidate: T.(targetToApply: LotValue) -> LotValue,
 ): ApplicationResult {
     val valuePerShareDev = source.value / source.shares
     val valuePerShare = valuePerShareDev.res
@@ -32,9 +32,9 @@ fun <T : Any> applySharesAmongCandidates(
     for (other in candidates) {
         val otherSnapshot = other.getLotSnapshotFromCandidate()
         val targetToApply = if (otherSnapshot.shares >= remainingShares) {
-            ShareValue(remainingShares, remainingShares * valuePerShare + valuePerShareDev.rem)
+            LotValue(remainingShares, remainingShares * valuePerShare + valuePerShareDev.rem)
         } else {
-            ShareValue(otherSnapshot.shares, otherSnapshot.shares * valuePerShare)
+            LotValue(otherSnapshot.shares, otherSnapshot.shares * valuePerShare)
         }
         val toAccumulate = other.updateCandidate(targetToApply)
         accumulateOtherShares += toAccumulate.shares
@@ -42,25 +42,25 @@ fun <T : Any> applySharesAmongCandidates(
         remainingShares -= toAccumulate.shares
     }
     return ApplicationResult(
-        ShareValue(
+        LotValue(
             remainingShares, if (remainingShares == 0L) {
                 Money.ZERO
             } else {
                 remainingShares * valuePerShare + valuePerShareDev.rem
             }
         ),
-        ShareValue(
+        LotValue(
             accumulateOtherShares, accumulateOtherValue
         )
     )
 }
 
 data class SplitResult(
-    val split: ShareValue,
-    val remainder: ShareValue = ShareValue.ZERO
+    val split: LotValue,
+    val remainder: LotValue = LotValue.ZERO
 )
 
-fun ShareValue.splitOut(splitShares: Long): SplitResult {
+fun LotValue.splitOut(splitShares: Long): SplitResult {
     assert(splitShares <= shares) { "can't split $splitShares share(s) out of a set that only has $shares" }
     if (splitShares == shares) {
         return SplitResult(this.copy())
@@ -68,10 +68,10 @@ fun ShareValue.splitOut(splitShares: Long): SplitResult {
     val perShare = value / shares
     val splitValue = splitShares * perShare.res
     return SplitResult(
-        ShareValue(splitShares, splitValue),
-        ShareValue(shares - splitShares, value - splitValue)
+        LotValue(splitShares, splitValue),
+        LotValue(shares - splitShares, value - splitValue)
     )
 }
 
-operator fun ShareValue.plus(other: ShareValue): ShareValue =
-    ShareValue(this.shares + other.shares, this.value + other.value)
+operator fun LotValue.plus(other: LotValue): LotValue =
+    LotValue(this.shares + other.shares, this.value + other.value)
