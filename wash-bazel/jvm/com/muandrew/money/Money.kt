@@ -41,9 +41,9 @@ value class Money(val value: Long) {
         val dollar = abs / 100
         val cents = abs % 100
         return if (value < 0) {
-            "$($dollar.$cents)"
+            "($$dollar.%02d)".format(cents)
         } else {
-            "$$dollar.$cents"
+            "$$dollar.%02d".format(cents)
         }
     }
 
@@ -53,7 +53,7 @@ value class Money(val value: Long) {
         private val regex = Regex("""^\w*(\()?\$(\d+)(\.(\d{2}))?(\))?\w*$""")
 
         fun min(lhs: Money, rhs: Money): Money {
-            return Money(Math.min(lhs.value, rhs.value))
+            return Money(kotlin.math.min(lhs.value, rhs.value))
         }
 
         fun parse(value: String): Money {

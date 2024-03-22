@@ -72,19 +72,33 @@ class MoneyTest {
         assert(res.rem == Money(2))
     }
 
+    /**
+     * common cases that will serialize and deserialize
+     */
+    private val commonSerdeInputs = listOf(
+        "$10.00" to Money(10_00),
+        "$10.01" to Money(10_01),
+        "($10.01)" to Money(-10_01),
+    )
+
     @Test
     fun parseSuccess() {
         val inputs = listOf(
             "$10" to Money(10_00),
-            "$10.00" to Money(10_00),
-            "$10.01" to Money(10_01),
-            "($10.01)" to Money(-10_01),
-        )
+        ) + commonSerdeInputs
 
         for (input in inputs) {
-            val res = Money.parse(input.first)
+            val parse = Money.parse(input.first)
+            assertEquals(input.second, parse)
+        }
+    }
 
-            assertEquals(input.second, res)
+    @Test
+    fun toStringSuccess() {
+        val inputs = commonSerdeInputs
+        for (input in inputs) {
+            val str = input.second.toString()
+            assertEquals(input.first, str)
         }
     }
 }
