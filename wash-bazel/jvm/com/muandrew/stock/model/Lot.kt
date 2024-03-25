@@ -9,6 +9,7 @@ import com.squareup.moshi.JsonClass
  */
 @JsonClass(generateAdapter = true)
 class Lot(
+    val runId: String,
     val date: DateTime,
     val initial: LotValue,
     var current: LotValue,
@@ -43,12 +44,14 @@ class Lot(
 
     companion object {
         fun create(
+            runId: String,
             date: DateTime,
             initial: LotValue,
             sourceTransaction: TransactionReference,
             transformed: TransformedFrom? = null,
         ): Lot {
             val lot = Lot(
+                runId = runId,
                 date = date,
                 initial = initial,
                 current = initial,

@@ -7,15 +7,23 @@ import java.time.LocalDate
 
 class World {
 
+    val releaseIds: MutableMap<LocalDate, Int> = mutableMapOf()
     val transactions: MutableList<Transaction> = mutableListOf()
     val lots: MutableList<Lot> = mutableListOf()
     val events: MutableList<ReportEvent> = mutableListOf()
+
+    fun nextLotId(date: LocalDate): String {
+        val idx = releaseIds[date] ?: 0
+        releaseIds[date] = idx + 1
+        return "$date.$idx"
+    }
 
     fun acceptTransaction(transaction: Transaction) {
         when (transaction) {
             is Transaction.ReleaseTransaction -> {
                 lots.add(
                     Lot.create(
+                        runId = nextLotId(transaction.date.date),
                         date = transaction.date,
                         initial = LotValue(
                             shares = transaction.shares,
@@ -78,6 +86,7 @@ class World {
                             val newLot = LotValue(it.shares, res.split.value - it.value)
                             addWashSale(
                                 Lot(
+                                    runId = "$runId.w:${transaction.date}", // TODO
                                     date = transaction.date, // use the new time for calculating long/short term sale
                                     initial = newLot,
                                     current = newLot,
