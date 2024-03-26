@@ -20,6 +20,46 @@
       }
     },
     {
+      "runId": "2000-01-02.0.w:0",
+      "date": {
+        "date": "1000-01-01",
+        "time": "null"
+      },
+      "initial": {
+        "shares": 1,
+        "value": {
+          "value": 10100
+        }
+      },
+      "current": {
+        "shares": 1,
+        "value": {
+          "value": 10100
+        }
+      },
+      "overrideDateForSalesCalculation": {
+        "date": "2000-01-02",
+        "time": "null"
+      },
+      "transformed": {
+        "type": "wash_sale",
+        "originalLot": {
+          "type": "date",
+          "date": {
+            "date": "1000-01-01",
+            "time": "null"
+          }
+        },
+        "fromTransaction": {
+          "type": "date",
+          "date": {
+            "date": "2000-01-01",
+            "time": "null"
+          }
+        }
+      }
+    },
+    {
       "runId": "2000-01-02.0",
       "date": {
         "date": "2000-01-02",
@@ -37,42 +77,6 @@
           "value": 0
         }
       }
-    },
-    {
-      "runId": "2000-01-02.0.w:2000-01-01",
-      "date": {
-        "date": "2000-01-01",
-        "time": "null"
-      },
-      "initial": {
-        "shares": 1,
-        "value": {
-          "value": 10100
-        }
-      },
-      "current": {
-        "shares": 1,
-        "value": {
-          "value": 10100
-        }
-      },
-      "transformed": {
-        "type": "wash_sale",
-        "originalLot": {
-          "type": "date",
-          "date": {
-            "date": "2000-01-02",
-            "time": "null"
-          }
-        },
-        "fromTransaction": {
-          "type": "date",
-          "date": {
-            "date": "2000-01-01",
-            "time": "null"
-          }
-        }
-      }
     }
   ],
   "events": [
@@ -86,24 +90,27 @@
       "saleValue": {
         "value": 900
       },
-      "costBasis": {
+      "basisBeforeAdjustment": {
         "value": 1000
-      }
-    },
-    {
-      "type": "wash",
-      "date": {
-        "date": "2000-01-01",
-        "time": "null"
       },
-      "allowedShares": 0,
-      "allowedValue": {
-        "value": 0
-      },
-      "disallowedShares": 1,
       "disallowedValue": {
         "value": -100
-      }
+      },
+      "disallowedTransfer": [
+        {
+          "soldLotId": "1000-01-01.0",
+          "transferredLotId": "2000-01-02.0",
+          "resultingId": "2000-01-02.0.w:0",
+          "shares": 1,
+          "basis": {
+            "value": 1000
+          },
+          "disallowedValue": {
+            "value": -100
+          }
+        }
+      ],
+      "allowedTransfer": []
     }
   ]
 }

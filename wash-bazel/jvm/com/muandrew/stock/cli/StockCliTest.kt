@@ -34,10 +34,10 @@ class StockCliTest {
                 .withSubtype(TransactionReference.DateReference::class.java, "date")
         )
         .add(
-            PolymorphicJsonAdapterFactory.of(ReportEvent::class.java, "type")
-                .withSubtype(ReportEvent.SaleEvent::class.java, "sale")
-                .withSubtype(ReportEvent.WashSaleEvent::class.java, "wash")
-                .withSubtype(ReportEvent.ReceivedEvent::class.java, "received")
+            PolymorphicJsonAdapterFactory.of(TransactionReport::class.java, "type")
+                .withSubtype(TransactionReport.SaleReport::class.java, "sale")
+                .withSubtype(TransactionReport.ReceivedReport::class.java, "received")
+                .withSubtype(TransactionReport.MessageReport::class.java, "message")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()
@@ -51,7 +51,7 @@ class StockCliTest {
     fun example() {
         val w = StockCli.read("$testData/example_input.json")
 
-        val out = Out(w.lots, w.events.filter { it is ReportEvent.SaleEvent || it is ReportEvent.WashSaleEvent })
+        val out = Out(w.lots, w.events.filterIsInstance<TransactionReport.SaleReport>())
         val a = moshi.adapter<Out>()
 
         assertEquals(
@@ -64,7 +64,7 @@ class StockCliTest {
     fun washAfter() {
         val w = StockCli.read("$testData/washafter_input.json")
 
-        val out = Out(w.lots, w.events.filter { it is ReportEvent.SaleEvent || it is ReportEvent.WashSaleEvent })
+        val out = Out(w.lots, w.events.filterIsInstance<TransactionReport.SaleReport>())
         val a = moshi.adapter<Out>()
 
         assertEquals(
@@ -73,5 +73,5 @@ class StockCliTest {
         )
     }
 
-    data class Out(val lots: List<Lot>, val events: List<ReportEvent>)
+    data class Out(val lots: List<Lot>, val events: List<TransactionReport>)
 }

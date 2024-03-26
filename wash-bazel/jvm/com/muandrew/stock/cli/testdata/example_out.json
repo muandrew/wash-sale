@@ -31,9 +31,22 @@
       "saleValue": {
         "value": 1010
       },
-      "costBasis": {
+      "basisBeforeAdjustment": {
         "value": 1000
-      }
+      },
+      "disallowedValue": {
+        "value": 0
+      },
+      "disallowedTransfer": [],
+      "allowedTransfer": [
+        {
+          "soldLotId": "1000-01-01.0",
+          "shares": 1,
+          "basis": {
+            "value": 1000
+          }
+        }
+      ]
     }
   ]
 }

@@ -16,6 +16,14 @@ data class DateTime(
     }
 }
 
+fun max(lhs: DateTime, rhs: DateTime): DateTime {
+    return if (lhs > rhs) {
+        lhs
+    } else {
+        rhs
+    }
+}
+
 operator fun DateTime.compareTo(other: DateTime): Int {
     val dateCompare = this.date.compareTo(other.date)
     return if (dateCompare != 0) {

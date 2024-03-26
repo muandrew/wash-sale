@@ -3,7 +3,7 @@ package com.muandrew.stock.world
 import com.muandrew.money.Money
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
 import com.muandrew.stock.model.Lot
-import com.muandrew.stock.model.ReportEvent
+import com.muandrew.stock.model.TransactionReport
 import com.muandrew.stock.model.Transaction
 import com.muandrew.testtool.TestFiles
 import com.muandrew.testtool.TestFiles.readAsFileToString
@@ -93,12 +93,12 @@ class WorldTest {
             "1999-01-01",
         )
 
-        val wash = w.events.filterIsInstance<ReportEvent.WashSaleEvent>().first()
-        assertEquals(1, wash.allowedShares)
-        assertEquals(Money(-1_00), wash.allowedValue)
-        assertEquals(10, wash.disallowedShares)
+        val wash = w.events.filterIsInstance<TransactionReport.SaleReport>().first()
+        assertEquals(1, wash.allowedTransfer.sumOf { it.shares })
+        assertEquals(Money(-1_00), wash.saleValue - wash.basisBeforeAdjustment - wash.disallowedValue)
+        assertEquals(10, wash.disallowedTransfer.sumOf { it.shares })
         assertEquals(Money(-10_00), wash.disallowedValue)
-        assertEquals(saleTotalShares, wash.allowedShares + wash.disallowedShares)
+        assertEquals(saleTotalShares, wash.shares)
     }
 
     private fun assertLots(recordingFile: String, actual: List<Lot>) {

@@ -18,6 +18,9 @@ class Lot(
 ) {
     val isReplacement get() = transformed != null
 
+    @Transient
+    var numberOfWashes = 0
+
     /**
      * Includes the initial transaction
      */
@@ -32,11 +35,11 @@ class Lot(
      *
      * @return The amount of cost basis removed
      */
-    fun transactForBasis(transactionId: TransactionReference, sharesToRemove: Long) : Money {
+    fun removeShares(ref: TransactionReference, sharesToRemove: Long) : Money {
         if (sharesToRemove > current.shares) {
-            throw IllegalStateException("shares are not expected to go below zero from $transactionId")
+            throw IllegalStateException("shares are not expected to go below zero from $ref")
         }
-        transactions.add(transactionId)
+        transactions.add(ref)
         val res = current.splitOut(sharesToRemove)
         current = res.remainder
         return res.split.value

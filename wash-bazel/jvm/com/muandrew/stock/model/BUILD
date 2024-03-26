@@ -7,9 +7,9 @@ kt_jvm_library(
         "LotReference.kt",
         "LotValue.kt",
         "RawInput.kt",
-        "ReportEvent.kt",
         "Transaction.kt",
         "TransactionReference.kt",
+        "TransactionReport.kt",
     ],
     plugins = [
         "//:moshi-kotlin-codegen",

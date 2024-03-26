@@ -19,6 +19,10 @@ data class ApplicationResult(
     val accumulatedChanges: LotValue,
 )
 
+fun minShares(lhs: LotValue, rhs: LotValue): Long {
+    return min(lhs.shares, rhs.shares)
+}
+
 fun <T : Any> applySharesAmongCandidates(
     source: LotValue,
     candidates: List<T>,
