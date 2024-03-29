@@ -1,6 +1,6 @@
 package com.muandrew.washsale
 
-import App
+import com.muandrew.stock.App
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent

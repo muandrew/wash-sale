@@ -1,3 +1,7 @@
+package com.muandrew.stock
+
+import getPlatform
+
 class Greeting {
     private val platform = getPlatform()
 

@@ -32,6 +32,7 @@ kotlin {
             implementation(compose.ui)
             @OptIn(ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
+            implementation(libs.wash.lib)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
