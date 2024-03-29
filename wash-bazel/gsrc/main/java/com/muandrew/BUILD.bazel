@@ -6,9 +6,7 @@ java_library(
         "Runner.java",
     ],
     visibility = ["//:__subpackages__"],
-    deps = [
-        "//jvm/com/muandrew/util",  #keep
-    ],
+    deps = ["//gsrc/main/java/com/muandrew/dummyutil"],
 )
 
 java_binary(

@@ -1,6 +1,6 @@
 package com.muandrew;
 
-import com.muandrew.util.Util;
+import com.muandrew.dummyutil.Util;
 
 public class Runner {
     public static void main(String args[]) {
