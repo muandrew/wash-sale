@@ -3,12 +3,14 @@ load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library", "kt_jvm_test")
 kt_jvm_library(
     name = "default",
     srcs = [
+        "LotDiffer.kt",
         "MoshiExt.kt",
         "StockTransactionReader.kt",
         "World.kt",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//jvm/com/muandrew/csv:default",
         "//jvm/com/muandrew/money",
         "//jvm/com/muandrew/stock/model:default",
         "//jvm/com/muandrew/stock/time",
@@ -49,6 +51,19 @@ kt_jvm_test(
         "//jvm/com/muandrew/testtool",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_kotlin",
+        "@maven//:junit_junit",
+    ],
+)
+
+kt_jvm_test(
+    name = "testLotDiffer",
+    srcs = ["LotDifferTest.kt"],
+    data = glob(["testdata/lot/*.*"]),
+    test_class = "com.muandrew.stock.world.LotDifferTest",
+    deps = [
+        ":default",
+        "//jvm/com/muandrew/stock/model:default",
+        "//jvm/com/muandrew/testtool",
         "@maven//:junit_junit",
     ],
 )
