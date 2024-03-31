@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "9562619d95e90a98e1fba3b0beca1c448483103464f750fbb1c206fb6fbb27ca",
+  "moduleFileHash": "3b28bedae8de1cfd470e68e33f325b3986ea74496a0a4802435e4d58a2274cc8",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -50,6 +50,7 @@
                   "com.squareup.moshi:moshi-kotlin:1.15.0",
                   "com.squareup.moshi:moshi-kotlin-codegen:1.15.0",
                   "junit:junit:4.13.2",
+                  "org.jsoup:jsoup:1.17.2",
                   "org.junit.jupiter:junit-jupiter-api:5.8.2",
                   "org.junit.jupiter:junit-jupiter-engine:5.8.2",
                   "org.junit.platform:junit-platform-launcher:1.8.2",
@@ -64,7 +65,7 @@
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 18,
+                "line": 19,
                 "column": 14
               }
             }
@@ -3153,7 +3154,7 @@
         "bzlTransitiveDigest": "WLH6tV/jGiZ73lPBSYWRhoilLeqSLs6vQqjK4ph6NG0=",
         "recordedFileInputs": {
           "@@rules_jvm_external~//rules_jvm_external_deps_install.json": "cafb5d2d8119391eb2b322ce3840d3352ea82d496bdb8cbd4b6779ec4d044dda",
-          "@@//maven_install.json": "5f0f842b2d595eb5cfc50e4d8ef92a641a8548b078494e855198b2390c47a82d"
+          "@@//maven_install.json": "77e1de847f7f04d81805f63dc835e4bbe4610d37915ca6ba5fb4af45d17989e6"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -3442,6 +3443,17 @@
               "target_name": "org_junit_platform_junit_platform_launcher"
             }
           },
+          "org_jsoup_jsoup_jar_sources_1_17_2": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "sha256": "d108c67f7a3f0a352cb719d5d08105da934a170a9b5aa576bc1b48c26961488a",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jsoup/jsoup/1.17.2/jsoup-1.17.2-sources.jar"
+              ],
+              "downloaded_file_path": "v1/org/jsoup/jsoup/1.17.2/jsoup-1.17.2-sources.jar"
+            }
+          },
           "io_grpc_grpc_protobuf_lite_1_56_1": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -3624,6 +3636,7 @@
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin-codegen\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"junit\", \"artifact\": \"junit\", \"version\": \"4.13.2\" }",
+                "{ \"group\": \"org.jsoup\", \"artifact\": \"jsoup\", \"version\": \"1.17.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-api\", \"version\": \"5.8.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-engine\", \"version\": \"5.8.2\" }",
                 "{ \"group\": \"org.junit.platform\", \"artifact\": \"junit-platform-launcher\", \"version\": \"1.8.2\" }",
@@ -4846,6 +4859,17 @@
               "downloaded_file_path": "v1/com/google/truth/truth/1.1.2/truth-1.1.2-sources.jar"
             }
           },
+          "org_jsoup_jsoup_1_17_2": {
+            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
+            "ruleClassName": "http_file",
+            "attributes": {
+              "sha256": "f60b33b38e9d7ac93eaaa68a6c70f706bb99036494b2e2add2bfee11d09ac6f5",
+              "urls": [
+                "https://repo1.maven.org/maven2/org/jsoup/jsoup/1.17.2/jsoup-1.17.2.jar"
+              ],
+              "downloaded_file_path": "v1/org/jsoup/jsoup/1.17.2/jsoup-1.17.2.jar"
+            }
+          },
           "org_objenesis_objenesis_jar_sources_3_2": {
             "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
             "ruleClassName": "http_file",
@@ -5560,6 +5584,7 @@
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"com.squareup.moshi\", \"artifact\": \"moshi-kotlin-codegen\", \"version\": \"1.15.0\" }",
                 "{ \"group\": \"junit\", \"artifact\": \"junit\", \"version\": \"4.13.2\" }",
+                "{ \"group\": \"org.jsoup\", \"artifact\": \"jsoup\", \"version\": \"1.17.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-api\", \"version\": \"5.8.2\" }",
                 "{ \"group\": \"org.junit.jupiter\", \"artifact\": \"junit-jupiter-engine\", \"version\": \"5.8.2\" }",
                 "{ \"group\": \"org.junit.platform\", \"artifact\": \"junit-platform-launcher\", \"version\": \"1.8.2\" }",

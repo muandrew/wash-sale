@@ -25,6 +25,7 @@ maven.install(
         "com.squareup.moshi:moshi-kotlin:1.15.0",
         "com.squareup.moshi:moshi-kotlin-codegen:1.15.0",
         "junit:junit:4.13.2",
+        "org.jsoup:jsoup:1.17.2",  # java
         "org.junit.jupiter:junit-jupiter-api:5.8.2",
         "org.junit.jupiter:junit-jupiter-engine:5.8.2",
         "org.junit.platform:junit-platform-launcher:1.8.2",
