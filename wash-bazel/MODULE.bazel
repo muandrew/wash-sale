@@ -15,6 +15,7 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 # usage below
 # https://github.com/bazelbuild/rules_jvm_external/blob/master/docs/bzlmod.md
 # bazel run @maven//:pin
+# bazel run @unpinned_maven//:pin
 maven.install(
     name = "maven",
     artifacts = [
