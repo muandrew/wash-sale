@@ -16,9 +16,9 @@ kt_jvm_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//jvm/com/muandrew/money",
-        "//jvm/com/muandrew/moshi/adapters",
-        "//jvm/com/muandrew/stock/time",
+        "//kotlin/com/muandrew/money",
+        "//kotlin/com/muandrew/moshi/adapters",
+        "//kotlin/com/muandrew/stock/time",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_kotlin",
     ],

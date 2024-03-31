@@ -10,10 +10,10 @@ kt_jvm_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//jvm/com/muandrew/csv:default",
-        "//jvm/com/muandrew/money",
-        "//jvm/com/muandrew/stock/model:default",
-        "//jvm/com/muandrew/stock/time",
+        "//kotlin/com/muandrew/csv:default",
+        "//kotlin/com/muandrew/money",
+        "//kotlin/com/muandrew/stock/model:default",
+        "//kotlin/com/muandrew/stock/time",
         "@maven//:com_github_doyaaaaaken_kotlin_csv_jvm",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_adapters",
@@ -30,7 +30,7 @@ kt_jvm_test(
     test_class = "com.muandrew.stock.world.WorldTest",
     deps = [
         ":default",
-        "//jvm/com/muandrew/testtool",
+        "//kotlin/com/muandrew/testtool",
         "@bazel_tools//tools/java/runfiles",
         "@maven//:com_squareup_moshi_moshi_kotlin",
         "@maven//:junit_junit",
@@ -47,8 +47,8 @@ kt_jvm_test(
     test_class = "com.muandrew.stock.world.StockTransactionReaderTest",
     deps = [
         ":default",
-        "//jvm/com/muandrew/stock/model:default",
-        "//jvm/com/muandrew/testtool",
+        "//kotlin/com/muandrew/stock/model:default",
+        "//kotlin/com/muandrew/testtool",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_kotlin",
         "@maven//:junit_junit",
@@ -62,8 +62,8 @@ kt_jvm_test(
     test_class = "com.muandrew.stock.world.LotDifferTest",
     deps = [
         ":default",
-        "//jvm/com/muandrew/stock/model:default",
-        "//jvm/com/muandrew/testtool",
+        "//kotlin/com/muandrew/stock/model:default",
+        "//kotlin/com/muandrew/testtool",
         "@maven//:junit_junit",
     ],
 )

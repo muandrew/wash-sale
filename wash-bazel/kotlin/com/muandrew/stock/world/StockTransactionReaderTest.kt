@@ -11,7 +11,7 @@ class StockTransactionReaderTest {
 
     @Before
     fun setUp() {
-        testData = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/world/testdata")
+        testData = TestFiles.testDirectoryPath("kotlin/com/muandrew/stock/world/testdata")
     }
 
     @Test

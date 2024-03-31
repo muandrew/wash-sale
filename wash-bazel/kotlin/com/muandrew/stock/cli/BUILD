@@ -6,8 +6,8 @@ kt_jvm_export(
     srcs = ["StockCli.kt"],
     maven_coordinates = "com.muandrew.stock:cli:0.0.1",
     deps = [
-        "//jvm/com/muandrew/moshi/adapters",
-        "//jvm/com/muandrew/stock/world:default",
+        "//kotlin/com/muandrew/moshi/adapters",
+        "//kotlin/com/muandrew/stock/world:default",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_adapters",
         "@maven//:com_squareup_moshi_moshi_kotlin",
@@ -19,8 +19,8 @@ kt_jvm_binary(
     main_class = "com.muandrew.stock.cli.StockCli",
     runtime_deps = [
         ":lib-lib",
-        "//jvm/com/muandrew/moshi/adapters",
-        "//jvm/com/muandrew/stock/world:default",
+        "//kotlin/com/muandrew/moshi/adapters",
+        "//kotlin/com/muandrew/stock/world:default",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_adapters",
         "@maven//:com_squareup_moshi_moshi_kotlin",
@@ -34,8 +34,8 @@ kt_jvm_test(
     test_class = "com.muandrew.stock.cli.StockCliTest",
     deps = [
         ":lib-lib",  # macro expands the lib target to :%s-lib
-        "//jvm/com/muandrew/stock/model:default",
-        "//jvm/com/muandrew/testtool",
+        "//kotlin/com/muandrew/stock/model:default",
+        "//kotlin/com/muandrew/testtool",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_kotlin",
         "@maven//:junit_junit",

@@ -29,7 +29,7 @@ class WorldTest {
             .addStockAdapters()
             .addLast(KotlinJsonAdapterFactory())
             .build()
-        testDataDir = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/world/testdata")
+        testDataDir = TestFiles.testDirectoryPath("kotlin/com/muandrew/stock/world/testdata")
     }
 
     @Test

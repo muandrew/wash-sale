@@ -9,7 +9,7 @@ class LotDifferTest {
 
     @Before
     fun setUp() {
-        testData = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/world/testdata/lot")
+        testData = TestFiles.testDirectoryPath("kotlin/com/muandrew/stock/world/testdata/lot")
     }
 
     @Test

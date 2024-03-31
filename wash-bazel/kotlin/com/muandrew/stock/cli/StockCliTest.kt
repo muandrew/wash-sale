@@ -44,7 +44,7 @@ class StockCliTest {
 
     @Before
     fun setUp() {
-        testData = TestFiles.testDirectoryPath("jvm/com/muandrew/stock/cli/testdata")
+        testData = TestFiles.testDirectoryPath("kotlin/com/muandrew/stock/cli/testdata")
     }
 
     @Test
