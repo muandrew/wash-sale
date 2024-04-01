@@ -1,7 +1,7 @@
 {
   "lots": [
     {
-      "runId": "1000-01-01.0",
+      "runId": "1000-01-01.1",
         "date": "1000-01-01",
       "initial": {
         "shares": 10,
@@ -17,7 +17,7 @@
       }
     },
     {
-      "runId": "2000-01-02.0.w:0",
+      "runId": "2000-01-02.1.w:1",
       "date": "1000-01-01",
       "initial": {
         "shares": 1,
@@ -45,7 +45,7 @@
       }
     },
     {
-      "runId": "2000-01-02.0",
+      "runId": "2000-01-02.1",
       "date": "2000-01-02",
       "initial": {
         "shares": 1,
@@ -77,9 +77,9 @@
       },
       "disallowedTransfer": [
         {
-          "soldLotId": "1000-01-01.0",
-          "transferredLotId": "2000-01-02.0",
-          "resultingId": "2000-01-02.0.w:0",
+          "soldLotId": "1000-01-01.1",
+          "transferredLotId": "2000-01-02.1",
+          "resultingId": "2000-01-02.1.w:1",
           "shares": 1,
           "basis": {
             "value": 1000

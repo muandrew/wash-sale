@@ -49,7 +49,8 @@ class StockCliTest {
 
     @Test
     fun example() {
-        val w = StockCli.readJsonIndexFile("$testData/example_input.json")
+        val t = StockCli.readJsonIndexFile("$testData/example_input.json")
+        val w = StockCli.createWorld(t)
 
         val out = Out(w.lots, w.events.filterIsInstance<TransactionReport.SaleReport>())
         val a = moshi.adapter<Out>()
@@ -62,7 +63,8 @@ class StockCliTest {
 
     @Test
     fun washAfter() {
-        val w = StockCli.readJsonIndexFile("$testData/washafter_input.json")
+        val t = StockCli.readJsonIndexFile("$testData/washafter_input.json")
+        val w = StockCli.createWorld(t)
 
         val out = Out(w.lots, w.events.filterIsInstance<TransactionReport.SaleReport>())
         val a = moshi.adapter<Out>()

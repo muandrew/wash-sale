@@ -16,16 +16,36 @@ object ReleaseParser {
         return parseRaw(htmlFile).map { it.asRealTransaction() }
     }
 
+    private fun List<RealTransaction>.sortByGrant(): List<RealTransaction> {
+        return sortedWith { a, b ->
+            if (a.date > b.date) {
+                1
+            } else if (a.date < b.date) {
+                -1
+            } else {
+                if (a.grantDate > b.date) {
+                    1
+                } else if (a.grantDate <  b.grantDate) {
+                    -1
+                } else {
+                    0
+                }
+            }
+        }
+    }
+
     internal fun Map<String, String>.asRealTransaction(): RealTransaction {
         val date = releaseDate()
         val grossValue = grossValue()
         val soldWithheldValue = soldOrWithheldValue()
         val releasePrice = releasePrice()
         val ref = this[KEY_REFERENCE_NUMBER]!!
+        val grantDate = asDate("Grant Date")
         return when (releaseMethod()) {
             ReleaseMethod.WITHHELD -> RealTransaction.ReleaseWithheld(
                 referenceNumber = ref,
                 date = date,
+                grantDate = grantDate,
                 gross = LotValue(
                     shares = releasedShares(),
                     value = grossValue,
@@ -44,6 +64,7 @@ object ReleaseParser {
             ReleaseMethod.SOLD -> RealTransaction.ReleaseSold(
                 referenceNumber = ref,
                 date = date,
+                grantDate = grantDate,
                 gross = LotValue(
                     shares = releasedShares(),
                     value = grossValue,
@@ -122,7 +143,10 @@ object ReleaseParser {
     }
 
     private fun Map<String, String>.releaseDate() =
-        LocalDate.parse(this["Release Date"], DateFormat.DMY)
+        asDate("Release Date")
+
+    private fun Map<String, String>.asDate(key: String) =
+        LocalDate.parse(this[key], DateFormat.DMY)
 
     private fun Map<String, String>.releasedShares() =
         asLong("Number of Restricted Awards Released")

@@ -11,10 +11,12 @@ sealed interface Transaction {
         val value: Money,
         val shares: Long,
         val lotId: LotReference,
+        val referenceNumber: String? = null
     ) : Transaction
 
     data class ReleaseTransaction(
         override val date: LocalDate,
         val disbursed: LotValue,
+        val referenceNumber: String? = null
     ) : Transaction
 }

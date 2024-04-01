@@ -13,12 +13,13 @@ object StockCli {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val w = readTransactions(args[0])
-        print(w)
+        val ts = readTransactions(args[0])
+        val w = createWorld(ts)
+        w
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun readTransactions(inputDirectory: String): World {
+    fun readTransactions(inputDirectory: String): List<Transaction> {
         val moshi = Moshi.Builder()
             .addStockAdapters()
             .addLast(KotlinJsonAdapterFactory())
@@ -35,21 +36,22 @@ object StockCli {
             }
             ts.addAll(res!!)
         }
+        return ts
+    }
+
+    fun createWorld(transactions: List<Transaction>): World {
         val w = World()
-        w.sortAndProcessTransaction(ts)
+        w.sortAndProcessTransaction(transactions)
         return w
     }
 
-    fun readJsonIndexFile(jsonIndexFile: String): World {
-        val ts = StockTransactionReader.readTransactions(jsonIndexFile)
-        val w = World()
-        w.sortAndProcessTransaction(ts)
-        return w
+    fun readJsonIndexFile(jsonIndexFile: String): List<Transaction> {
+        return StockTransactionReader.readTransactions(jsonIndexFile)
     }
 
     private fun World.sortAndProcessTransaction(transactions: List<Transaction>) {
-        val ss = transactions.filterIsInstance<Transaction.SaleTransaction>().sortedBy { it.date }
         val rs = transactions.filterIsInstance<Transaction.ReleaseTransaction>().sortedBy { it.date }
+        val ss = transactions.filterIsInstance<Transaction.SaleTransaction>().sortedBy { it.date }
         for (r in rs) {
             processTransaction(r)
         }

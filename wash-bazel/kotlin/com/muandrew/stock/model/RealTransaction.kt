@@ -7,10 +7,12 @@ interface RealTransaction {
 
     val referenceNumber: String
     val date: LocalDate
+    val grantDate: LocalDate
 
     data class ReleaseWithheld(
         override val referenceNumber: String,
         override val date: LocalDate,
+        override val grantDate: LocalDate,
         val gross: LotValue,
         val disbursed: LotValue,
         val withheld: LotValue = LotValue.ZERO,
@@ -29,6 +31,7 @@ interface RealTransaction {
     data class ReleaseSold(
         override val referenceNumber: String,
         override val date: LocalDate,
+        override val grantDate: LocalDate,
         val gross: LotValue,
         val disbursed: LotValue,
         val sold: LotValue = LotValue.ZERO,

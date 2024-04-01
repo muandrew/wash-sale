@@ -30,12 +30,13 @@ object HtmlCli {
         val transactionAdapter = moshi.adapter<List<Transaction>>()
 
         listFiles.forEach { htmlFile ->
-            val rt = ReleaseParser.parse(htmlFile)
-            val transactions: List<Transaction> = rt.flatMap { realTransaction ->
+            val realTransactions = ReleaseParser.parse(htmlFile)
+            val transactions: List<Transaction> = realTransactions.flatMap { realTransaction ->
                 when (realTransaction) {
                     is RealTransaction.ReleaseSold -> {
                         listOf(
                             ReleaseTransaction(
+                                referenceNumber = realTransaction.referenceNumber,
                                 date = realTransaction.date,
                                 disbursed = LotValue(
                                     realTransaction.gross.shares,
@@ -43,6 +44,7 @@ object HtmlCli {
                                 ),
                             ),
                             SaleTransaction(
+                                referenceNumber = realTransaction.referenceNumber,
                                 date = realTransaction.date,
                                 value = realTransaction.sold.value,
                                 shares = realTransaction.sold.shares,
@@ -54,6 +56,7 @@ object HtmlCli {
                     is RealTransaction.ReleaseWithheld -> {
                         listOf(
                             ReleaseTransaction(
+                                referenceNumber = realTransaction.referenceNumber,
                                 date = realTransaction.date,
                                 disbursed = LotValue(
                                     realTransaction.disbursed.shares,

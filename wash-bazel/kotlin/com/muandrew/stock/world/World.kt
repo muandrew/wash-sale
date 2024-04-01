@@ -13,8 +13,9 @@ class World {
     val events: MutableList<TransactionReport> = mutableListOf()
 
     fun nextLotId(date: LocalDate): String {
-        val idx = releaseIds[date] ?: 0
-        releaseIds[date] = idx + 1
+        // start with 1 to match bank
+        val idx = releaseIds[date] ?: 1
+        releaseIds[date] = idx
         return "$date.$idx"
     }
 
@@ -89,7 +90,7 @@ class World {
                                 numberOfSharesToTransfer,
                                 washTargetSplit.value - sharesToWashSplit.value
                             )
-                            val washNumber = washTarget.numberOfWashes++
+                            val washNumber = washTarget.nextWashNumber++
                             val washLot = Lot(
                                 runId = "${washTarget.runId}.w:$washNumber",
                                 date = lotToSellFrom.date,

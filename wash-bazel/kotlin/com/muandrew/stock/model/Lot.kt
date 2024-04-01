@@ -1,7 +1,6 @@
 package com.muandrew.stock.model
 
 import com.muandrew.money.Money
-import com.muandrew.stock.time.DateTime
 import com.squareup.moshi.JsonClass
 import java.time.LocalDate
 
@@ -9,7 +8,7 @@ import java.time.LocalDate
  * @param overrideDateForSalesCalculation sometimes a different date is used, in case of wash sale
  */
 @JsonClass(generateAdapter = true)
-class Lot(
+data class Lot(
     val runId: String,
     val date: LocalDate,
     val initial: LotValue,
@@ -20,16 +19,12 @@ class Lot(
     val isReplacement get() = transformed != null
 
     @Transient
-    var numberOfWashes = 0
+    var nextWashNumber = 1
 
     /**
      * Includes the initial transaction
      */
     internal val transactions: MutableList<TransactionReference> = mutableListOf()
-
-    override fun toString(): String {
-        return "{date: `$date`, value: ${current.value}, shares: ${current.shares}}"
-    }
 
     /**
      * Will remove the appropriate amount of cost basis
