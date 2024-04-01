@@ -1,6 +1,7 @@
 package com.muandrew.stock.world
 
 import com.muandrew.testtool.TestFiles
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 
@@ -15,7 +16,8 @@ class LotDifferTest {
     @Test
     fun a() {
         val a = LotDiffer.diff("$testData/1_ini.csv", "$testData/1_fin.csv")
-        a
+
+        assertNotNull(a)
     }
 
 }
