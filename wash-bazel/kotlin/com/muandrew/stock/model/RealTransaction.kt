@@ -8,14 +8,16 @@ interface RealTransaction {
     val referenceNumber: String
     val date: LocalDate
     val grantDate: LocalDate
+    val preferredLot: Int?
 
     data class ReleaseWithheld(
         override val referenceNumber: String,
         override val date: LocalDate,
         override val grantDate: LocalDate,
+        override val preferredLot: Int?,
         val gross: LotValue,
         val disbursed: LotValue,
-        val withheld: LotValue = LotValue.ZERO,
+        val withheld: LotValue,
         val releasePrice: Money,
     ) : RealTransaction {
 
@@ -32,6 +34,7 @@ interface RealTransaction {
         override val referenceNumber: String,
         override val date: LocalDate,
         override val grantDate: LocalDate,
+        override val preferredLot: Int?,
         val gross: LotValue,
         val disbursed: LotValue,
         val sold: LotValue = LotValue.ZERO,

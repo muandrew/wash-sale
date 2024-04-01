@@ -3,6 +3,7 @@ load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library", "kt_jvm_test")
 kt_jvm_library(
     name = "default",
     srcs = [
+        "PreferredLot.kt",
         "ReleaseParser.kt",
     ],
     visibility = ["//visibility:public"],

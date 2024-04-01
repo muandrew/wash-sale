@@ -15,7 +15,7 @@ class World {
     fun nextLotId(date: LocalDate): String {
         // start with 1 to match bank
         val idx = releaseIds[date] ?: 1
-        releaseIds[date] = idx
+        releaseIds[date] = idx + 1
         return "$date.$idx"
     }
 

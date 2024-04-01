@@ -1,6 +1,8 @@
 package com.muandrew.stock.jvm.cli
 
+import com.muandrew.stock.jvm.PreferredLotDataRaw
 import com.muandrew.stock.jvm.ReleaseParser
+import com.muandrew.stock.jvm.toPreferredLotData
 import com.muandrew.stock.model.LotReference
 import com.muandrew.stock.model.LotValue
 import com.muandrew.stock.model.RealTransaction
@@ -30,7 +32,19 @@ object HtmlCli {
         val transactionAdapter = moshi.adapter<List<Transaction>>()
 
         listFiles.forEach { htmlFile ->
-            val realTransactions = ReleaseParser.parse(htmlFile)
+            val baseFilePath = htmlFile.absolutePath.removeSuffix(".html")
+            val preferredLot = File("$baseFilePath.preflot.json")
+            val preferredLotDataRaw: PreferredLotDataRaw? = if (preferredLot.exists()) {
+                preferredLot.bufferedReader().use {
+                    moshi.adapter<PreferredLotDataRaw>().fromJson(it.readText())
+                }
+            } else null
+
+            val realTransactions = ReleaseParser.parse(
+                htmlFile,
+                preferredLotDataRaw?.toPreferredLotData()
+            )
+
             val transactions: List<Transaction> = realTransactions.flatMap { realTransaction ->
                 when (realTransaction) {
                     is RealTransaction.ReleaseSold -> {

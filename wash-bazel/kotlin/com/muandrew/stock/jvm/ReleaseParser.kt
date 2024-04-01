@@ -12,11 +12,28 @@ import java.time.LocalDate
 
 object ReleaseParser {
 
-    fun parse(htmlFile: File): List<RealTransaction> {
-        return parseRaw(htmlFile).map { it.asRealTransaction() }
+    fun parse(
+        htmlFile: File,
+        preferredLotData: PreferredLotData? = null
+    ): List<RealTransaction> {
+        val transactions = parseRaw(htmlFile).map {
+            it.asRealTransaction(preferredLotData)
+        }
+        return if (preferredLotData != null) {
+            transactions.sortedWith { a, b ->
+                val dateComparison = a.date.compareTo(b.date)
+                if (dateComparison == 0) {
+                    a.preferredLot!!.compareTo(b.preferredLot!!)
+                } else {
+                    dateComparison
+                }
+            }
+        } else {
+            transactions
+        }
     }
 
-    private fun List<RealTransaction>.sortByGrant(): List<RealTransaction> {
+    private fun List<RealTransaction>.sortWithGrant(): List<RealTransaction> {
         return sortedWith { a, b ->
             if (a.date > b.date) {
                 1
@@ -25,7 +42,7 @@ object ReleaseParser {
             } else {
                 if (a.grantDate > b.date) {
                     1
-                } else if (a.grantDate <  b.grantDate) {
+                } else if (a.grantDate < b.grantDate) {
                     -1
                 } else {
                     0
@@ -34,24 +51,28 @@ object ReleaseParser {
         }
     }
 
-    internal fun Map<String, String>.asRealTransaction(): RealTransaction {
+    internal fun Map<String, String>.asRealTransaction(
+        preferredLotData: PreferredLotData? = null
+    ): RealTransaction {
         val date = releaseDate()
         val grossValue = grossValue()
         val soldWithheldValue = soldOrWithheldValue()
         val releasePrice = releasePrice()
         val ref = this[KEY_REFERENCE_NUMBER]!!
         val grantDate = asDate("Grant Date")
+        val disbursedShares = disbursedShares()
         return when (releaseMethod()) {
             ReleaseMethod.WITHHELD -> RealTransaction.ReleaseWithheld(
                 referenceNumber = ref,
                 date = date,
                 grantDate = grantDate,
+                preferredLot = preferredLotData?.chooseBasedOnDisbursement(date, disbursedShares),
                 gross = LotValue(
                     shares = releasedShares(),
                     value = grossValue,
                 ),
                 disbursed = LotValue(
-                    shares = disbursedShares(),
+                    shares = disbursedShares,
                     value = grossValue - soldWithheldValue,
                 ),
                 withheld = LotValue(
@@ -65,12 +86,13 @@ object ReleaseParser {
                 referenceNumber = ref,
                 date = date,
                 grantDate = grantDate,
+                preferredLot = preferredLotData?.chooseBasedOnDisbursement(date, disbursedShares),
                 gross = LotValue(
                     shares = releasedShares(),
                     value = grossValue,
                 ),
                 disbursed = LotValue(
-                    shares = disbursedShares(),
+                    shares = disbursedShares,
                     value = grossValue,
                 ),
                 sold = LotValue(
