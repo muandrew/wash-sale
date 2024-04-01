@@ -7,6 +7,7 @@ kt_jvm_library(
         "LotReference.kt",
         "LotValue.kt",
         "RawInput.kt",
+        "RealTransaction.kt",
         "Transaction.kt",
         "TransactionReference.kt",
         "TransactionReport.kt",
@@ -18,7 +19,7 @@ kt_jvm_library(
     deps = [
         "//kotlin/com/muandrew/money",
         "//kotlin/com/muandrew/moshi/adapters",
-        "//kotlin/com/muandrew/stock/time",
+        "//kotlin/com/muandrew/stock/time:default",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_kotlin",
     ],

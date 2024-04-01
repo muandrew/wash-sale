@@ -18,25 +18,22 @@ class World {
         return "$date.$idx"
     }
 
-    fun acceptTransaction(transaction: Transaction) {
+    fun processTransaction(transaction: Transaction) {
         when (transaction) {
             is Transaction.ReleaseTransaction -> {
                 lots.add(
                     Lot.create(
                         runId = nextLotId(transaction.date.date),
                         date = transaction.date,
-                        initial = LotValue(
-                            shares = transaction.shares,
-                            value = transaction.value,
-                        ),
+                        initial = transaction.disbursed,
                         sourceTransaction = TransactionReference.DateReference(date = transaction.date)
                     )
                 )
                 events.add(
                     TransactionReport.ReceivedReport(
                         transaction.date,
-                        transaction.shares,
-                        transaction.value
+                        transaction.disbursed.shares,
+                        transaction.disbursed.value
                     )
                 )
             }

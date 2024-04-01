@@ -73,11 +73,10 @@ object StockTransactionReader {
         val type = getData(default, instance, "event_type") ?: IllegalStateException("need event_type, release|sale")
         return when (type) {
             "release" -> {
-                val date = DateTime(date = LocalDate.parse(getData(default, instance, "date")!!))
-                Transaction.ReleaseTransaction(
-                    date,
-                    Money.parse(getData(default, instance, "value")!!),
-                    getData(default, instance, "shares")!!.toLong(),
+                Transaction.createRelease(
+                    date = LocalDate.parse(getData(default, instance, "date")!!),
+                    shares = getData(default, instance, "shares")!!.toLong(),
+                    value = Money.parse(getData(default, instance, "value")!!),
                 )
             }
             "sale" -> {

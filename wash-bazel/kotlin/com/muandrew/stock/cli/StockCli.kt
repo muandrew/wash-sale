@@ -20,10 +20,10 @@ object StockCli {
         val rs = ts.filterIsInstance<Transaction.ReleaseTransaction>().sortedBy { it.date.date }
 
         for (r in rs) {
-            w.acceptTransaction(r)
+            w.processTransaction(r)
         }
         ss.forEach {
-            w.acceptTransaction(it)
+            w.processTransaction(it)
         }
         return w
     }

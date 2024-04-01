@@ -13,7 +13,7 @@ kt_jvm_library(
         "//kotlin/com/muandrew/csv:default",
         "//kotlin/com/muandrew/money",
         "//kotlin/com/muandrew/stock/model:default",
-        "//kotlin/com/muandrew/stock/time",
+        "//kotlin/com/muandrew/stock/time:default",
         "@maven//:com_github_doyaaaaaken_kotlin_csv_jvm",
         "@maven//:com_squareup_moshi_moshi",
         "@maven//:com_squareup_moshi_moshi_adapters",

@@ -16,8 +16,7 @@ sealed interface Transaction {
 
     data class ReleaseTransaction(
         override val date: DateTime,
-        val value: Money,
-        val shares: Long
+        val disbursed: LotValue,
     ) : Transaction
 
     companion object {
@@ -25,8 +24,7 @@ sealed interface Transaction {
             val dateTime = DateTime(date = date)
             return  ReleaseTransaction(
                 date = dateTime,
-                value = value,
-                shares = shares,
+                disbursed = LotValue(shares, value),
             )
         }
 
@@ -35,7 +33,7 @@ sealed interface Transaction {
             shares: Long,
             value: Money,
             lotDate: LocalDate,
-            ): SaleTransaction {
+        ): SaleTransaction {
             val dateTime = DateTime(date = date)
             return SaleTransaction(
                 date = dateTime,

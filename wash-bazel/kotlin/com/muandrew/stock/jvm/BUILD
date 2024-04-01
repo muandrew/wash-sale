@@ -7,6 +7,8 @@ kt_jvm_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//kotlin/com/muandrew/stock/model:default",
+        "//kotlin/com/muandrew/stock/time:default",
         "@maven//:org_jsoup_jsoup",
     ],
 )

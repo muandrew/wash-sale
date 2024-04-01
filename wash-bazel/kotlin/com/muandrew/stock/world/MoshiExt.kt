@@ -3,6 +3,7 @@ package com.muandrew.stock.world
 import com.muandrew.moshi.adapters.LocalDateAdapter
 import com.muandrew.moshi.adapters.LocalTimeAdapter
 import com.muandrew.stock.model.LotReference
+import com.muandrew.stock.model.Transaction
 import com.muandrew.stock.model.TransactionReference
 import com.muandrew.stock.model.TransformedFrom
 import com.squareup.moshi.Moshi
@@ -24,6 +25,11 @@ object MoshiExt {
             .add(
                 PolymorphicJsonAdapterFactory.of(TransactionReference::class.java, "type")
                     .withSubtype(TransactionReference.DateReference::class.java, "date")
+            )
+            .add(
+                PolymorphicJsonAdapterFactory.of(Transaction::class.java, "type")
+                    .withSubtype(Transaction.ReleaseTransaction::class.java, "release")
+                    .withSubtype(Transaction.SaleTransaction::class.java, "sale")
             )
     }
 }

@@ -57,7 +57,7 @@ value class Money(val value: Long) {
         }
 
         fun parse(value: String): Money {
-            val res = regex.find(value) ?: throw IllegalArgumentException("could not parse $value as Money")
+            val res = regex.find(value) ?: throw IllegalArgumentException("could not parse '$value' as Money")
             val (negStart, dollars, _ /*dot*/, strCents, negEnd) = res.destructured
             if (negStart.isNotEmpty() xor negEnd.isNotEmpty()) {
                 throw IllegalArgumentException("you need to start and end parenthesis")

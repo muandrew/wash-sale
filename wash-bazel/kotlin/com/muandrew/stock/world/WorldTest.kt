@@ -109,7 +109,7 @@ class WorldTest {
 }
 
 fun World.release(date: String, shares: Long, value: Long) {
-    acceptTransaction(Transaction.createRelease(LocalDate.parse(date), shares, Money(value)))
+    processTransaction(Transaction.createRelease(LocalDate.parse(date), shares, Money(value)))
 }
 
 fun World.sale(
@@ -118,7 +118,7 @@ fun World.sale(
     value: Long,
     lotDate: String
 ) {
-    acceptTransaction(
+    processTransaction(
         Transaction.createSale(
             LocalDate.parse(date),
             shares,

@@ -1,12 +1,65 @@
 package com.muandrew.stock.jvm
 
+import com.muandrew.money.Money
+import com.muandrew.stock.model.LotValue
+import com.muandrew.stock.model.RealTransaction
+import com.muandrew.stock.time.DateFormat
+import com.muandrew.stock.time.NuFormat
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.io.File
+import java.time.LocalDate
 
 object ReleaseParser {
 
-    fun parse(htmlFile: File): Any {
+    fun parse(htmlFile: File): List<RealTransaction> {
+        return parseRaw(htmlFile).map { it.asRealTransaction() }
+    }
+
+    internal fun Map<String, String>.asRealTransaction(): RealTransaction {
+        val date = releaseDate()
+        val grossValue = grossValue()
+        val soldWithheldValue = soldOrWithheldValue()
+        val releasePrice = releasePrice()
+        return when (releaseMethod()) {
+            ReleaseMethod.WITHHELD -> RealTransaction.ReleaseWithheld(
+                date = date,
+                gross = LotValue(
+                    shares = releasedShares(),
+                    value = grossValue,
+                ),
+                disbursed = LotValue(
+                    shares = disbursedShares(),
+                    value = grossValue - soldWithheldValue,
+                ),
+                withheld = LotValue(
+                    shares = asLong("Number of Restricted Awards Withheld"),
+                    value = soldWithheldValue,
+                ),
+                releasePrice = releasePrice,
+            )
+
+            ReleaseMethod.SOLD -> RealTransaction.ReleaseSold(
+                date = date,
+                gross = LotValue(
+                    shares = releasedShares(),
+                    value = grossValue,
+                ),
+                disbursed = LotValue(
+                    shares = disbursedShares(),
+                    value = grossValue,
+                ),
+                sold = LotValue(
+                    shares = asLong("Number of Restricted Awards Sold"),
+                    value = soldWithheldValue,
+                ),
+                releasePrice = releasePrice,
+                salePrice = salePrice(),
+            )
+        }
+    }
+
+    fun parseRaw(htmlFile: File): List<Map<String, String>> {
         val doc = Jsoup.parse(htmlFile)
         val rootDiv = doc.body().child(0)
         assert(rootDiv.tagName() == "div")
@@ -38,16 +91,58 @@ object ReleaseParser {
         }
     }
 
+    private enum class ReleaseMethod {
+        SOLD,
+        WITHHELD,
+    }
+
     private const val TOTAL_VALUE_KEY = "Total Value"
     private const val KEY_SOLD_WITHHOLD_TOTAL_VALUE = "Sold/Withheld Total Value"
     private const val KEY_RELEASE_METHOD = "Release Method"
     private const val RELEASE_METHOD_WITHHOLD = "Withhold shares to cover taxes, receive remaining shares"
     private const val RELEASE_METHOD_SOLD = "Sell enough shares to cover taxes, receive balance as shares"
     private val RELEASE_METHOD_MAP = mapOf(
-        RELEASE_METHOD_WITHHOLD to "w",
-        RELEASE_METHOD_SOLD to "s",
+        RELEASE_METHOD_WITHHOLD to ReleaseMethod.WITHHELD,
+        RELEASE_METHOD_SOLD to ReleaseMethod.SOLD,
     )
     private val totalValueRegex = "$TOTAL_VALUE_KEY: (\\$[\\d.,]+ USD)".toRegex()
+
+    private fun Map<String, String>.releaseMethod(): ReleaseMethod {
+        val method = RELEASE_METHOD_MAP[this[KEY_RELEASE_METHOD]]
+        assert(method != null) {
+            "unknown release method '${this[KEY_RELEASE_METHOD]}'"
+        }
+        //TODO assert non null with contract
+        return method!!
+    }
+
+    private fun Map<String, String>.releaseDate() =
+        LocalDate.parse(this["Release Date"], DateFormat.DMY)
+
+    private fun Map<String, String>.releasedShares() =
+        asLong("Number of Restricted Awards Released")
+
+    private fun Map<String, String>.grossValue() =
+        asMoney("Gross Release Value")
+
+    private fun Map<String, String>.disbursedShares() =
+        asLong("Number of Restricted Awards Disbursed")
+
+    private fun Map<String, String>.soldOrWithheldValue() =
+        asMoney("Sold/Withheld Total Value")
+
+    private fun Map<String, String>.releasePrice() =
+        asMoney("Release Price")
+
+    private fun Map<String, String>.salePrice() =
+        asMoney("Sale Price")
+
+    private fun Map<String, String>.asLong(key: String): Long =
+        NuFormat.parseLong(this[key]!!)
+
+    private fun Map<String, String>.asMoney(key: String): Money =
+        Money.parse(this[key]!!.removeSuffix(" USD").replace(",", ""))
+
 
     internal fun parseReleaseTable(
         releaseTable: Element,
@@ -73,9 +168,6 @@ object ReleaseParser {
         val totalValueTds = totalValueTable.getElementsByTag("td")
         assert(totalValueTds.size == 1)
         val totalValueMatch = totalValueRegex.find(totalValueTds[0].text())
-        assert(RELEASE_METHOD_MAP[data[KEY_RELEASE_METHOD]] != null) {
-            "unknown release method '${data[KEY_RELEASE_METHOD]}'"
-        }
         data[KEY_SOLD_WITHHOLD_TOTAL_VALUE] = totalValueMatch!!.groups[1]!!.value
         return data
     }
