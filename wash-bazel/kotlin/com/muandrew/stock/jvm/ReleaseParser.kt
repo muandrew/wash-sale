@@ -21,8 +21,10 @@ object ReleaseParser {
         val grossValue = grossValue()
         val soldWithheldValue = soldOrWithheldValue()
         val releasePrice = releasePrice()
+        val ref = this[KEY_REFERENCE_NUMBER]!!
         return when (releaseMethod()) {
             ReleaseMethod.WITHHELD -> RealTransaction.ReleaseWithheld(
+                referenceNumber = ref,
                 date = date,
                 gross = LotValue(
                     shares = releasedShares(),
@@ -40,6 +42,7 @@ object ReleaseParser {
             )
 
             ReleaseMethod.SOLD -> RealTransaction.ReleaseSold(
+                referenceNumber = ref,
                 date = date,
                 gross = LotValue(
                     shares = releasedShares(),
@@ -106,6 +109,8 @@ object ReleaseParser {
         RELEASE_METHOD_SOLD to ReleaseMethod.SOLD,
     )
     private val totalValueRegex = "$TOTAL_VALUE_KEY: (\\$[\\d.,]+ USD)".toRegex()
+    private val referenceRegex = "\\((.*)\\)".toRegex()
+    private const val KEY_REFERENCE_NUMBER = "Reference Number"
 
     private fun Map<String, String>.releaseMethod(): ReleaseMethod {
         val method = RELEASE_METHOD_MAP[this[KEY_RELEASE_METHOD]]
@@ -155,8 +160,9 @@ object ReleaseParser {
         val trs = tbody.getElementsByTag("tr")
         assert(trs.size == 8 || trs.size == 9)
         val trItr = trs.iterator()
-        trItr.next() // this is header data
         val data = mutableMapOf<String, String>()
+        val header = trItr.next() // this is header data
+        data[KEY_REFERENCE_NUMBER] = referenceRegex.find(header.text())!!.groups[1]!!.value
         while (trItr.hasNext()) {
             val tr = trItr.next()
             val tds = tr.getElementsByTag("td")

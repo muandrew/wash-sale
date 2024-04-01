@@ -4,8 +4,13 @@ import com.muandrew.money.Money
 import java.time.LocalDate
 
 interface RealTransaction {
+
+    val referenceNumber: String
+    val date: LocalDate
+
     data class ReleaseWithheld(
-        val date: LocalDate,
+        override val referenceNumber: String,
+        override val date: LocalDate,
         val gross: LotValue,
         val disbursed: LotValue,
         val withheld: LotValue = LotValue.ZERO,
@@ -22,7 +27,8 @@ interface RealTransaction {
     }
 
     data class ReleaseSold(
-        val date: LocalDate,
+        override val referenceNumber: String,
+        override val date: LocalDate,
         val gross: LotValue,
         val disbursed: LotValue,
         val sold: LotValue = LotValue.ZERO,
