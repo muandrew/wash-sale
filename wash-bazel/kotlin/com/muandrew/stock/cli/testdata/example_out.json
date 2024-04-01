@@ -3,8 +3,7 @@
     {
       "runId": "1000-01-01.0",
       "date": {
-        "date": "1000-01-01",
-        "time": "null"
+        "date": "1000-01-01"
       },
       "initial": {
         "shares": 10,
@@ -24,8 +23,7 @@
     {
       "type": "sale",
       "date": {
-        "date": "2000-01-01",
-        "time": "null"
+        "date": "2000-01-01"
       },
       "shares": 1,
       "saleValue": {

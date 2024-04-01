@@ -21,6 +21,6 @@ class LocalTimeAdapter : JsonAdapter<LocalTime>() {
 
     @ToJson
     override fun toJson(writer: JsonWriter, value: LocalTime?) {
-        writer.value(value.toString())
+        writer.value(value?.toString())
     }
 }
