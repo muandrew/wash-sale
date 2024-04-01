@@ -3,8 +3,10 @@ package com.muandrew.stock.world
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.muandrew.money.Money
 import com.muandrew.stock.model.LotReference
+import com.muandrew.stock.model.LotValue
 import com.muandrew.stock.model.RawInput
 import com.muandrew.stock.model.Transaction
+import com.muandrew.stock.model.Transaction.ReleaseTransaction
 import com.muandrew.stock.time.DateTime
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
@@ -73,22 +75,26 @@ object StockTransactionReader {
         val type = getData(default, instance, "event_type") ?: IllegalStateException("need event_type, release|sale")
         return when (type) {
             "release" -> {
-                Transaction.createRelease(
+                ReleaseTransaction(
                     date = LocalDate.parse(getData(default, instance, "date")!!),
-                    shares = getData(default, instance, "shares")!!.toLong(),
-                    value = Money.parse(getData(default, instance, "value")!!),
+                    disbursed = LotValue(
+                        shares = getData(default, instance, "shares")!!.toLong(),
+                        value = Money.parse(getData(default, instance, "value")!!)
+                    ),
                 )
             }
+
             "sale" -> {
-                val date = DateTime(date = LocalDate.parse(getData(default, instance, "date")!!))
-                val lotDate = DateTime(date = LocalDate.parse(getData(default, instance, "sale_lot")!!))
+                val date = LocalDate.parse(getData(default, instance, "date")!!)
+                val lotDate = LocalDate.parse(getData(default, instance, "sale_lot")!!)
                 Transaction.SaleTransaction(
                     date,
                     Money.parse(getData(default, instance, "value")!!),
                     getData(default, instance, "shares")!!.toLong(),
-                    LotReference.DateLotReference(date = lotDate),
+                    LotReference.Date(date = lotDate),
                 )
             }
+
             else -> {
                 throw IllegalStateException("something unexpected $type")
             }

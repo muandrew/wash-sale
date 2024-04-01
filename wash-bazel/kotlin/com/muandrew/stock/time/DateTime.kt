@@ -24,6 +24,15 @@ fun max(lhs: DateTime, rhs: DateTime): DateTime {
     }
 }
 
+fun max(lhs: LocalDate, rhs: LocalDate): LocalDate {
+    return if (lhs > rhs) {
+        lhs
+    } else {
+        rhs
+    }
+}
+
+
 operator fun DateTime.compareTo(other: DateTime): Int {
     val dateCompare = this.date.compareTo(other.date)
     return if (dateCompare != 0) {

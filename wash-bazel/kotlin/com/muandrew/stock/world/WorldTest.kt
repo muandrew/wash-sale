@@ -1,10 +1,10 @@
 package com.muandrew.stock.world
 
 import com.muandrew.money.Money
+import com.muandrew.stock.model.*
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
-import com.muandrew.stock.model.Lot
-import com.muandrew.stock.model.TransactionReport
-import com.muandrew.stock.model.Transaction
+import com.muandrew.stock.model.Transaction.ReleaseTransaction
+import com.muandrew.stock.model.Transaction.SaleTransaction
 import com.muandrew.testtool.TestFiles
 import com.muandrew.testtool.TestFiles.readAsFileToString
 import com.squareup.moshi.Moshi
@@ -109,7 +109,12 @@ class WorldTest {
 }
 
 fun World.release(date: String, shares: Long, value: Long) {
-    processTransaction(Transaction.createRelease(LocalDate.parse(date), shares, Money(value)))
+    processTransaction(
+        ReleaseTransaction(
+            date = LocalDate.parse(date),
+            disbursed = LotValue(shares, Money(value)),
+        )
+    )
 }
 
 fun World.sale(
@@ -119,11 +124,13 @@ fun World.sale(
     lotDate: String
 ) {
     processTransaction(
-        Transaction.createSale(
-            LocalDate.parse(date),
-            shares,
-            Money(value),
-            LocalDate.parse(lotDate)
+        SaleTransaction(
+            date = LocalDate.parse(date),
+            value = Money(value),
+            shares = shares,
+            lotId = LotReference.Date(
+                date = LocalDate.parse(lotDate)
+            )
         )
     )
 }

@@ -2,13 +2,14 @@ package com.muandrew.stock.model
 
 import com.muandrew.money.Money
 import com.muandrew.stock.time.DateTime
+import java.time.LocalDate
 
 sealed interface TransactionReport {
 
     fun print()
 
     data class ReceivedReport(
-        val date: DateTime,
+        val date: LocalDate,
         val shares: Long,
         val costBasis: Money,
     ) : TransactionReport {
@@ -19,7 +20,7 @@ sealed interface TransactionReport {
     }
 
     data class SaleReport(
-        val date: DateTime,
+        val date: LocalDate,
         val shares: Long,
         val saleValue: Money,
         val basisBeforeAdjustment: Money,

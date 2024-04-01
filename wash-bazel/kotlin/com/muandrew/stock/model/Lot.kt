@@ -3,6 +3,7 @@ package com.muandrew.stock.model
 import com.muandrew.money.Money
 import com.muandrew.stock.time.DateTime
 import com.squareup.moshi.JsonClass
+import java.time.LocalDate
 
 /**
  * @param overrideDateForSalesCalculation sometimes a different date is used, in case of wash sale
@@ -10,10 +11,10 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 class Lot(
     val runId: String,
-    val date: DateTime,
+    val date: LocalDate,
     val initial: LotValue,
     var current: LotValue,
-    val overrideDateForSalesCalculation: DateTime? = null,
+    val overrideDateForSalesCalculation: LocalDate? = null,
     val transformed: TransformedFrom? = null,
 ) {
     val isReplacement get() = transformed != null
@@ -48,7 +49,7 @@ class Lot(
     companion object {
         fun create(
             runId: String,
-            date: DateTime,
+            date: LocalDate,
             initial: LotValue,
             sourceTransaction: TransactionReference,
             transformed: TransformedFrom? = null,

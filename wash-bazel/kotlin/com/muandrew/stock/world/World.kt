@@ -23,7 +23,7 @@ class World {
             is Transaction.ReleaseTransaction -> {
                 lots.add(
                     Lot.create(
-                        runId = nextLotId(transaction.date.date),
+                        runId = nextLotId(transaction.date),
                         date = transaction.date,
                         initial = transaction.disbursed,
                         sourceTransaction = TransactionReference.DateReference(date = transaction.date)
@@ -73,7 +73,7 @@ class World {
                         var trackBasisFromLot = fromLot
                         while (sharesToWash.shares > 0) {
                             // check 30 days before and 30 days after
-                            val washTarget = lots.queryForLotToWashTo(lotToSellFrom, transaction.date.date) ?: break
+                            val washTarget = lots.queryForLotToWashTo(lotToSellFrom, transaction.date) ?: break
                             val numberOfSharesToTransfer = minShares(sharesToWash, washTarget.current)
                             val (sharesToWashSplit, sharesToWashRem) = sharesToWash.splitOut(numberOfSharesToTransfer)
                             val (washTargetSplit, washTargetRem) = washTarget.current.splitOut(numberOfSharesToTransfer)
@@ -98,7 +98,7 @@ class World {
                                 initial = newLot,
                                 current = newLot,
                                 transformed = TransformedFrom.WashSale(
-                                    originalLot = LotReference.DateLotReference(lotToSellFrom.date),
+                                    originalLot = LotReference.Date(lotToSellFrom.date),
                                     fromTransaction = TransactionReference.DateReference(transaction.date)
                                 )
                             )
@@ -154,7 +154,7 @@ class World {
         for (lotc in lots) {
             i++
             //TODO warning, need to use the whole datetime
-            if (lotc.date.date <= lot.date.date) {
+            if (lotc.date <= lot.date) {
                 addIndex = i
             } else {
                 break
@@ -181,8 +181,8 @@ fun List<Lot>.queryForLotToWashTo(
     val after = saleDate.plusDays(30)
     return firstOrNull {
         it != sourceLot &&
-                it.date.date >= before &&
-                it.date.date <= after &&
+                it.date >= before &&
+                it.date <= after &&
                 it.current.shares > 0 &&
                 !it.isReplacement
     }
@@ -200,18 +200,10 @@ operator fun LocalDate.compareTo(other: LocalDate): Int {
 
 fun List<Lot>.findFirstLotForId(id: LotReference): Lot? {
     return when (id) {
-        is LotReference.DateLotReference -> {
-            val time = id.date.time
-            // picking very specific lot
-            if (time != null) {
-                firstOrNull {
-                    it.current.shares > 0 && it.date == id.date
-                }
-                // picking fifo for the day
-            } else {
-                firstOrNull {
-                    it.current.shares > 0 && it.date.date == id.date.date
-                }
+        is LotReference.Date -> {
+            // picking fifo for the day
+            firstOrNull {
+                it.current.shares > 0 && it.date == id.date
             }
         }
     }

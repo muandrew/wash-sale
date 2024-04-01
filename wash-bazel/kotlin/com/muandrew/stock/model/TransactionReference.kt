@@ -1,7 +1,7 @@
 package com.muandrew.stock.model
 
-import com.muandrew.stock.time.DateTime
+import java.time.LocalDate
 
 sealed interface TransactionReference {
-    data class DateReference(val date: DateTime) : TransactionReference
+    data class DateReference(val date: LocalDate) : TransactionReference
 }

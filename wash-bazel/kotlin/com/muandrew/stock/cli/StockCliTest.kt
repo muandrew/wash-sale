@@ -27,7 +27,7 @@ class StockCliTest {
         )
         .add(
             PolymorphicJsonAdapterFactory.of(LotReference::class.java, "type")
-                .withSubtype(LotReference.DateLotReference::class.java, "date")
+                .withSubtype(LotReference.Date::class.java, "date")
         )
         .add(
             PolymorphicJsonAdapterFactory.of(TransactionReference::class.java, "type")

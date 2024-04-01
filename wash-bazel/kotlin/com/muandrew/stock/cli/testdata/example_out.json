@@ -2,9 +2,7 @@
   "lots": [
     {
       "runId": "1000-01-01.0",
-      "date": {
-        "date": "1000-01-01"
-      },
+      "date": "1000-01-01",
       "initial": {
         "shares": 10,
         "value": {
@@ -22,9 +20,7 @@
   "events": [
     {
       "type": "sale",
-      "date": {
-        "date": "2000-01-01"
-      },
+      "date": "2000-01-01",
       "shares": 1,
       "saleValue": {
         "value": 1010

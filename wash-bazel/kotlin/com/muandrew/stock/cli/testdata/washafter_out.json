@@ -2,9 +2,7 @@
   "lots": [
     {
       "runId": "1000-01-01.0",
-      "date": {
-        "date": "1000-01-01"
-      },
+        "date": "1000-01-01",
       "initial": {
         "shares": 10,
         "value": {
@@ -20,9 +18,7 @@
     },
     {
       "runId": "2000-01-02.0.w:0",
-      "date": {
-        "date": "1000-01-01"
-      },
+      "date": "1000-01-01",
       "initial": {
         "shares": 1,
         "value": {
@@ -35,30 +31,22 @@
           "value": 10100
         }
       },
-      "overrideDateForSalesCalculation": {
-        "date": "2000-01-02"
-      },
+      "overrideDateForSalesCalculation": "2000-01-02",
       "transformed": {
         "type": "wash_sale",
         "originalLot": {
           "type": "date",
-          "date": {
-            "date": "1000-01-01"
-          }
+          "date": "1000-01-01"
         },
         "fromTransaction": {
           "type": "date",
-          "date": {
-            "date": "2000-01-01"
-          }
+          "date": "2000-01-01"
         }
       }
     },
     {
       "runId": "2000-01-02.0",
-      "date": {
-        "date": "2000-01-02"
-      },
+      "date": "2000-01-02",
       "initial": {
         "shares": 1,
         "value": {
@@ -76,9 +64,7 @@
   "events": [
     {
       "type": "sale",
-      "date": {
-        "date": "2000-01-01"
-      },
+        "date": "2000-01-01",
       "shares": 1,
       "saleValue": {
         "value": 900

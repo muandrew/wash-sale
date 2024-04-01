@@ -1,8 +1,12 @@
 package com.muandrew.stock.jvm.cli
 
 import com.muandrew.stock.jvm.ReleaseParser
+import com.muandrew.stock.model.LotReference
+import com.muandrew.stock.model.LotValue
 import com.muandrew.stock.model.RealTransaction
 import com.muandrew.stock.model.Transaction
+import com.muandrew.stock.model.Transaction.ReleaseTransaction
+import com.muandrew.stock.model.Transaction.SaleTransaction
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
@@ -31,26 +35,30 @@ object HtmlCli {
                 when (realTransaction) {
                     is RealTransaction.ReleaseSold -> {
                         listOf(
-                            Transaction.createRelease(
-                                realTransaction.date,
-                                realTransaction.gross.shares,
-                                realTransaction.gross.value,
+                            ReleaseTransaction(
+                                date = realTransaction.date,
+                                disbursed = LotValue(
+                                    realTransaction.gross.shares,
+                                    realTransaction.gross.value
+                                ),
                             ),
-                            Transaction.createSale(
-                                realTransaction.date,
-                                realTransaction.sold.shares,
-                                realTransaction.sold.value,
-                                lotDate = realTransaction.date,
+                            SaleTransaction(
+                                date = realTransaction.date,
+                                value = realTransaction.sold.value,
+                                shares = realTransaction.sold.shares,
+                                lotId = LotReference.Date(date = realTransaction.date)
                             )
                         )
                     }
 
                     is RealTransaction.ReleaseWithheld -> {
                         listOf(
-                            Transaction.createRelease(
-                                realTransaction.date,
-                                realTransaction.disbursed.shares,
-                                realTransaction.disbursed.value,
+                            ReleaseTransaction(
+                                date = realTransaction.date,
+                                disbursed = LotValue(
+                                    realTransaction.disbursed.shares,
+                                    realTransaction.disbursed.value
+                                ),
                             ),
                         )
                     }

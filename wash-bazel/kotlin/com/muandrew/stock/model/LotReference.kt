@@ -1,9 +1,9 @@
 package com.muandrew.stock.model
 
-import com.muandrew.stock.time.DateTime
+import java.time.LocalDate
 
 sealed interface LotReference {
-    data class DateLotReference(
-        val date: DateTime
+    data class Date(
+        val date: LocalDate
     ): LotReference
 }

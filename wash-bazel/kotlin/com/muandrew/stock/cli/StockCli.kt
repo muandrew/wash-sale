@@ -48,8 +48,8 @@ object StockCli {
     }
 
     private fun World.sortAndProcessTransaction(transactions: List<Transaction>) {
-        val ss = transactions.filterIsInstance<Transaction.SaleTransaction>().sortedBy { it.date.date }
-        val rs = transactions.filterIsInstance<Transaction.ReleaseTransaction>().sortedBy { it.date.date }
+        val ss = transactions.filterIsInstance<Transaction.SaleTransaction>().sortedBy { it.date }
+        val rs = transactions.filterIsInstance<Transaction.ReleaseTransaction>().sortedBy { it.date }
         for (r in rs) {
             processTransaction(r)
         }
