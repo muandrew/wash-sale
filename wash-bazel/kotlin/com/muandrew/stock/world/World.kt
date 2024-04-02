@@ -145,6 +145,7 @@ class World {
                 events.add(
                     TransactionReport.SaleReport(
                         date = transaction.date,
+                        referenceNumber = transaction.referenceNumber,
                         shares = transaction.shares,
                         saleValue = transaction.value,
                         basisBeforeAdjustment = basisBeforeAdjustment,

@@ -21,6 +21,7 @@ sealed interface TransactionReport {
 
     data class SaleReport(
         val date: LocalDate,
+        val referenceNumber: String?,
         val shares: Long,
         val saleValue: Money,
         val basisBeforeAdjustment: Money,

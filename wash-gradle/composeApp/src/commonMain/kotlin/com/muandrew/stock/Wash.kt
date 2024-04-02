@@ -5,9 +5,11 @@ import com.muandrew.stock.world.World
 
 object Wash {
     fun create(): World {
-        val w = StockCli.createWorld(StockCli.readTransactions(
-            ""
-        ))
+        val w = StockCli.createWorld(
+            StockCli.readTransactions(
+                ""
+            )
+        )
         return w
     }
 }
