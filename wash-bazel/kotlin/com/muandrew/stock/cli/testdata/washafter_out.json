@@ -2,7 +2,8 @@
   "lots": [
     {
       "runId": "1000-01-01.1",
-        "date": "1000-01-01",
+      "lot": 1,
+      "date": "1000-01-01",
       "initial": {
         "shares": 10,
         "value": {
@@ -17,8 +18,26 @@
       }
     },
     {
+      "runId": "2000-01-02.1",
+      "lot": 1,
+      "date": "2000-01-02",
+      "initial": {
+        "shares": 1,
+        "value": {
+          "value": 10000
+        }
+      },
+      "current": {
+        "shares": 0,
+        "value": {
+          "value": 0
+        }
+      }
+    },
+    {
       "runId": "2000-01-02.1.w:1",
-      "date": "1000-01-01",
+      "lot": 1,
+      "date": "2000-01-02",
       "initial": {
         "shares": 1,
         "value": {
@@ -36,27 +55,11 @@
         "type": "wash_sale",
         "originalLot": {
           "type": "date",
-          "date": "1000-01-01"
+          "date": "1000-01-01",
+          "lotId": 1
         },
         "fromTransaction": {
-          "type": "date",
           "date": "2000-01-01"
-        }
-      }
-    },
-    {
-      "runId": "2000-01-02.1",
-      "date": "2000-01-02",
-      "initial": {
-        "shares": 1,
-        "value": {
-          "value": 10000
-        }
-      },
-      "current": {
-        "shares": 0,
-        "value": {
-          "value": 0
         }
       }
     }
@@ -64,7 +67,7 @@
   "events": [
     {
       "type": "sale",
-        "date": "2000-01-01",
+      "date": "2000-01-01",
       "shares": 1,
       "saleValue": {
         "value": 900

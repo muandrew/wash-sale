@@ -12,22 +12,27 @@ class World {
     val lots: MutableList<Lot> = mutableListOf()
     val events: MutableList<TransactionReport> = mutableListOf()
 
-    fun nextLotId(date: LocalDate): String {
+    fun nextLotId(date: LocalDate): Pair<Int, String> {
         // start with 1 to match bank
         val idx = releaseIds[date] ?: 1
         releaseIds[date] = idx + 1
-        return "$date.$idx"
+        return idx to "$date.$idx"
     }
 
     fun processTransaction(transaction: Transaction) {
         when (transaction) {
             is Transaction.ReleaseTransaction -> {
+                val (lotno, runId) = nextLotId(transaction.date)
                 lots.add(
                     Lot.create(
-                        runId = nextLotId(transaction.date),
+                        runId = runId,
+                        lot = lotno,
                         date = transaction.date,
                         initial = transaction.disbursed,
-                        sourceTransaction = TransactionReference.DateReference(date = transaction.date)
+                        sourceTransaction = TransactionReference(
+                            date = transaction.date,
+                            referenceNumber = transaction.referenceNumber
+                        )
                     )
                 )
                 events.add(
@@ -93,14 +98,18 @@ class World {
                             val washNumber = washTarget.nextWashNumber++
                             val washLot = Lot(
                                 runId = "${washTarget.runId}.w:$washNumber",
-                                date = lotToSellFrom.date,
+                                lot = washTarget.lot,
+                                date = washTarget.date,
                                 // use the new time for calculating long/short term sale
                                 overrideDateForSalesCalculation = max(lotToSellFrom.date, washTarget.date),
                                 initial = newLot,
                                 current = newLot,
                                 transformed = TransformedFrom.WashSale(
-                                    originalLot = LotReference.Date(lotToSellFrom.date),
-                                    fromTransaction = TransactionReference.DateReference(transaction.date)
+                                    originalLot = LotReference.Date(lotToSellFrom.date, lotToSellFrom.lot),
+                                    fromTransaction = TransactionReference(
+                                        date = transaction.date,
+                                        referenceNumber = transaction.referenceNumber,
+                                    )
                                 )
                             )
                             addNewWashSaleLot(washLot)
@@ -204,7 +213,10 @@ fun List<Lot>.findFirstLotForId(id: LotReference): Lot? {
         is LotReference.Date -> {
             // picking fifo for the day
             firstOrNull {
-                it.current.shares > 0 && it.date == id.date
+                val chk1 = it.current.shares > 0 && it.date == id.date
+                if (chk1 && id.lotId != null) {
+                    it.lot == id.lotId
+                } else chk1
             }
         }
     }

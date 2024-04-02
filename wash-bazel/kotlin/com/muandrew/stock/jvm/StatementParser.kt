@@ -5,22 +5,39 @@ import com.muandrew.stock.model.LotValue
 import com.muandrew.stock.model.RealTransaction
 import com.muandrew.stock.time.DateFormat
 import com.muandrew.stock.time.NuFormat
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.adapter
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.io.File
 import java.time.LocalDate
 
-object ReleaseParser {
+object StatementParser {
+
+    data class StatementData(
+        val releaseTransactions: List<RealTransaction>,
+        val partialWithdrawData: List<PartialWithdarawData>,
+    )
 
     fun parse(
         htmlFile: File,
         preferredLotData: PreferredLotData? = null
+    ): StatementData {
+        val rawData = parseRaw(htmlFile)
+        val transactions = rawData.release
+            .map { it.asRealTransaction(preferredLotData) }
+            .sortWithDateAndLot(preferredLotData)
+        return StatementData(
+            releaseTransactions = transactions,
+            partialWithdrawData = rawData.withdraw.map { it.toPartialWithdarawData() }
+        )
+    }
+
+    private fun List<RealTransaction>.sortWithDateAndLot(
+        preferredLotData: PreferredLotData?
     ): List<RealTransaction> {
-        val transactions = parseRaw(htmlFile).map {
-            it.asRealTransaction(preferredLotData)
-        }
         return if (preferredLotData != null) {
-            transactions.sortedWith { a, b ->
+            sortedWith { a, b ->
                 val dateComparison = a.date.compareTo(b.date)
                 if (dateComparison == 0) {
                     a.preferredLot!!.compareTo(b.preferredLot!!)
@@ -29,7 +46,7 @@ object ReleaseParser {
                 }
             }
         } else {
-            transactions
+            this
         }
     }
 
@@ -105,12 +122,18 @@ object ReleaseParser {
         }
     }
 
-    fun parseRaw(htmlFile: File): List<Map<String, String>> {
+    data class StatementRaw(
+        val release: List<Map<String, String>>,
+        val withdraw: List<Map<String, String>>
+    )
+
+    fun parseRaw(htmlFile: File): StatementRaw {
         val doc = Jsoup.parse(htmlFile)
         val rootDiv = doc.body().child(0)
         assert(rootDiv.tagName() == "div")
 
-        val res = mutableListOf<Map<String, String>>()
+        val releasesRaw = mutableListOf<Map<String, String>>()
+        val withdrawsRaw = mutableListOf<Map<String, String>>()
         val itr = rootDiv.children().iterator()
         itr.consumeUntil { it.id() == "RSU - Activity_table_footnotes" }
         itr.consumeUntil { it.tagName() == "br" }
@@ -119,12 +142,24 @@ object ReleaseParser {
             val b = itr.next()
             val c = itr.next()
             val releaseRawData = parseReleaseTable(a, b, c)
-            res.add(releaseRawData)
+            releasesRaw.add(releaseRawData)
             val next = itr.next()
             assert(next.tagName() == "br")
             itr.next().tagName() != "br"
         }
-        return res
+        itr.consumeUntil { it.id() == "Activity_table_footnotes" }
+        itr.consumeUntil { it.tagName() == "br" }
+        itr.consumeUntil {
+            val a = it
+            val b = itr.next()
+            val c = itr.next()
+            val withdrawRawData = parseWithdrawTable(a, b, c)
+            withdrawsRaw.add(withdrawRawData)
+            val next = itr.next()
+            assert(next.tagName() == "br")
+            itr.next().tagName() != "br"
+        }
+        return StatementRaw(releasesRaw, withdrawsRaw)
     }
 
     private fun <T> MutableIterator<T>.consumeUntil(predicate: (T) -> Boolean) {
@@ -142,7 +177,6 @@ object ReleaseParser {
         WITHHELD,
     }
 
-    private const val TOTAL_VALUE_KEY = "Total Value"
     private const val KEY_SOLD_WITHHOLD_TOTAL_VALUE = "Sold/Withheld Total Value"
     private const val KEY_RELEASE_METHOD = "Release Method"
     private const val RELEASE_METHOD_WITHHOLD = "Withhold shares to cover taxes, receive remaining shares"
@@ -151,7 +185,7 @@ object ReleaseParser {
         RELEASE_METHOD_WITHHOLD to ReleaseMethod.WITHHELD,
         RELEASE_METHOD_SOLD to ReleaseMethod.SOLD,
     )
-    private val totalValueRegex = "$TOTAL_VALUE_KEY: (\\$[\\d.,]+ USD)".toRegex()
+    private val totalValueRegex = "Total Value: (\\$[\\d.,]+ USD)".toRegex()
     private val referenceRegex = "\\((.*)\\)".toRegex()
     private const val KEY_REFERENCE_NUMBER = "Reference Number"
 
@@ -167,7 +201,7 @@ object ReleaseParser {
     private fun Map<String, String>.releaseDate() =
         asDate("Release Date")
 
-    private fun Map<String, String>.asDate(key: String) =
+    internal fun Map<String, String>.asDate(key: String) =
         LocalDate.parse(this[key], DateFormat.DMY)
 
     private fun Map<String, String>.releasedShares() =
@@ -188,10 +222,10 @@ object ReleaseParser {
     private fun Map<String, String>.salePrice() =
         asMoney("Sale Price")
 
-    private fun Map<String, String>.asLong(key: String): Long =
+    internal fun Map<String, String>.asLong(key: String): Long =
         NuFormat.parseLong(this[key]!!)
 
-    private fun Map<String, String>.asMoney(key: String): Money =
+    internal fun Map<String, String>.asMoney(key: String): Money =
         Money.parse(this[key]!!.removeSuffix(" USD").replace(",", ""))
 
 
@@ -222,5 +256,44 @@ object ReleaseParser {
         val totalValueMatch = totalValueRegex.find(totalValueTds[0].text())
         data[KEY_SOLD_WITHHOLD_TOTAL_VALUE] = totalValueMatch!!.groups[1]!!.value
         return data
+    }
+
+    private const val KEY_NET_PROCEEDS = "Net Proceeds"
+    private val netProceedsRegex = "$KEY_NET_PROCEEDS: (\\$[\\d.,]+ USD)".toRegex()
+
+    internal fun parseWithdrawTable(
+        withdraw: Element,
+        saleBreakdown: Element,
+        netProceeds: Element,
+    ): Map<String, String> {
+        val tbodies = withdraw.getElementsByTag("tbody")
+        assert(tbodies.size == 1)
+        val tbody = tbodies[0]
+        val trs = tbody.getElementsByTag("tr")
+        assert(trs.size == 6)
+        val trItr = trs.iterator()
+        val data = mutableMapOf<String, String>()
+        trItr.next() // this is header data, its redundant
+        while (trItr.hasNext()) {
+            val tr = trItr.next()
+            val tds = tr.getElementsByTag("td")
+            assert(tds.size == 4)
+            data[tds[0].text().trim().removeSuffix(":")] = tds[1].text().trim()
+            data[tds[2].text().trim().removeSuffix(":")] = tds[3].text().trim()
+        }
+        // parsing out net proceeds
+        val totalValueTds = netProceeds.getElementsByTag("td")
+        assert(totalValueTds.size == 1)
+        val totalValueMatch = netProceedsRegex.find(totalValueTds[0].text())
+        data[KEY_NET_PROCEEDS] = totalValueMatch!!.groups[1]!!.value
+        return data
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    fun Moshi.readRealtimeTransaction(it: File): RealtimeTransaction {
+        val rtAdapter = adapter<RealtimeTransaction>()
+        return it.bufferedReader().use {
+            rtAdapter.fromJson(it.readText())!!
+        }
     }
 }

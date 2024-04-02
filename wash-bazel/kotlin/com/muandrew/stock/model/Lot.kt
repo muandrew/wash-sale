@@ -10,6 +10,7 @@ import java.time.LocalDate
 @JsonClass(generateAdapter = true)
 data class Lot(
     val runId: String,
+    val lot: Int,
     val date: LocalDate,
     val initial: LotValue,
     var current: LotValue,
@@ -24,14 +25,14 @@ data class Lot(
     /**
      * Includes the initial transaction
      */
-    internal val transactions: MutableList<TransactionReference> = mutableListOf()
+    val transactions: MutableList<TransactionReference> = mutableListOf()
 
     /**
      * Will remove the appropriate amount of cost basis
      *
      * @return The amount of cost basis removed
      */
-    fun removeShares(ref: TransactionReference, sharesToRemove: Long) : Money {
+    fun removeShares(ref: TransactionReference, sharesToRemove: Long): Money {
         if (sharesToRemove > current.shares) {
             throw IllegalStateException("shares are not expected to go below zero from $ref")
         }
@@ -47,10 +48,13 @@ data class Lot(
             date: LocalDate,
             initial: LotValue,
             sourceTransaction: TransactionReference,
+            lot: Int = -1,
             transformed: TransformedFrom? = null,
         ): Lot {
             val lot = Lot(
                 runId = runId,
+                lot
+                = lot,
                 date = date,
                 initial = initial,
                 current = initial,

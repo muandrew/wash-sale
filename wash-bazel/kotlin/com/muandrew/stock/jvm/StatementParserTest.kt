@@ -1,7 +1,7 @@
 package com.muandrew.stock.jvm
 
-import com.muandrew.stock.jvm.ReleaseParser.asRealTransaction
-import com.muandrew.stock.jvm.ReleaseParser.parseReleaseTable
+import com.muandrew.stock.jvm.StatementParser.asRealTransaction
+import com.muandrew.stock.jvm.StatementParser.parseReleaseTable
 import com.muandrew.testtool.TestFiles
 import org.jsoup.Jsoup
 import org.junit.Assert.assertNotNull
@@ -10,7 +10,7 @@ import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
-class ReleaseParserTest {
+class StatementParserTest {
 
     lateinit var testData: String
 
@@ -23,8 +23,8 @@ class ReleaseParserTest {
     @Test
     fun statementTest() {
         val file = File("$testData/year_statement.html")
-        val res = ReleaseParser.parseRaw(file)
-        val transactions = ReleaseParser.parse(file)
+        val res = StatementParser.parseRaw(file)
+        val transactions = StatementParser.parse(file)
 
         assertNotNull(res)
         assertNotNull(transactions)

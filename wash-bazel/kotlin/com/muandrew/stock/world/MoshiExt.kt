@@ -23,10 +23,6 @@ object MoshiExt {
                     .withSubtype(LotReference.Date::class.java, "date")
             )
             .add(
-                PolymorphicJsonAdapterFactory.of(TransactionReference::class.java, "type")
-                    .withSubtype(TransactionReference.DateReference::class.java, "date")
-            )
-            .add(
                 PolymorphicJsonAdapterFactory.of(Transaction::class.java, "type")
                     .withSubtype(Transaction.ReleaseTransaction::class.java, "release")
                     .withSubtype(Transaction.SaleTransaction::class.java, "sale")

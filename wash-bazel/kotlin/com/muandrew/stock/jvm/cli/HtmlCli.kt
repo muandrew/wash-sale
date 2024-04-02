@@ -1,14 +1,15 @@
 package com.muandrew.stock.jvm.cli
 
+import com.muandrew.money.Money
 import com.muandrew.stock.jvm.PreferredLotDataRaw
-import com.muandrew.stock.jvm.ReleaseParser
+import com.muandrew.stock.jvm.RealtimeTransaction
+import com.muandrew.stock.jvm.StatementParser
+import com.muandrew.stock.jvm.StatementParser.readRealtimeTransaction
 import com.muandrew.stock.jvm.toPreferredLotData
-import com.muandrew.stock.model.LotReference
-import com.muandrew.stock.model.LotValue
-import com.muandrew.stock.model.RealTransaction
-import com.muandrew.stock.model.Transaction
+import com.muandrew.stock.model.*
 import com.muandrew.stock.model.Transaction.ReleaseTransaction
 import com.muandrew.stock.model.Transaction.SaleTransaction
+import com.muandrew.stock.time.NuFormat
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
@@ -34,18 +35,27 @@ object HtmlCli {
         listFiles.forEach { htmlFile ->
             val baseFilePath = htmlFile.absolutePath.removeSuffix(".html")
             val preferredLot = File("$baseFilePath.preflot.json")
+            val saleData = fromFolder.listFiles()!!.filter {
+                it.name.endsWith(".json")
+                it.name.startsWith("${htmlFile.name.removeSuffix(".html")}.sale")
+            }
+            val rtMap = mutableMapOf<String, RealtimeTransaction>()
+            saleData.map { moshi.readRealtimeTransaction(it) }.forEach {
+                rtMap.put(it.listItem.referenceNumber, it)
+            }
             val preferredLotDataRaw: PreferredLotDataRaw? = if (preferredLot.exists()) {
                 preferredLot.bufferedReader().use {
                     moshi.adapter<PreferredLotDataRaw>().fromJson(it.readText())
                 }
             } else null
 
-            val realTransactions = ReleaseParser.parse(
+            val statementData = StatementParser.parse(
                 htmlFile,
                 preferredLotDataRaw?.toPreferredLotData()
             )
 
-            val transactions: List<Transaction> = realTransactions.flatMap { realTransaction ->
+            val transactions = mutableListOf<Transaction>()
+            val releaseTransactions: List<Transaction> = statementData.releaseTransactions.flatMap { realTransaction ->
                 when (realTransaction) {
                     is RealTransaction.ReleaseSold -> {
                         listOf(
@@ -62,7 +72,10 @@ object HtmlCli {
                                 date = realTransaction.date,
                                 value = realTransaction.sold.value,
                                 shares = realTransaction.sold.shares,
-                                lotId = LotReference.Date(date = realTransaction.date)
+                                lotId = LotReference.Date(
+                                    date = realTransaction.date,
+                                    lotId = realTransaction.preferredLot
+                                )
                             )
                         )
                     }
@@ -85,6 +98,40 @@ object HtmlCli {
                     }
                 }
             }
+            transactions.addAll(releaseTransactions)
+
+            statementData.partialWithdrawData.forEach { partialWithdrawData ->
+                val realtimeTransaction = rtMap[partialWithdrawData.referenceNumber]!!
+                val lotsSold = mutableListOf<RealtimeTransaction.CostBasis.TermedBasis.Lot>()
+                realtimeTransaction.costBasis.longTerm?.rows?.let { lot ->
+                    lotsSold.addAll(lot)
+                }
+                realtimeTransaction.costBasis.shortTerm?.rows?.let { lot ->
+                    lotsSold.addAll(lot)
+                }
+                lotsSold.sortBy { it.lot }
+                lotsSold.sortBy { it.purchaseDate }
+
+                var lv = LotValue(
+                    partialWithdrawData.sharesSold,
+                    partialWithdrawData.netProceeds,
+                )
+                lotsSold.forEach { lot ->
+                    val q = NuFormat.parseLong(lot.quantity)
+                    val (split, rem) = lv.splitOut(q)
+                    lv = rem
+                    transactions.add(
+                        SaleTransaction(
+                            date = partialWithdrawData.settlementDate,
+                            value = split.value,
+                            shares = q,
+                            lotId = LotReference.Date(lot.purchaseDate, lot.lot),
+                            referenceNumber = partialWithdrawData.referenceNumber,
+                        )
+                    )
+                }
+            }
+
             val outFile = File("$destFolder/${htmlFile.name.removeSuffix(".html")}.json")
             outFile.writeText(transactionAdapter.toJson(transactions))
         }
