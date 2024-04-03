@@ -70,6 +70,9 @@ class RootNode(
                 TextButton(onClick = { backStack.push(NavTarget.Lots(world.lots)) }) {
                     Text(text = "Push Lots")
                 }
+                TextButton(onClick = { backStack.push(NavTarget.MergedLots(world.lots)) }) {
+                    Text(text = "Merged Push Lots")
+                }
                 TextButton(onClick = { backStack.pop() }) {
                     Text(text = "Pop")
                 }
@@ -103,6 +106,7 @@ class RootNode(
 
             is NavTarget.Lots -> LotsNode(nodeContext, reference.lots)
             is NavTarget.SaleReport -> SaleReportNode(nodeContext, reference.sale)
+            is NavTarget.MergedLots -> MergedLotsNode(nodeContext, reference.lots)
         }
 
 
@@ -119,6 +123,9 @@ class RootNode(
 
         @Parcelize
         data class Lots(val lots: @RawValue List<Lot>) : NavTarget()
+
+        @Parcelize
+        data class MergedLots(val lots: @RawValue List<Lot>) : NavTarget()
 
         @Parcelize
         data class SaleReport(val sale: @RawValue TransactionReport.SaleReport) : NavTarget()
