@@ -14,6 +14,9 @@
       "value": {
         "value": 9000
       }
+    },
+    "sourceTransaction": {
+      "date": "2000-01-01"
     }
   }
 ]

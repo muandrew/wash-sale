@@ -36,7 +36,7 @@ class ReportsNode(
 @Composable
 fun ReportsUi(
     sale: List<TransactionReport>,
-    reportChosen: ((TransactionReport.SaleReport) -> Unit) ?
+    reportChosen: ((TransactionReport.SaleReport) -> Unit)?
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -58,6 +58,11 @@ fun ReportsUi(
                     ) {
                         Text("Reference Number: ${report.referenceNumber}")
                         Text("${report.date}")
+                        Text(
+                            "${
+                                report.disallowedTransfer.map { it.shares }
+                                    .reduceOrNull { a, b -> a + b } ?: 0
+                            }")
                         Button(onClick = {
                             reportChosen?.invoke(report)
                         }) {

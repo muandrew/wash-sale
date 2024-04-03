@@ -2,6 +2,8 @@ package com.muandrew.stock
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,5 +32,16 @@ fun SaleReportUi(report : TransactionReport.SaleReport) {
     ) {
         Text("date: ${report.date}")
         Text("shares: ${report.shares}")
+        LazyColumn {
+            item { Text("allowed:") }
+            items(report.allowedTransfer) {
+                Text("shares: ${it.shares}, basis: ${it.basis}, ${it.soldLotId}")
+            }
+            item { Text("disallowed:") }
+            items(report.disallowedTransfer) {
+                Text("shares: ${it.shares}, basis: ${it.basis}, ${it.soldLotId}")
+                Text("disallowedValue: ${it.disallowedValue}, frm: ${it.transferredLotId}, res: ${it.resultingId}")
+            }
+        }
     }
 }

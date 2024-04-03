@@ -15,6 +15,9 @@
         "value": {
           "value": 9000
         }
+      },
+      "sourceTransaction": {
+        "date": "1000-01-01"
       }
     },
     {
@@ -32,6 +35,9 @@
         "value": {
           "value": 0
         }
+      },
+      "sourceTransaction": {
+        "date": "2000-01-02"
       }
     },
     {
@@ -50,18 +56,11 @@
           "value": 10100
         }
       },
+      "sourceTransaction": {
+        "date": "2000-01-01"
+      },
       "overrideDateForSalesCalculation": "2000-01-02",
-      "transformed": {
-        "type": "wash_sale",
-        "originalLot": {
-          "type": "date",
-          "date": "1000-01-01",
-          "lotId": 1
-        },
-        "fromTransaction": {
-          "date": "2000-01-01"
-        }
-      }
+      "isReplacement": true
     }
   ],
   "events": [

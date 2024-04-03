@@ -24,11 +24,12 @@ class World {
             is Transaction.ReleaseTransaction -> {
                 val (lotno, runId) = nextLotId(transaction.date)
                 lots.add(
-                    Lot.create(
+                    Lot(
                         runId = runId,
                         lot = lotno,
                         date = transaction.date,
                         initial = transaction.disbursed,
+                        current = transaction.disbursed,
                         sourceTransaction = TransactionReference(
                             date = transaction.date,
                             referenceNumber = transaction.referenceNumber
@@ -104,12 +105,10 @@ class World {
                                 overrideDateForSalesCalculation = max(lotToSellFrom.date, washTarget.date),
                                 initial = newLot,
                                 current = newLot,
-                                transformed = TransformedFrom.WashSale(
-                                    originalLot = LotReference.Date(lotToSellFrom.date, lotToSellFrom.lot),
-                                    fromTransaction = TransactionReference(
-                                        date = transaction.date,
-                                        referenceNumber = transaction.referenceNumber,
-                                    )
+                                wireIsReplacement = true,
+                                sourceTransaction = TransactionReference(
+                                    date = transaction.date,
+                                    referenceNumber = transaction.referenceNumber,
                                 )
                             )
                             addNewWashSaleLot(washLot)
@@ -194,6 +193,7 @@ fun List<Lot>.queryForLotToWashTo(
         it != sourceLot &&
                 it.date >= before &&
                 it.date <= after &&
+//                it.date.year == saleDate.year
                 it.current.shares > 0 &&
                 !it.isReplacement
     }

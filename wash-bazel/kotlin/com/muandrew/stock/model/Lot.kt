@@ -1,6 +1,6 @@
 package com.muandrew.stock.model
 
-import com.muandrew.money.Money
+import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import java.time.LocalDate
 
@@ -14,55 +14,14 @@ data class Lot(
     val date: LocalDate,
     val initial: LotValue,
     var current: LotValue,
+    val sourceTransaction: TransactionReference,
     val overrideDateForSalesCalculation: LocalDate? = null,
-    val transformed: TransformedFrom? = null,
+    @Json(name = "isReplacement")
+    val wireIsReplacement: Boolean? = null,
 ) {
-    val isReplacement get() = transformed != null
-
+    val isReplacement: Boolean get() = wireIsReplacement ?: false
     @Transient
     var nextWashNumber = 1
-
-    /**
-     * Includes the initial transaction
-     */
-    val transactions: MutableList<TransactionReference> = mutableListOf()
-
-    /**
-     * Will remove the appropriate amount of cost basis
-     *
-     * @return The amount of cost basis removed
-     */
-    fun removeShares(ref: TransactionReference, sharesToRemove: Long): Money {
-        if (sharesToRemove > current.shares) {
-            throw IllegalStateException("shares are not expected to go below zero from $ref")
-        }
-        transactions.add(ref)
-        val res = current.splitOut(sharesToRemove)
-        current = res.remainder
-        return res.split.value
-    }
-
-    companion object {
-        fun create(
-            runId: String,
-            date: LocalDate,
-            initial: LotValue,
-            sourceTransaction: TransactionReference,
-            lot: Int = -1,
-            transformed: TransformedFrom? = null,
-        ): Lot {
-            val res = Lot(
-                runId = runId,
-                lot = lot,
-                date = date,
-                initial = initial,
-                current = initial,
-                transformed = transformed,
-            )
-            res.transactions.add(sourceTransaction)
-            return res
-        }
-    }
 }
 
 sealed interface TransformedFrom {
