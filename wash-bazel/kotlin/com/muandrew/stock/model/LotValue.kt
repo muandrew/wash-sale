@@ -73,10 +73,11 @@ fun LotValue.splitOut(splitShares: Long): SplitResult {
     }
     val sign = if (value.value < 0L) { -1 } else { 1 }
     val workingValue = abs(value.value)
-    val perShare = workingValue / shares
-    val remainder = workingValue % shares
-    val splitValue = splitShares * perShare + min(splitShares, remainder)
-    val splitResult = Money(sign * splitValue)
+    val numerator = workingValue * splitShares
+    val splitValue = numerator / shares
+    val mod = numerator % shares
+    val extraBit = if (mod > shares / 2) 1 else 0
+    val splitResult = Money(sign * (splitValue + extraBit))
     return SplitResult(
         LotValue(splitShares, splitResult),
         LotValue(shares - splitShares, value - splitResult)

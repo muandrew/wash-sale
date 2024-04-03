@@ -18,11 +18,14 @@ class LotValueTest {
     @Test
     fun splitOut() {
         val cases = listOf(
-            SplitOutCase(10, 11, 3, 4, 7, 7),
+            SplitOutCase(10, 11, 3, 3, 7, 8),
+            SplitOutCase(10, 11, 5, 5, 5, 6),
+            SplitOutCase(10, 11, 6, 7, 4, 4),
+            SplitOutCase(10, 11, 7, 8, 3, 3),
             SplitOutCase(10, 11, 10, 11, 0, 0),
             SplitOutCase(100, 199, 3, 6, 97, 193),
             SplitOutCase(100, 199, 20, 40, 80, 159),
-            SplitOutCase(10, -11, 3, -4, 7, -7),
+            SplitOutCase(10, -11, 3, -3, 7, -8),
             SplitOutCase(100, -199, 3, -6, 97, -193),
         )
         for (case in cases) {
