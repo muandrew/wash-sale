@@ -10,6 +10,8 @@ androidx-core-ktx = "1.12.0"
 androidx-espresso-core = "3.5.1"
 androidx-material = "1.11.0"
 androidx-test-junit = "1.1.5"
+appyxBackstack = "2.0.0-alpha10"
+coroutines = "1.6.4"
 compose = "1.6.1"
 compose-plugin = "1.5.12"
 junit = "4.13.2"
@@ -17,6 +19,12 @@ kotlin = "1.9.22"
 wash-ver = "0.0.1"
 
 [libraries]
+appyx-backstack = { module = "com.bumble.appyx:backstack", version.ref = "appyxBackstack" }
+appyx-interactions = { module = "com.bumble.appyx:appyx-interactions", version.ref = "appyxBackstack" }
+appyx-navigation = { module = "com.bumble.appyx:appyx-navigation", version.ref = "appyxBackstack" }
+kotlin-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlin-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

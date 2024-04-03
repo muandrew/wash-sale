@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
+    id("kotlin-parcelize")
 }
 
 kotlin {
@@ -26,6 +27,9 @@ kotlin {
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
+            implementation(libs.appyx.navigation)
+            implementation(libs.appyx.interactions)
+            api(libs.appyx.backstack)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material)
@@ -36,6 +40,8 @@ kotlin {
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(libs.kotlin.coroutines.core)
+            implementation(libs.kotlin.coroutines.swing)
         }
     }
 }
