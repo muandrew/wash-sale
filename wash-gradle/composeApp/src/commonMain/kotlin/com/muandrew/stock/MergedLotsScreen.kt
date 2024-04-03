@@ -1,6 +1,7 @@
 package com.muandrew.stock
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -75,9 +76,9 @@ fun MergedLotsUi(lots: List<Lot>) {
         }.thenBy { it.lot })
     }
     SelectionContainer {
-        Column {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text("date\tlot number\tshares\tshares washed")
-            LazyColumn {
+            LazyColumn(Modifier.fillMaxWidth()) {
                 items(merged) {
                     Text("${it.date}\t${it.lot}\t${it.shares}\t${it.sharesWashed};")
                     if (it.washedTransactions.isNotEmpty()) {

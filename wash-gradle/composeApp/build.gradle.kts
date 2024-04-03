@@ -29,6 +29,8 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.appyx.navigation)
             implementation(libs.appyx.interactions)
+            implementation(libs.androidx.material)
+            implementation(libs.data.table.material3)
             api(libs.appyx.backstack)
             implementation(compose.runtime)
             implementation(compose.foundation)

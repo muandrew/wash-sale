@@ -190,12 +190,13 @@ fun List<Lot>.queryForLotToWashTo(
     val before = saleDate.minusDays(30)
     val after = saleDate.plusDays(30)
     return firstOrNull {
-        it != sourceLot &&
+        val res = it != sourceLot &&
                 it.date >= before &&
                 it.date <= after &&
-//                it.date.year == saleDate.year
+                it.date.year == saleDate.year &&
                 it.current.shares > 0 &&
                 !it.isReplacement
+        res
     }
 }
 

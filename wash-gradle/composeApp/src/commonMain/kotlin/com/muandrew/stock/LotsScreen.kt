@@ -43,6 +43,7 @@ fun LotsUi(lots: List<Lot>) {
         var textField by remember { mutableStateOf("") }
         var displayedLots by remember { mutableStateOf(lots) }
         TextField(
+            modifier = Modifier.fillMaxWidth(),
             value = textField,
             onValueChange = {
                 textField = it
