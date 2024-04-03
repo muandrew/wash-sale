@@ -51,17 +51,16 @@ data class Lot(
             lot: Int = -1,
             transformed: TransformedFrom? = null,
         ): Lot {
-            val lot = Lot(
+            val res = Lot(
                 runId = runId,
-                lot
-                = lot,
+                lot = lot,
                 date = date,
                 initial = initial,
                 current = initial,
                 transformed = transformed,
             )
-            lot.transactions.add(sourceTransaction)
-            return lot
+            res.transactions.add(sourceTransaction)
+            return res
         }
     }
 }
