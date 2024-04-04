@@ -2,7 +2,9 @@ package com.muandrew.stock.cli
 
 import com.muandrew.moshi.adapters.LocalDateAdapter
 import com.muandrew.moshi.adapters.LocalTimeAdapter
+import com.muandrew.stock.cli.StockCli.sortAndProcessTransaction
 import com.muandrew.stock.model.*
+import com.muandrew.stock.world.World
 import com.muandrew.testtool.TestFiles
 import com.muandrew.testtool.TestFiles.readAsFileToString
 import com.squareup.moshi.Moshi
@@ -37,7 +39,8 @@ class StockCliTest {
     @Test
     fun example() {
         val t = StockCli.readJsonIndexFile("$testData/example_input.json")
-        val w = StockCli.createWorld(t)
+        val w = World()
+        w.sortAndProcessTransaction(t)
 
         val out = Out(w.lots, w.events.filterIsInstance<TransactionReport.SaleReport>())
         val a = moshi.adapter<Out>()
@@ -53,7 +56,8 @@ class StockCliTest {
     @Test
     fun washAfter() {
         val t = StockCli.readJsonIndexFile("$testData/washafter_input.json")
-        val w = StockCli.createWorld(t)
+        val w = World()
+        w.sortAndProcessTransaction(t)
 
         val out = Out(w.lots, w.events.filterIsInstance<TransactionReport.SaleReport>())
         val a = moshi.adapter<Out>()

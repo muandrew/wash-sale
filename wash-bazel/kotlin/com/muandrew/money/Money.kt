@@ -17,6 +17,10 @@ value class Money(val value: Long) {
         return Money(this.value * other.value)
     }
 
+    infix operator fun times(other: Int): Money {
+        return Money(this.value * other)
+    }
+
     infix operator fun div(denominator: Long): DivRes {
         assert(denominator > 0) {
             "denominator must be positive, it is $denominator instead."

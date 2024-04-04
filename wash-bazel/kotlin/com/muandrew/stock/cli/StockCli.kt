@@ -14,8 +14,9 @@ object StockCli {
     @JvmStatic
     fun main(args: Array<String>) {
         val ts = readTransactions(args[0])
-        val w = createWorld(ts)
-        w
+        val w = World()
+        w.sortAndProcessTransaction(ts)
+        println("end")
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -39,17 +40,11 @@ object StockCli {
         return ts
     }
 
-    fun createWorld(transactions: List<Transaction>): World {
-        val w = World()
-        w.sortAndProcessTransaction(transactions)
-        return w
-    }
-
-    fun readJsonIndexFile(jsonIndexFile: String): List<Transaction> {
+    internal fun readJsonIndexFile(jsonIndexFile: String): List<Transaction> {
         return StockTransactionReader.readTransactions(jsonIndexFile)
     }
 
-    private fun World.sortAndProcessTransaction(transactions: List<Transaction>) {
+    fun World.sortAndProcessTransaction(transactions: List<Transaction>) {
         val rs = transactions.filterIsInstance<Transaction.ReleaseTransaction>().sortedBy { it.date }
         val ss = transactions.filterIsInstance<Transaction.SaleTransaction>().sortedBy { it.date }
         for (r in rs) {
