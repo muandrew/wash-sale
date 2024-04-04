@@ -1,11 +1,13 @@
 package com.muandrew.stock.model
 
 import com.muandrew.money.Money
+import com.squareup.moshi.Json
 import java.time.LocalDate
 
 sealed interface Transaction {
     val date: LocalDate
     val referenceNumber: String?
+    @Json(ignore = true)
     val ref: TransactionReference
         get() = TransactionReference(
             date = date,

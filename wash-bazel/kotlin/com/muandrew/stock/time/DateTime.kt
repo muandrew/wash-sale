@@ -49,3 +49,13 @@ operator fun DateTime.compareTo(other: DateTime): Int {
         }
     }
 }
+
+operator fun LocalDate.compareTo(other: LocalDate): Int {
+    return if (isBefore(other)) {
+        -1
+    } else if (isAfter(other)) {
+        1
+    } else {
+        0
+    }
+}

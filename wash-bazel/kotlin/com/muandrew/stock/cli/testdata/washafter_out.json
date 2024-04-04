@@ -118,6 +118,9 @@
           "basis": {
             "value": 1000
           },
+          "gross": {
+            "value": 900
+          },
           "disallowedValue": {
             "value": -100
           }

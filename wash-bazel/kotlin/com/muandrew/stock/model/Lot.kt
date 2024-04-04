@@ -19,8 +19,13 @@ data class Lot(
     @Json(name = "current") var wireCurrent: LotValue = initial,
     @Json(name = "transactions") val wireTransactions: MutableList<LotChange> = mutableListOf(),
 ) {
+    @Json(ignore = true)
     val isReplacement: Boolean get() = sourceLot != null
+
+    @Json(ignore = true)
     val current: LotValue get() = wireCurrent
+
+    @Json(ignore = true)
     val ref: LotReference get() = LotReference(date, lot)
 
     fun updateLotValue(transactionReference: TransactionReference, newValue: LotValue) {

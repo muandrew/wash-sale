@@ -94,7 +94,7 @@ class WorldTest {
         )
 
         val wash = w.events.filterIsInstance<TransactionReport.SaleReport>().first()
-        assertEquals(1, wash.allowedTransfer.sumOf { it.shares })
+        assertEquals(1, wash.allowedTransfer.sumOf { it.shares})
         assertEquals(Money(-1_00), wash.saleValue - wash.basisBeforeAdjustment - wash.disallowedValue)
         assertEquals(10, wash.disallowedTransfer.sumOf { it.shares })
         assertEquals(Money(-10_00), wash.disallowedValue)

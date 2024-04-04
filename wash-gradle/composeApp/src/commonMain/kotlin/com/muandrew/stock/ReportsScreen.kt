@@ -69,7 +69,12 @@ fun ReportsUi(
                         Text("Sale Reference Number: ${report.ref.referenceNumber}")
                         Text("${report.ref.date}")
                         Text(
-                            "${
+                            "total allowed shares: ${
+                                report.allowedTransfer.map { it.shares }
+                                    .reduceOrNull { a, b -> a + b } ?: 0
+                            }")
+                        Text(
+                            "total disallowed shares: ${
                                 report.disallowedTransfer.map { it.shares }
                                     .reduceOrNull { a, b -> a + b } ?: 0
                             }")

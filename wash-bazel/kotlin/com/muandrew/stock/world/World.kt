@@ -5,7 +5,7 @@ import com.muandrew.stock.model.*
 import com.muandrew.stock.time.max
 import java.time.LocalDate
 
-class World {
+class World(val ignoreWash: Boolean = false) {
 
     val releaseIds: MutableMap<LocalDate, Int> = mutableMapOf()
     val transactions: MutableList<Transaction> = mutableListOf()
@@ -55,7 +55,7 @@ class World {
                 val washedRecords = mutableListOf<TransactionReport.SaleReport.WashRecord>()
 
                 while (saleRemaining != LotValue.ZERO) {
-                    val lotToSellFrom = lots.findAvailableLot(transaction.lotId)
+                    val lotToSellFrom = lots.findAvailableLotToSellFrom(transaction.lotId)
                         ?: throw IllegalStateException("couldn't find applicable lot(s) based on id: ${transaction.lotId}")
                     val lotShareValue = lotToSellFrom.current
                     val shares = minShares(saleRemaining, lotShareValue)
@@ -66,29 +66,34 @@ class World {
                     lotToSellFrom.updateLotValue(transaction.ref, fromLotRem)
                     saleRemaining = fromSaleRem
 
-                    if (net >= Money.ZERO) {
+                    if (net >= Money.ZERO || ignoreWash) {
                         // profit!
                         val saleRecord = TransactionReport.SaleReport.SaleRecord(
                             soldLotId = lotToSellFrom.runId,
-                            shares = fromLot.shares,
+                            shares = assertEqual(fromLot.shares, fromSale.shares),
                             basis = fromLot.value,
+                            gross = fromSale.value,
                         )
                         allowedRecords.add(saleRecord)
                     } else {
                         // need to look for wash sale
                         var sharesToWash = LotValue(shares, net)
-                        var trackBasisFromLot = fromLot
+                        var basisFromLot = fromLot
+                        var grossFromSale = fromSale
                         while (sharesToWash.shares > 0) {
                             // check 30 days before and 30 days after
-                            val washTarget = lots.queryForLotToWashTo(lotToSellFrom, transaction.date) ?: break
+                            val washTarget = lots.findLotToWashTo(lotToSellFrom, transaction.date) ?: break
                             val numberOfSharesToTransfer = minShares(sharesToWash, washTarget.current)
                             val (sharesToWashSplit, sharesToWashRem) = sharesToWash.splitOut(numberOfSharesToTransfer)
                             val (washTargetSplit, washTargetRem) = washTarget.current.splitOut(numberOfSharesToTransfer)
-                            val (trackBasisFromLotSplit, trackBasisFromLotRem) = trackBasisFromLot.splitOut(
-                                numberOfSharesToTransfer
-                            )
-                            trackBasisFromLot = trackBasisFromLotRem
+                            val (basisFromLotSplit, basisFromLotRem) = basisFromLot.splitOut(numberOfSharesToTransfer)
+                            val (grossFromSaleSplit, grossFromSaleRem) = grossFromSale.splitOut(numberOfSharesToTransfer)
+                            basisFromLot = basisFromLotRem
+                            grossFromSale = grossFromSaleRem
                             washTarget.updateLotValue(transaction.ref, washTargetRem)
+
+                            val newNet = grossFromSaleSplit.value - basisFromLotSplit.value
+                            assertEqual(newNet, sharesToWashSplit.value)
 
                             // using subtraction since the value is negative from loss.
                             val newLot = LotValue(
@@ -117,18 +122,22 @@ class World {
                                 soldLotId = lotToSellFrom.runId,
                                 transferredLotId = washTarget.runId,
                                 resultingId = washLot.runId,
-                                shares = assertEqual(washLot.current.shares, trackBasisFromLotSplit.shares),
-                                basis = trackBasisFromLotSplit.value,
+                                shares = assertEqual(washLot.current.shares, basisFromLotSplit.shares),
+                                basis = basisFromLotSplit.value,
+                                gross = grossFromSaleSplit.value,
                                 disallowedValue = sharesToWashSplit.value,
                             )
+                            assertEqual(washRecord.net, washRecord.disallowedValue)
                             washedRecords.add(washRecord)
                         }
                         // check for remaining shares
                         if (sharesToWash.shares > 0) {
+                            assertEqual(basisFromLot.shares, sharesToWash.shares)
                             val saleRecord = TransactionReport.SaleReport.SaleRecord(
                                 soldLotId = lotToSellFrom.runId,
-                                shares = assertEqual(trackBasisFromLot.shares, sharesToWash.shares),
-                                basis = trackBasisFromLot.value,
+                                shares = assertEqual(basisFromLot.shares, grossFromSale.shares),
+                                basis = basisFromLot.value,
+                                gross = grossFromSale.value,
                             )
                             allowedRecords.add(saleRecord)
                         }
@@ -160,7 +169,6 @@ class World {
         var i = 0
         for (lotc in lots) {
             i++
-            //TODO warning, need to use the whole datetime
             if (lotc.date <= lot.date) {
                 addIndex = i
             } else {
@@ -176,11 +184,13 @@ class World {
 }
 
 fun <T : Any> assertEqual(a: T, b: T): T {
-    assert(a == b)
+    if (a != b) {
+        throw IllegalStateException("should be equal $a, $b")
+    }
     return a
 }
 
-fun List<Lot>.queryForLotToWashTo(
+fun List<Lot>.findLotToWashTo(
     sourceLot: Lot,
     saleDate: LocalDate
 ): Lot? {
@@ -197,17 +207,7 @@ fun List<Lot>.queryForLotToWashTo(
     }
 }
 
-operator fun LocalDate.compareTo(other: LocalDate): Int {
-    return if (isBefore(other)) {
-        -1
-    } else if (isAfter(other)) {
-        1
-    } else {
-        0
-    }
-}
-
-fun List<Lot>.findAvailableLot(id: LotReference): Lot? {
+fun List<Lot>.findAvailableLotToSellFrom(id: LotReference): Lot? {
     // picking fifo for the day
     return firstOrNull {
         val chk1 = it.current.shares > 0 && it.date == id.date

@@ -1,6 +1,7 @@
 package com.muandrew.stock.model
 
 import com.muandrew.money.Money
+import com.squareup.moshi.Json
 
 sealed interface TransactionReport {
 
@@ -39,13 +40,21 @@ sealed interface TransactionReport {
             val resultingId: String,
             val shares: Long,
             val basis: Money,
+            val gross: Money,
             val disallowedValue: Money,
-        )
+        ){
+            @Json(ignore = true)
+            val net get() = gross - basis
+        }
 
         data class SaleRecord(
             val soldLotId: String,
             val shares: Long,
             val basis: Money,
-        )
+            val gross: Money,
+        ) {
+            @Json(ignore = true)
+            val net get() = gross - basis
+        }
     }
 }

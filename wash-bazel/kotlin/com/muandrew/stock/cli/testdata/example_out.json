@@ -57,6 +57,9 @@
           "shares": 1,
           "basis": {
             "value": 1000
+          },
+          "gross": {
+            "value": 1010
           }
         }
       ]

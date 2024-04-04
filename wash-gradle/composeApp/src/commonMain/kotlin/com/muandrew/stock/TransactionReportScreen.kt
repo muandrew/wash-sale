@@ -64,14 +64,14 @@ fun SaleReportUi(report: TransactionReport.SaleReport) {
             item { Text("allowed:") }
             items(report.allowedTransfer) {
                 Column(modifier = Modifier.border(1.dp, Color.Black)) {
-                    Text("shares: ${it.shares}, basis: ${it.basis}, soldLotId: ${it.soldLotId}")
+                    Text("shares: ${it.shares}, basis: ${it.basis}, soldLotId: ${it.soldLotId}, gross:${it.gross}, net ${it.net}")
                 }
             }
             item { Text("disallowed:") }
             items(report.disallowedTransfer) {
                 Column(modifier = Modifier.border(1.dp, Color.Black)) {
-                    Text("shares: ${it.shares}, basis: ${it.basis}, soldLotId: ${it.soldLotId}")
-                    Text("disallowedValue: ${it.disallowedValue}, toLot: ${it.transferredLotId}, res: ${it.resultingId}")
+                    Text("shares: ${it.shares}, basis: ${it.basis}, gross ${it.gross} soldLotId: ${it.soldLotId}")
+                    Text("disallowedValue: ${it.disallowedValue}, net: ${it.net}, toLot: ${it.transferredLotId}, res: ${it.resultingId}")
                 }
             }
         }

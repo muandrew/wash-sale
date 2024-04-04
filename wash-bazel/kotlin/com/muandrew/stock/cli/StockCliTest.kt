@@ -43,7 +43,9 @@ class StockCliTest {
         val a = moshi.adapter<Out>()
 
         assertEquals(
-            Paths.get(testData, "example_out.json").readAsFileToString().filterNot { it.isWhitespace() },
+            Paths.get(testData, "example_out.json")
+                .readAsFileToString()
+                .filterNot { it.isWhitespace() },
             a.toJson(out)
         )
     }
@@ -57,7 +59,9 @@ class StockCliTest {
         val a = moshi.adapter<Out>()
 
         assertEquals(
-            Paths.get(testData, "washafter_out.json").readAsFileToString().filterNot { it.isWhitespace() },
+            Paths.get(testData, "washafter_out.json")
+                .readAsFileToString()
+                .filterNot { it.isWhitespace() },
             a.toJson(out)
         )
     }
