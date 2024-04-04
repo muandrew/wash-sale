@@ -91,7 +91,7 @@ object StockTransactionReader {
                     date,
                     Money.parse(getData(default, instance, "value")!!),
                     getData(default, instance, "shares")!!.toLong(),
-                    LotReference.Date(date = lotDate),
+                    LotReference(date = lotDate),
                 )
             }
 

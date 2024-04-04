@@ -29,7 +29,8 @@ class World {
                         lot = lotno,
                         date = transaction.date,
                         initial = transaction.disbursed,
-                        current = transaction.disbursed,
+                        wireCurrent = transaction.disbursed,
+                        sourceLot = null,
                         sourceTransaction = TransactionReference(
                             date = transaction.date,
                             referenceNumber = transaction.referenceNumber
@@ -38,7 +39,7 @@ class World {
                 )
                 events.add(
                     TransactionReport.ReceivedReport(
-                        transaction.date,
+                        transaction.ref,
                         transaction.disbursed.shares,
                         transaction.disbursed.value
                     )
@@ -54,7 +55,7 @@ class World {
                 val washedRecords = mutableListOf<TransactionReport.SaleReport.WashRecord>()
 
                 while (saleRemaining != LotValue.ZERO) {
-                    val lotToSellFrom = lots.findFirstLotForId(transaction.lotId)
+                    val lotToSellFrom = lots.findAvailableLot(transaction.lotId)
                         ?: throw IllegalStateException("couldn't find applicable lot(s) based on id: ${transaction.lotId}")
                     val lotShareValue = lotToSellFrom.current
                     val shares = minShares(saleRemaining, lotShareValue)
@@ -62,8 +63,7 @@ class World {
                     val (fromLot, fromLotRem) = lotShareValue.splitOut(shares)
 
                     val net = fromSale.value - fromLot.value
-                    // TODO track transaction in lot
-                    lotToSellFrom.current = fromLotRem
+                    lotToSellFrom.updateLotValue(transaction.ref, fromLotRem)
                     saleRemaining = fromSaleRem
 
                     if (net >= Money.ZERO) {
@@ -88,8 +88,7 @@ class World {
                                 numberOfSharesToTransfer
                             )
                             trackBasisFromLot = trackBasisFromLotRem
-                            // TODO track transaction
-                            washTarget.current = washTargetRem
+                            washTarget.updateLotValue(transaction.ref, washTargetRem)
 
                             // using subtraction since the value is negative from loss.
                             val newLot = LotValue(
@@ -104,8 +103,7 @@ class World {
                                 // use the new time for calculating long/short term sale
                                 overrideDateForSalesCalculation = max(lotToSellFrom.date, washTarget.date),
                                 initial = newLot,
-                                current = newLot,
-                                wireIsReplacement = true,
+                                sourceLot = lotToSellFrom.ref,
                                 sourceTransaction = TransactionReference(
                                     date = transaction.date,
                                     referenceNumber = transaction.referenceNumber,
@@ -143,8 +141,7 @@ class World {
 
                 events.add(
                     TransactionReport.SaleReport(
-                        date = transaction.date,
-                        referenceNumber = transaction.referenceNumber,
+                        transaction.ref,
                         shares = transaction.shares,
                         saleValue = transaction.value,
                         basisBeforeAdjustment = basisBeforeAdjustment,
@@ -210,16 +207,22 @@ operator fun LocalDate.compareTo(other: LocalDate): Int {
     }
 }
 
-fun List<Lot>.findFirstLotForId(id: LotReference): Lot? {
-    return when (id) {
-        is LotReference.Date -> {
-            // picking fifo for the day
-            firstOrNull {
-                val chk1 = it.current.shares > 0 && it.date == id.date
-                if (chk1 && id.lotId != null) {
-                    it.lot == id.lotId
-                } else chk1
-            }
-        }
+fun List<Lot>.findAvailableLot(id: LotReference): Lot? {
+    // picking fifo for the day
+    return firstOrNull {
+        val chk1 = it.current.shares > 0 && it.date == id.date
+        chk1 && if (id.lotId != null) {
+            it.lot == id.lotId
+        } else true
+    }
+}
+
+fun List<Lot>.filterByReference(id: LotReference): List<Lot> {
+    // picking fifo for the day
+    return filter {
+        val chk1 = it.date == id.date
+        chk1 && if (id.lotId != null) {
+            it.lot == id.lotId
+        } else true
     }
 }

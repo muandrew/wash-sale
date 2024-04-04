@@ -10,15 +10,28 @@
           "value": 10000
         }
       },
+      "sourceTransaction": {
+        "date": "1000-01-01"
+      },
       "current": {
         "shares": 9,
         "value": {
           "value": 9000
         }
       },
-      "sourceTransaction": {
-        "date": "1000-01-01"
-      }
+      "transactions": [
+        {
+          "transactionReference": {
+            "date": "2000-01-01"
+          },
+          "change": {
+            "shares": -1,
+            "value": {
+              "value": -1000
+            }
+          }
+        }
+      ]
     },
     {
       "runId": "2000-01-02.1",
@@ -30,15 +43,28 @@
           "value": 10000
         }
       },
+      "sourceTransaction": {
+        "date": "2000-01-02"
+      },
       "current": {
         "shares": 0,
         "value": {
           "value": 0
         }
       },
-      "sourceTransaction": {
-        "date": "2000-01-02"
-      }
+      "transactions": [
+        {
+          "transactionReference": {
+            "date": "2000-01-01"
+          },
+          "change": {
+            "shares": -1,
+            "value": {
+              "value": -10000
+            }
+          }
+        }
+      ]
     },
     {
       "runId": "2000-01-02.1.w:1",
@@ -50,23 +76,29 @@
           "value": 10100
         }
       },
+      "sourceTransaction": {
+        "date": "2000-01-01"
+      },
+      "sourceLot": {
+        "date": "1000-01-01",
+        "lotId": 1
+      },
+      "overrideDateForSalesCalculation": "2000-01-02",
       "current": {
         "shares": 1,
         "value": {
           "value": 10100
         }
       },
-      "sourceTransaction": {
-        "date": "2000-01-01"
-      },
-      "overrideDateForSalesCalculation": "2000-01-02",
-      "isReplacement": true
+      "transactions": []
     }
   ],
   "events": [
     {
       "type": "sale",
-      "date": "2000-01-01",
+      "ref": {
+        "date": "2000-01-01"
+      },
       "shares": 1,
       "saleValue": {
         "value": 900

@@ -21,8 +21,11 @@ import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
 import com.bumble.appyx.utils.multiplatform.RawValue
 import com.muandrew.stock.model.Lot
+import com.muandrew.stock.model.LotReference
+import com.muandrew.stock.model.TransactionReference
 import com.muandrew.stock.model.TransactionReport
 import com.muandrew.stock.world.World
+import com.muandrew.stock.world.filterByReference
 
 class RootNode(
     nodeContext: NodeContext,
@@ -61,7 +64,7 @@ class RootNode(
                     backStack.push(
                         NavTarget.Reports(
                             world.events,
-                            ::onSaleReportChosen
+                            ::onTransactionRefClicked
                         )
                     )
                 }) {
@@ -80,8 +83,18 @@ class RootNode(
         }
     }
 
-    private fun onSaleReportChosen(sale: TransactionReport.SaleReport) {
-        backStack.push(NavTarget.SaleReport(sale))
+    private fun onSaleReportChosen(sale: TransactionReport) {
+        backStack.push(NavTarget.TransactionReportNT(listOf(sale)))
+    }
+
+    private fun onTransactionRefClicked(ref: TransactionReference) {
+        val res = world.events.filter {
+            it.ref.date == ref.date &&
+                    if (ref.referenceNumber != null) {
+                        it.ref.referenceNumber == ref.referenceNumber
+                    } else true
+        }
+        backStack.push(NavTarget.TransactionReportNT(res))
     }
 
     override fun buildChildNode(
@@ -93,7 +106,7 @@ class RootNode(
                 backStack.push(
                     NavTarget.Reports(
                         world.events,
-                        ::onSaleReportChosen
+                        ::onTransactionRefClicked
                     )
                 )
             }
@@ -104,10 +117,29 @@ class RootNode(
                 reference.reportChosen
             )
 
-            is NavTarget.Lots -> LotsNode(nodeContext, reference.lots)
-            is NavTarget.SaleReport -> SaleReportNode(nodeContext, reference.sale)
-            is NavTarget.MergedLots -> MergedLotsNode(nodeContext, reference.lots)
+            is NavTarget.LotNT -> LotNode(
+                nodeContext,
+                reference.lot,
+                ::onTransactionRefClicked,
+                ::onLotRefClicked,
+            )
+            is NavTarget.Lots -> LotsNode(nodeContext, reference.lots, ::onLotChosen)
+            is NavTarget.TransactionReportNT -> TransactionReportNode(nodeContext, reference.report)
+            is NavTarget.MergedLots -> MergedLotsNode(nodeContext, reference.lots, ::onLotsSelected)
         }
+
+    private fun onLotRefClicked(lotReference: LotReference) {
+        val lots = world.lots.filterByReference(lotReference)
+        backStack.push(NavTarget.Lots(lots))
+    }
+
+    private fun onLotsSelected(lots: List<Lot>) {
+        backStack.push(NavTarget.Lots(lots))
+    }
+
+    private fun onLotChosen(lot: Lot) {
+        backStack.push(NavTarget.LotNT(lot))
+    }
 
 
     sealed class NavTarget : Parcelable {
@@ -118,8 +150,11 @@ class RootNode(
         @Parcelize
         data class Reports(
             val reports: @RawValue List<TransactionReport>,
-            val reportChosen: ((TransactionReport.SaleReport) -> Unit)?
+            val reportChosen: TransactionRefClicked,
         ) : NavTarget()
+
+        @Parcelize
+        data class LotNT(val lot: @RawValue Lot) : NavTarget()
 
         @Parcelize
         data class Lots(val lots: @RawValue List<Lot>) : NavTarget()
@@ -128,6 +163,10 @@ class RootNode(
         data class MergedLots(val lots: @RawValue List<Lot>) : NavTarget()
 
         @Parcelize
-        data class SaleReport(val sale: @RawValue TransactionReport.SaleReport) : NavTarget()
+        data class TransactionReportNT(val report: @RawValue List<TransactionReport>) : NavTarget()
     }
 }
+
+typealias TransactionRefClicked = (ref: TransactionReference) -> Unit
+typealias LotRefClicked = (ref: LotReference) -> Unit
+typealias LotsSelected = (lots: List<Lot>) -> Unit

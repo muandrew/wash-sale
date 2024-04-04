@@ -13,20 +13,26 @@ data class Lot(
     val lot: Int,
     val date: LocalDate,
     val initial: LotValue,
-    var current: LotValue,
     val sourceTransaction: TransactionReference,
+    val sourceLot: LotReference?,
     val overrideDateForSalesCalculation: LocalDate? = null,
-    @Json(name = "isReplacement")
-    val wireIsReplacement: Boolean? = null,
+    @Json(name = "current") var wireCurrent: LotValue = initial,
+    @Json(name = "transactions") val wireTransactions: MutableList<LotChange> = mutableListOf(),
 ) {
-    val isReplacement: Boolean get() = wireIsReplacement ?: false
+    val isReplacement: Boolean get() = sourceLot != null
+    val current: LotValue get() = wireCurrent
+    val ref: LotReference get() = LotReference(date, lot)
+
+    fun updateLotValue(transactionReference: TransactionReference, newValue: LotValue) {
+        wireTransactions.add(LotChange(transactionReference, newValue - wireCurrent))
+        wireCurrent = newValue
+    }
+
     @Transient
     var nextWashNumber = 1
 }
 
-sealed interface TransformedFrom {
-    data class WashSale(
-        val originalLot: LotReference,
-        val fromTransaction: TransactionReference,
-    ) : TransformedFrom
-}
+data class LotChange(
+    val transactionReference: TransactionReference,
+    val change: LotValue,
+)

@@ -128,7 +128,7 @@ fun World.sale(
             date = LocalDate.parse(date),
             value = Money(value),
             shares = shares,
-            lotId = LotReference.Date(
+            lotId = LotReference(
                 date = LocalDate.parse(lotDate)
             )
         )

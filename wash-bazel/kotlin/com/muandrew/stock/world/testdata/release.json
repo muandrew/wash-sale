@@ -9,14 +9,15 @@
         "value": 10000
       }
     },
+    "sourceTransaction": {
+      "date": "2000-01-01"
+    },
     "current": {
       "shares": 10,
       "value": {
         "value": 10000
       }
     },
-    "sourceTransaction": {
-      "date": "2000-01-01"
-    }
+    "transactions": []
   }
 ]

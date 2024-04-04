@@ -35,12 +35,12 @@ fun App() {
             }
 
             RootState.Lots -> {
-                LotsUi(w.lots)
+                LotsUi(w.lots) { TODO() }
             }
 
             RootState.Transactions -> {
                 ReportsUi(w.events) {
-                    state = RootState.SaleReport(it)
+//                    state = RootState.SaleReport(it)
                 }
             }
 

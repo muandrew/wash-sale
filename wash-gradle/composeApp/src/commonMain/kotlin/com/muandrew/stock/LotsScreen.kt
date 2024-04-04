@@ -2,6 +2,7 @@ package com.muandrew.stock
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,29 +20,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.muandrew.stock.model.Lot
 import java.time.LocalDate
 
+typealias LotClicked = (Lot)->Unit
 class LotsNode(
     nodeContext: NodeContext,
-    private val lots: List<Lot>
+    private val lots: List<Lot>,
+    private val clicked: LotClicked,
 ) : LeafNode(
     nodeContext = nodeContext
 ) {
     @Composable
     override fun Content(modifier: Modifier) {
-        LotsUi(lots)
+        LotsUi(lots, clicked)
     }
 }
 
 @Composable
-fun LotsUi(lots: List<Lot>) {
+fun LotsUi(lots: List<Lot>, clicked: LotClicked) {
     Column {
         var textField by remember { mutableStateOf("") }
         var displayedLots by remember { mutableStateOf(lots) }
+        Text( fontWeight = FontWeight.Bold, text = "Lots")
         TextField(
             modifier = Modifier.fillMaxWidth(),
             value = textField,
@@ -61,7 +66,7 @@ fun LotsUi(lots: List<Lot>) {
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(displayedLots) {
+            items(displayedLots) { lot ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -71,14 +76,16 @@ fun LotsUi(lots: List<Lot>) {
                         )
                         .padding(
                             PaddingValues(4.dp)
-                        )
+                        ).clickable {
+                            clicked(lot)
+                        }
                 ) {
-                    Text("runId: ${it.runId}")
-                    Text("date: ${it.date}")
-                    Text("oshaers: ${it.initial.shares}")
-                    Text("shares: ${it.current.shares}")
-                    Text("value: ${it.current.value}")
-                    Text("isReplacement: ${it.isReplacement}")
+                    Text("runId: ${lot.runId}")
+                    Text("date: ${lot.date}")
+                    Text("oshaers: ${lot.initial.shares}")
+                    Text("shares: ${lot.current.shares}")
+                    Text("value: ${lot.current.value}")
+                    Text("isReplacement: ${lot.isReplacement}")
                 }
             }
         }

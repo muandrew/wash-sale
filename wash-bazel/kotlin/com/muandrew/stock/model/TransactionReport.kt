@@ -1,27 +1,26 @@
 package com.muandrew.stock.model
 
 import com.muandrew.money.Money
-import com.muandrew.stock.time.DateTime
-import java.time.LocalDate
 
 sealed interface TransactionReport {
+
+    val ref: TransactionReference
 
     fun print()
 
     data class ReceivedReport(
-        val date: LocalDate,
+        override val ref: TransactionReference,
         val shares: Long,
         val costBasis: Money,
     ) : TransactionReport {
         override fun print() {
             val valuePerShareWithRem = costBasis / shares
-            println("$date: rcv $shares share(s) totalling ${costBasis}. [${valuePerShareWithRem.res} per share]")
+            println("${ref.date}: rcv $shares share(s) totalling ${costBasis}. [${valuePerShareWithRem.res} per share]")
         }
     }
 
     data class SaleReport(
-        val date: LocalDate,
-        val referenceNumber: String?,
+        override val ref: TransactionReference,
         val shares: Long,
         val saleValue: Money,
         val basisBeforeAdjustment: Money,
@@ -31,7 +30,7 @@ sealed interface TransactionReport {
     ) : TransactionReport {
         override fun print() {
             val net = saleValue - basisBeforeAdjustment
-            println("$date: sld $shares share(s) for $saleValue against cost basis of $basisBeforeAdjustment. [net: $net]")
+            println("${ref.date}: sld $shares share(s) for $saleValue against cost basis of $basisBeforeAdjustment. [net: $net]")
         }
 
         data class WashRecord(
@@ -48,11 +47,5 @@ sealed interface TransactionReport {
             val shares: Long,
             val basis: Money,
         )
-    }
-
-    data class MessageReport(val messages: List<String>): TransactionReport {
-        override fun print() {
-            println(messages.joinToString("\n"))
-        }
     }
 }

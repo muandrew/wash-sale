@@ -5,18 +5,24 @@ import java.time.LocalDate
 
 sealed interface Transaction {
     val date: LocalDate
+    val referenceNumber: String?
+    val ref: TransactionReference
+        get() = TransactionReference(
+            date = date,
+            referenceNumber = referenceNumber,
+        )
 
     data class SaleTransaction(
         override val date: LocalDate,
         val value: Money,
         val shares: Long,
         val lotId: LotReference,
-        val referenceNumber: String? = null
+        override val referenceNumber: String? = null,
     ) : Transaction
 
     data class ReleaseTransaction(
         override val date: LocalDate,
         val disbursed: LotValue,
-        val referenceNumber: String? = null
+        override val referenceNumber: String? = null,
     ) : Transaction
 }

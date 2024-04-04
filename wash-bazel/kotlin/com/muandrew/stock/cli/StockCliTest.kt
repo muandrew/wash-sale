@@ -22,18 +22,9 @@ class StockCliTest {
         .add(LocalDateAdapter())
         .add(LocalTimeAdapter())
         .add(
-            PolymorphicJsonAdapterFactory.of(TransformedFrom::class.java, "type")
-                .withSubtype(TransformedFrom.WashSale::class.java, "wash_sale")
-        )
-        .add(
-            PolymorphicJsonAdapterFactory.of(LotReference::class.java, "type")
-                .withSubtype(LotReference.Date::class.java, "date")
-        )
-        .add(
             PolymorphicJsonAdapterFactory.of(TransactionReport::class.java, "type")
                 .withSubtype(TransactionReport.SaleReport::class.java, "sale")
                 .withSubtype(TransactionReport.ReceivedReport::class.java, "received")
-                .withSubtype(TransactionReport.MessageReport::class.java, "message")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()

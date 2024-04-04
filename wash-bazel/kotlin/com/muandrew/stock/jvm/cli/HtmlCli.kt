@@ -71,7 +71,7 @@ object HtmlCli {
                                 date = realTransaction.date,
                                 value = realTransaction.sold.value,
                                 shares = realTransaction.sold.shares,
-                                lotId = LotReference.Date(
+                                lotId = LotReference(
                                     date = realTransaction.date,
                                     lotId = realTransaction.preferredLot
                                 )
@@ -124,7 +124,7 @@ object HtmlCli {
                             date = partialWithdrawData.settlementDate,
                             value = split.value,
                             shares = q,
-                            lotId = LotReference.Date(lot.purchaseDate, lot.lot),
+                            lotId = LotReference(lot.purchaseDate, lot.lot),
                             referenceNumber = partialWithdrawData.referenceNumber,
                         )
                     )
