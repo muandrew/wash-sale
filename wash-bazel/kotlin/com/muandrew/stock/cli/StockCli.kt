@@ -4,6 +4,7 @@ import com.muandrew.stock.model.Transaction
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
 import com.muandrew.stock.world.StockTransactionReader
 import com.muandrew.stock.world.World
+import com.muandrew.stock.world.generate1099Report
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -14,8 +15,14 @@ object StockCli {
     @JvmStatic
     fun main(args: Array<String>) {
         val ts = readTransactions(args[0])
+        val outputDirectory = args.getOrNull(1)
         val w = World()
+        println("processing transactions")
         w.sortAndProcessTransaction(ts)
+        if (outputDirectory != null) {
+            println("printing output")
+            w.events.generate1099Report("$outputDirectory/1099.tsv")
+        }
         println("end")
     }
 

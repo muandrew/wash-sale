@@ -112,6 +112,7 @@
       "disallowedTransfer": [
         {
           "soldLotId": "1000-01-01.1",
+          "soldLotDateForSalesCalculation": "1000-01-01",
           "transferredLotId": "2000-01-02.1",
           "resultingId": "2000-01-02.1.w:1",
           "shares": 1,

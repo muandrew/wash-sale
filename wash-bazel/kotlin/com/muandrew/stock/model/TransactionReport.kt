@@ -2,6 +2,7 @@ package com.muandrew.stock.model
 
 import com.muandrew.money.Money
 import com.squareup.moshi.Json
+import java.time.LocalDate
 
 sealed interface TransactionReport {
 
@@ -36,6 +37,7 @@ sealed interface TransactionReport {
 
         data class WashRecord(
             val soldLotId: String,
+            val soldLotDateForSalesCalculation: LocalDate,
             val transferredLotId: String,
             val resultingId: String,
             val shares: Long,
@@ -49,6 +51,7 @@ sealed interface TransactionReport {
 
         data class SaleRecord(
             val soldLotId: String,
+            val soldLotDateForSalesCalculation: LocalDate,
             val shares: Long,
             val basis: Money,
             val gross: Money,

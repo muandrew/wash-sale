@@ -28,6 +28,9 @@ data class Lot(
     @Json(ignore = true)
     val ref: LotReference get() = LotReference(date, lot)
 
+    @Json(ignore = true)
+    val dateForSales: LocalDate get() = overrideDateForSalesCalculation ?: date
+
     fun updateLotValue(transactionReference: TransactionReference, newValue: LotValue) {
         wireTransactions.add(LotChange(transactionReference, newValue - wireCurrent))
         wireCurrent = newValue

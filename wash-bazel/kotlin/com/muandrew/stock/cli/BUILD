@@ -30,10 +30,10 @@ kt_jvm_binary(
 kt_jvm_test(
     name = "test",
     srcs = ["StockCliTest.kt"],
+    associates = [":lib-lib"],  # macro expands the lib target to :%s-lib
     data = glob(["testdata/*"]),
     test_class = "com.muandrew.stock.cli.StockCliTest",
     deps = [
-        ":lib-lib",  # macro expands the lib target to :%s-lib
         "//kotlin/com/muandrew/stock/model:default",
         "//kotlin/com/muandrew/testtool",
         "@maven//:com_squareup_moshi_moshi",

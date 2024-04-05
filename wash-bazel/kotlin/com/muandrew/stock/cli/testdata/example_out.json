@@ -54,6 +54,7 @@
       "allowedTransfer": [
         {
           "soldLotId": "1000-01-01.1",
+          "soldLotDateForSalesCalculation": "1000-01-01",
           "shares": 1,
           "basis": {
             "value": 1000

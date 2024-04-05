@@ -1,5 +1,7 @@
 package com.muandrew.stock.world
 
+import com.github.doyaaaaaken.kotlincsv.client.ICsvFileWriter
+import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import com.muandrew.money.Money
 import com.muandrew.stock.model.*
 import com.muandrew.stock.time.max
@@ -70,6 +72,7 @@ class World(val ignoreWash: Boolean = false) {
                         // profit!
                         val saleRecord = TransactionReport.SaleReport.SaleRecord(
                             soldLotId = lotToSellFrom.runId,
+                            soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
                             shares = assertEqual(fromLot.shares, fromSale.shares),
                             basis = fromLot.value,
                             gross = fromSale.value,
@@ -120,6 +123,7 @@ class World(val ignoreWash: Boolean = false) {
 
                             val washRecord = TransactionReport.SaleReport.WashRecord(
                                 soldLotId = lotToSellFrom.runId,
+                                soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
                                 transferredLotId = washTarget.runId,
                                 resultingId = washLot.runId,
                                 shares = assertEqual(washLot.current.shares, basisFromLotSplit.shares),
@@ -135,6 +139,7 @@ class World(val ignoreWash: Boolean = false) {
                             assertEqual(basisFromLot.shares, sharesToWash.shares)
                             val saleRecord = TransactionReport.SaleReport.SaleRecord(
                                 soldLotId = lotToSellFrom.runId,
+                                soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
                                 shares = assertEqual(basisFromLot.shares, grossFromSale.shares),
                                 basis = basisFromLot.value,
                                 gross = grossFromSale.value,
@@ -225,4 +230,75 @@ fun List<Lot>.filterByReference(id: LotReference): List<Lot> {
             it.lot == id.lotId
         } else true
     }
+}
+
+data class BPD(
+    var shares: Long = 0,
+    var basis: Money = Money.ZERO,
+    var proceeds: Money = Money.ZERO,
+    var disallowed: Money = Money.ZERO,
+)
+
+data class SaleReport1099(
+    val ref: TransactionReference,
+    var shortTerm: BPD = BPD(),
+    var longTerm: BPD = BPD(),
+)
+
+fun List<TransactionReport>.generate1099Report(filePath: String) {
+    val interestingReports = filterIsInstance<TransactionReport.SaleReport>()
+        .groupingBy { it.ref }
+        .aggregate { key, accumulator: SaleReport1099?, element, first ->
+            val report = accumulator ?: SaleReport1099(element.ref)
+
+            element.disallowedTransfer.forEach {
+                val bpd = if (it.soldLotDateForSalesCalculation.plusYears(1) < element.ref.date) {
+                    report.longTerm
+                } else {
+                    report.shortTerm
+                }
+                bpd.shares += it.shares
+                bpd.basis += it.basis
+                bpd.proceeds += it.gross
+                bpd.disallowed += it.net
+            }
+            element.allowedTransfer.forEach {
+                val bpd = if (it.soldLotDateForSalesCalculation.plusYears(1) < element.ref.date) {
+                    report.longTerm
+                } else {
+                    report.shortTerm
+                }
+                bpd.shares += it.shares
+                bpd.basis += it.basis
+                bpd.proceeds += it.gross
+            }
+            report
+        }
+    csvWriter {
+        this.delimiter = '\t'
+    }.open(targetFileName = filePath, append = false) {
+        this.writeRow("long/short", "date", "reference", "shares", "basis", "proceeds", "net", "disallowed", "final")
+        interestingReports.values.sortedBy { it.ref }.forEach {
+            maybeWriteRow("long", it.ref, it.longTerm)
+            maybeWriteRow("short", it.ref, it.shortTerm)
+        }
+    }
+}
+
+fun ICsvFileWriter.maybeWriteRow(longShort: String, ref: TransactionReference, data: BPD) {
+    if (data.shares == 0L) {
+        return
+    }
+    val net = data.proceeds - data.basis
+    writeRow(
+        longShort,
+        ref.date,
+        ref.referenceNumber,
+        data.shares,
+        data.basis,
+        data.proceeds,
+        net,
+        data.disallowed,
+        net - data.disallowed,
+    )
 }
