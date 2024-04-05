@@ -97,6 +97,9 @@ fun ReportsUi(
                                 PaddingValues(4.dp)
                             )
                     ) {
+                        Text("date ${report.ref.date}")
+                        Text("date ${report.ref.referenceNumber}")
+                        Text("date ${report.shares}")
                         Text("received basis ${report.costBasis}")
                     }
                 }

@@ -10,6 +10,7 @@ import com.muandrew.stock.model.Transaction.ReleaseTransaction
 import com.muandrew.stock.model.Transaction.SaleTransaction
 import com.muandrew.stock.time.NuFormat
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
+import com.muandrew.stock.world.World
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -23,13 +24,30 @@ object HtmlCli {
         val fromFolder = File(args[0])
         val destFolder = File(args[1])
 
-        val listFiles = fromFolder.listFiles { _, name -> name.endsWith(".html") }
+        val listFiles = fromFolder.listFiles { _, name -> name.endsWith(".html") && name != "espp.html" }
 
         val moshi = Moshi.Builder()
             .addStockAdapters()
             .addLast(KotlinJsonAdapterFactory())
             .build()
         val transactionAdapter = moshi.adapter<List<Transaction>>()
+
+        val esppFile = File("$fromFolder/espp.html")
+        if (esppFile.exists()) {
+            val esppData = StatementParser.parseEspp(esppFile)
+            val transactions = esppData.map { esppRelease ->
+                ReleaseTransaction(
+                    date = esppRelease.purchaseDate,
+                    disbursed = LotValue(
+                        shares = esppRelease.quantity,
+                        value = esppRelease.totalPurchasePrice
+                    ),
+                    referenceNumber = "espp:${esppRelease.purchaseDate}"
+                )
+            }
+            val outFile = File("$destFolder/espp.json")
+            outFile.writeText(transactionAdapter.toJson(transactions))
+        }
 
         listFiles.forEach { htmlFile ->
             val baseFilePath = htmlFile.absolutePath.removeSuffix(".html")
@@ -48,7 +66,7 @@ object HtmlCli {
                 }
             } else null
 
-            val statementData = StatementParser.parse(
+            val statementData = StatementParser.parseStatementReport(
                 htmlFile,
                 preferredLotDataRaw?.toPreferredLotData()
             )

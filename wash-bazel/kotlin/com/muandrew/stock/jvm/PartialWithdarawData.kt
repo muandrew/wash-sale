@@ -1,9 +1,9 @@
 package com.muandrew.stock.jvm
 
 import com.muandrew.money.Money
-import com.muandrew.stock.jvm.StatementParser.asDate
-import com.muandrew.stock.jvm.StatementParser.asLong
-import com.muandrew.stock.jvm.StatementParser.asMoney
+import com.muandrew.stock.jvm.StatementParser.toDate
+import com.muandrew.stock.jvm.StatementParser.toLong
+import com.muandrew.stock.jvm.StatementParser.toMoney
 import java.time.LocalDate
 
 data class PartialWithdarawData(
@@ -17,8 +17,8 @@ data class PartialWithdarawData(
 fun Map<String, String>.toPartialWithdarawData(): PartialWithdarawData {
     return PartialWithdarawData(
         referenceNumber = this["Reference Number"]!!,
-        settlementDate = this.asDate("Settlement Date"),
-        sharesSold = this.asLong("Shares Sold"),
-        netProceeds = this.asMoney("Net Proceeds")
+        settlementDate = this.toDate("Settlement Date"),
+        sharesSold = this.toLong("Shares Sold"),
+        netProceeds = this.toMoney("Net Proceeds")
     )
 }

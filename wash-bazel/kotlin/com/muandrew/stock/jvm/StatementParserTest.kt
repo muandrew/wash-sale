@@ -1,6 +1,7 @@
 package com.muandrew.stock.jvm
 
 import com.muandrew.stock.jvm.StatementParser.asRealTransaction
+import com.muandrew.stock.jvm.StatementParser.parseEspp
 import com.muandrew.stock.jvm.StatementParser.parseReleaseTable
 import com.muandrew.testtool.TestFiles
 import org.jsoup.Jsoup
@@ -23,8 +24,8 @@ class StatementParserTest {
     @Test
     fun statementTest() {
         val file = File("$testData/year_statement.html")
-        val res = StatementParser.parseRaw(file)
-        val transactions = StatementParser.parse(file)
+        val res = StatementParser.parseStatementRaw(file)
+        val transactions = StatementParser.parseStatementReport(file)
 
         assertNotNull(res)
         assertNotNull(transactions)
@@ -50,5 +51,12 @@ class StatementParserTest {
 
         assertNotNull(rawResult)
         assertNotNull(t)
+    }
+
+    @Test
+    fun esppHTML() {
+        val res = parseEspp(File("$testData/espp.html"))
+
+        assertNotNull(res)
     }
 }

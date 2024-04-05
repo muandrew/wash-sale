@@ -1,6 +1,8 @@
 package com.muandrew.stock.jvm
 
 import com.muandrew.money.Money
+import com.muandrew.stock.jvm.StatementParser.toDate
+import com.muandrew.stock.jvm.StatementParser.toMoney
 import com.muandrew.stock.model.LotValue
 import com.muandrew.stock.model.RealTransaction
 import com.muandrew.stock.time.DateFormat
@@ -9,6 +11,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import org.jsoup.select.Elements
 import java.io.File
 import java.time.LocalDate
 
@@ -19,11 +22,11 @@ object StatementParser {
         val partialWithdrawData: List<PartialWithdarawData>,
     )
 
-    fun parse(
+    fun parseStatementReport(
         htmlFile: File,
         preferredLotData: PreferredLotData? = null
     ): StatementData {
-        val rawData = parseRaw(htmlFile)
+        val rawData = parseStatementRaw(htmlFile)
         val transactions = rawData.release
             .map { it.asRealTransaction(preferredLotData) }
             .sortWithDateAndLot(preferredLotData)
@@ -50,24 +53,6 @@ object StatementParser {
         }
     }
 
-    private fun List<RealTransaction>.sortWithGrant(): List<RealTransaction> {
-        return sortedWith { a, b ->
-            if (a.date > b.date) {
-                1
-            } else if (a.date < b.date) {
-                -1
-            } else {
-                if (a.grantDate > b.date) {
-                    1
-                } else if (a.grantDate < b.grantDate) {
-                    -1
-                } else {
-                    0
-                }
-            }
-        }
-    }
-
     internal fun Map<String, String>.asRealTransaction(
         preferredLotData: PreferredLotData? = null
     ): RealTransaction {
@@ -76,7 +61,7 @@ object StatementParser {
         val soldWithheldValue = soldOrWithheldValue()
         val releasePrice = releasePrice()
         val ref = this[KEY_REFERENCE_NUMBER]!!
-        val grantDate = asDate("Grant Date")
+        val grantDate = toDate("Grant Date")
         val disbursedShares = disbursedShares()
         return when (releaseMethod()) {
             ReleaseMethod.WITHHELD -> RealTransaction.ReleaseWithheld(
@@ -93,7 +78,7 @@ object StatementParser {
                     value = grossValue - soldWithheldValue,
                 ),
                 withheld = LotValue(
-                    shares = asLong("Number of Restricted Awards Withheld"),
+                    shares = toLong("Number of Restricted Awards Withheld"),
                     value = soldWithheldValue,
                 ),
                 releasePrice = releasePrice,
@@ -113,7 +98,7 @@ object StatementParser {
                     value = grossValue,
                 ),
                 sold = LotValue(
-                    shares = asLong("Number of Restricted Awards Sold"),
+                    shares = toLong("Number of Restricted Awards Sold"),
                     value = soldWithheldValue,
                 ),
                 releasePrice = releasePrice,
@@ -127,7 +112,7 @@ object StatementParser {
         val withdraw: List<Map<String, String>>
     )
 
-    fun parseRaw(htmlFile: File): StatementRaw {
+    internal fun parseStatementRaw(htmlFile: File): StatementRaw {
         val doc = Jsoup.parse(htmlFile)
         val rootDiv = doc.body().child(0)
         assert(rootDiv.tagName() == "div")
@@ -199,34 +184,39 @@ object StatementParser {
     }
 
     private fun Map<String, String>.releaseDate() =
-        asDate("Release Date")
-
-    internal fun Map<String, String>.asDate(key: String) =
-        LocalDate.parse(this[key], DateFormat.DMY)
+        toDate("Release Date")
 
     private fun Map<String, String>.releasedShares() =
-        asLong("Number of Restricted Awards Released")
+        toLong("Number of Restricted Awards Released")
 
     private fun Map<String, String>.grossValue() =
-        asMoney("Gross Release Value")
+        toMoney("Gross Release Value")
 
     private fun Map<String, String>.disbursedShares() =
-        asLong("Number of Restricted Awards Disbursed")
+        toLong("Number of Restricted Awards Disbursed")
 
     private fun Map<String, String>.soldOrWithheldValue() =
-        asMoney("Sold/Withheld Total Value")
+        toMoney("Sold/Withheld Total Value")
 
     private fun Map<String, String>.releasePrice() =
-        asMoney("Release Price")
+        toMoney("Release Price")
 
     private fun Map<String, String>.salePrice() =
-        asMoney("Sale Price")
+        toMoney("Sale Price")
 
-    internal fun Map<String, String>.asLong(key: String): Long =
+    internal fun Map<String, String>.toDate(key: String) = this[key]!!.toDate()
+    internal fun Element.toDate() = this.text().toDate()
+    internal fun String.toDate() = LocalDate.parse(this, DateFormat.DMY)
+
+    internal fun Map<String, String>.toLong(key: String): Long =
         NuFormat.parseLong(this[key]!!)
 
-    internal fun Map<String, String>.asMoney(key: String): Money =
-        Money.parse(this[key]!!.removeSuffix(" USD").replace(",", ""))
+    internal fun Element.toLong() = this.text().toLong()
+    internal fun String.toLong() = NuFormat.parseLong(this)
+
+    internal fun Map<String, String>.toMoney(key: String): Money = this[key]!!.toMoney()
+    internal fun Element.toMoney() = this.text().toMoney()
+    internal fun String.toMoney() = Money.parse(this.removeSuffix(" USD").replace(",", ""))
 
 
     internal fun parseReleaseTable(
@@ -295,5 +285,56 @@ object StatementParser {
         return it.bufferedReader().use {
             rtAdapter.fromJson(it.readText())!!
         }
+    }
+
+    data class EsppData(
+        val offeringDate: LocalDate,
+        val offeringDateFMV: Money,
+        val purchaseDate: LocalDate,
+        val purchaseDateFMV: Money,
+        val purchasePricePerShare: Money,
+        /**
+         * Any extra contribution over [totalPurchasePrice] will go to [cashRefunded]
+         */
+        val totalContributions: Money,
+        val quantity: Long,
+        /**
+         * Use this for cost basis,
+         */
+        val totalPurchasePrice: Money,
+        val totalPurchaseDateFMV: Money,
+        /**
+         * [totalPurchaseDateFMV] - [totalPurchasePrice]
+         */
+        val purchaseDateGain: Money,
+        val cashRefunded: Money,
+    )
+
+    fun parseEspp(htmlFile: File): List<EsppData> {
+        val doc = Jsoup.parse(htmlFile)
+        val tags = doc.getElementsByTag("table")
+        // WARNING - ONLY PROCESSING THE PURCHASE DATA
+        val purchaseRows = tags[0].getElementsByTag("tr")
+        // throw away the first three elements dedicated to the headers.
+        val elements = purchaseRows.next().next().next()
+        elements.removeLast()
+
+        val res = elements.map { element ->
+            val rowData = element.getElementsByTag("td")
+            EsppData(
+                offeringDate = rowData[0].toDate(),
+                offeringDateFMV = rowData[1].toMoney(),
+                purchaseDate = rowData[2].toDate(),
+                purchaseDateFMV = rowData[3].toMoney(),
+                purchasePricePerShare = rowData[4].toMoney(),
+                totalContributions = rowData[5].toMoney(),
+                quantity = rowData[6].toLong(),
+                totalPurchasePrice = rowData[7].toMoney(),
+                totalPurchaseDateFMV = rowData[8].toMoney(),
+                purchaseDateGain = rowData[8].toMoney(),
+                cashRefunded = rowData[10].toMoney(),
+            )
+        }
+        return res
     }
 }
