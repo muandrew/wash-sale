@@ -10,7 +10,6 @@ import com.muandrew.stock.model.Transaction.ReleaseTransaction
 import com.muandrew.stock.model.Transaction.SaleTransaction
 import com.muandrew.stock.time.NuFormat
 import com.muandrew.stock.world.MoshiExt.addStockAdapters
-import com.muandrew.stock.world.World
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -52,9 +51,10 @@ object HtmlCli {
         listFiles.forEach { htmlFile ->
             val baseFilePath = htmlFile.absolutePath.removeSuffix(".html")
             val preferredLot = File("$baseFilePath.preflot.json")
+            val currentFileNoSuffix = htmlFile.name.removeSuffix(".html")
             val saleData = fromFolder.listFiles()!!.filter {
                 it.name.endsWith(".json")
-                it.name.startsWith("${htmlFile.name.removeSuffix(".html")}.sale")
+                it.name.startsWith("$currentFileNoSuffix.sale")
             }
             val rtMap = mutableMapOf<String, RealtimeTransaction>()
             saleData.map { moshi.readRealtimeTransaction(it) }.forEach {
@@ -117,8 +117,21 @@ object HtmlCli {
             }
             transactions.addAll(releaseTransactions)
 
+            // check for missing data
+            val missingData = statementData.partialWithdrawData.filter { partialWithdrawData ->
+                rtMap[partialWithdrawData.referenceNumber] == null
+            }
+            if (missingData.isNotEmpty()) {
+                println("missing data for ${htmlFile.name}")
+                missingData.forEach {
+                    println("${currentFileNoSuffix}.sale.${it.settlementDate}.${it.referenceNumber}.json")
+                }
+                throw IllegalStateException("missing data")
+            }
+
             statementData.partialWithdrawData.forEach { partialWithdrawData ->
-                val realtimeTransaction = rtMap[partialWithdrawData.referenceNumber]!!
+                val realtimeTransaction = rtMap[partialWithdrawData.referenceNumber]
+                    ?: throw IllegalStateException("couldn't find mapping for on date ${partialWithdrawData.settlementDate} ref number ${partialWithdrawData.referenceNumber} with shares ${partialWithdrawData.sharesSold}")
                 val lotsSold = mutableListOf<RealtimeTransaction.CostBasis.TermedBasis.Lot>()
                 realtimeTransaction.costBasis.longTerm?.rows?.let { lot ->
                     lotsSold.addAll(lot)

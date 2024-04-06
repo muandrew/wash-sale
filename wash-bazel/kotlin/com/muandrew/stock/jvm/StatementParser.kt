@@ -27,9 +27,16 @@ object StatementParser {
         preferredLotData: PreferredLotData? = null
     ): StatementData {
         val rawData = parseStatementRaw(htmlFile)
-        val transactions = rawData.release
+        val realTransactionResults = rawData.release
             .map { it.asRealTransaction(preferredLotData) }
-            .sortWithDateAndLot(preferredLotData)
+        val missingInfo = realTransactionResults.filter { it.preferredLot == null }
+        if (missingInfo.isNotEmpty()) {
+            missingInfo.forEach {
+                println("disbursed ${it.date} ${it.disbursed} grant ${it.grantDate}")
+            }
+            throw IllegalStateException("need lot data")
+        }
+        val transactions = realTransactionResults.sortWithDateAndLot(preferredLotData)
         return StatementData(
             releaseTransactions = transactions,
             partialWithdrawData = rawData.withdraw.map { it.toPartialWithdarawData() }
@@ -53,6 +60,9 @@ object StatementParser {
         }
     }
 
+    /**
+     * true if missing preferred lot
+     */
     internal fun Map<String, String>.asRealTransaction(
         preferredLotData: PreferredLotData? = null
     ): RealTransaction {
@@ -63,12 +73,13 @@ object StatementParser {
         val ref = this[KEY_REFERENCE_NUMBER]!!
         val grantDate = toDate("Grant Date")
         val disbursedShares = disbursedShares()
+        val preferredLot = preferredLotData?.chooseBasedOnDisbursement(date, disbursedShares)
         return when (releaseMethod()) {
             ReleaseMethod.WITHHELD -> RealTransaction.ReleaseWithheld(
                 referenceNumber = ref,
                 date = date,
                 grantDate = grantDate,
-                preferredLot = preferredLotData?.chooseBasedOnDisbursement(date, disbursedShares),
+                preferredLot = preferredLot,
                 gross = LotValue(
                     shares = releasedShares(),
                     value = grossValue,
@@ -88,7 +99,7 @@ object StatementParser {
                 referenceNumber = ref,
                 date = date,
                 grantDate = grantDate,
-                preferredLot = preferredLotData?.chooseBasedOnDisbursement(date, disbursedShares),
+                preferredLot = preferredLot,
                 gross = LotValue(
                     shares = releasedShares(),
                     value = grossValue,
