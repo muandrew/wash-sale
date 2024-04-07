@@ -121,9 +121,6 @@
           },
           "gross": {
             "value": 900
-          },
-          "disallowedValue": {
-            "value": -100
           }
         }
       ],

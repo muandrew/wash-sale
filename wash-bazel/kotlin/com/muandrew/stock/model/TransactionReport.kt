@@ -43,7 +43,6 @@ sealed interface TransactionReport {
             val shares: Long,
             val basis: Money,
             val gross: Money,
-            val disallowedValue: Money,
         ){
             @Json(ignore = true)
             val net get() = gross - basis

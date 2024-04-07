@@ -80,14 +80,12 @@ class World(val ignoreWash: Boolean = false) {
                         allowedRecords.add(saleRecord)
                     } else {
                         // need to look for wash sale
-                        var sharesToWash = LotValue(shares, net)
                         var basisFromLot = fromLot
                         var grossFromSale = fromSale
-                        while (sharesToWash.shares > 0) {
+                        while (grossFromSale.shares > 0) {
                             // check 30 days before and 30 days after
                             val washTarget = lots.findLotToWashTo(lotToSellFrom, transaction.date) ?: break
-                            val numberOfSharesToTransfer = minShares(sharesToWash, washTarget.current)
-                            val (sharesToWashSplit, sharesToWashRem) = sharesToWash.splitOut(numberOfSharesToTransfer)
+                            val numberOfSharesToTransfer = minShares(grossFromSale, washTarget.current)
                             val (washTargetSplit, washTargetRem) = washTarget.current.splitOut(numberOfSharesToTransfer)
                             val (basisFromLotSplit, basisFromLotRem) = basisFromLot.splitOut(numberOfSharesToTransfer)
                             val (grossFromSaleSplit, grossFromSaleRem) = grossFromSale.splitOut(numberOfSharesToTransfer)
@@ -96,13 +94,10 @@ class World(val ignoreWash: Boolean = false) {
                             washTarget.updateLotValue(transaction.ref, washTargetRem)
 
                             val newNet = grossFromSaleSplit.value - basisFromLotSplit.value
-                            //TODO fix this?
-                            //assertEqual(newNet, sharesToWashSplit.value)
-
                             // using subtraction since the value is negative from loss.
                             val newLot = LotValue(
                                 numberOfSharesToTransfer,
-                                washTargetSplit.value - sharesToWashSplit.value
+                                washTargetSplit.value - newNet
                             )
                             val washNumber = washTarget.nextWashNumber++
                             val washLot = Lot(
@@ -120,8 +115,6 @@ class World(val ignoreWash: Boolean = false) {
                             )
                             addNewWashSaleLot(washLot)
 
-                            sharesToWash = sharesToWashRem
-
                             val washRecord = TransactionReport.SaleReport.WashRecord(
                                 soldLotId = lotToSellFrom.runId,
                                 soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
@@ -130,15 +123,12 @@ class World(val ignoreWash: Boolean = false) {
                                 shares = assertEqual(washLot.current.shares, basisFromLotSplit.shares),
                                 basis = basisFromLotSplit.value,
                                 gross = grossFromSaleSplit.value,
-                                disallowedValue = sharesToWashSplit.value,
                             )
-                            //TODO fix this?
-                            //assertEqual(washRecord.net, washRecord.disallowedValue)
                             washedRecords.add(washRecord)
                         }
                         // check for remaining shares
-                        if (sharesToWash.shares > 0) {
-                            assertEqual(basisFromLot.shares, sharesToWash.shares)
+                        if (grossFromSale.shares > 0) {
+                            assertEqual(basisFromLot.shares, grossFromSale.shares)
                             val saleRecord = TransactionReport.SaleReport.SaleRecord(
                                 soldLotId = lotToSellFrom.runId,
                                 soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
@@ -161,7 +151,7 @@ class World(val ignoreWash: Boolean = false) {
                         shares = transaction.shares,
                         saleValue = transaction.value,
                         basisBeforeAdjustment = basisBeforeAdjustment,
-                        disallowedValue = Money(washedRecords.sumOf { it.disallowedValue.value }),
+                        disallowedValue = Money(washedRecords.sumOf { it.net.value }),
                         disallowedTransfer = washedRecords,
                         allowedTransfer = allowedRecords,
                     )
@@ -237,7 +227,7 @@ fun List<Lot>.filterByReference(id: LotReference): List<Lot> {
 data class BPD(
     var shares: Long = 0,
     var basis: Money = Money.ZERO,
-    var proceeds: Money = Money.ZERO,
+    var gross: Money = Money.ZERO,
     var disallowed: Money = Money.ZERO,
 )
 
@@ -261,7 +251,7 @@ fun List<TransactionReport>.generate1099Report(filePath: String) {
                 }
                 bpd.shares += it.shares
                 bpd.basis += it.basis
-                bpd.proceeds += it.gross
+                bpd.gross += it.gross
                 bpd.disallowed += it.net
             }
             element.allowedTransfer.forEach {
@@ -272,14 +262,24 @@ fun List<TransactionReport>.generate1099Report(filePath: String) {
                 }
                 bpd.shares += it.shares
                 bpd.basis += it.basis
-                bpd.proceeds += it.gross
+                bpd.gross += it.gross
             }
             report
         }
     csvWriter {
         this.delimiter = '\t'
     }.open(targetFileName = filePath, append = false) {
-        this.writeRow("long/short", "date", "reference", "shares", "basis", "proceeds", "net", "disallowed", "final")
+        this.writeRow(
+            "long/short",
+            "date",
+            "reference",
+            "shares",
+            "gross",
+            "basis",
+            "gross-basis",
+            "disallowed as positive",
+            "final"
+        )
         interestingReports.values.sortedBy { it.ref }.forEach {
             maybeWriteRow("long", it.ref, it.longTerm)
             maybeWriteRow("short", it.ref, it.shortTerm)
@@ -291,16 +291,16 @@ fun ICsvFileWriter.maybeWriteRow(longShort: String, ref: TransactionReference, d
     if (data.shares == 0L) {
         return
     }
-    val net = data.proceeds - data.basis
+    val net = data.gross - data.basis
     writeRow(
         longShort,
         ref.date,
         ref.referenceNumber,
         data.shares,
+        data.gross,
         data.basis,
-        data.proceeds,
         net,
-        data.disallowed,
+        data.disallowed * -1,
         net - data.disallowed,
     )
 }

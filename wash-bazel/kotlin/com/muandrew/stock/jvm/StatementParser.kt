@@ -185,11 +185,8 @@ object StatementParser {
 
     private fun Map<String, String>.releaseMethod(): ReleaseMethod {
         val method = RELEASE_METHOD_MAP[this[KEY_RELEASE_METHOD]]
-        assert(method != null) {
-            "unknown release method '${this[KEY_RELEASE_METHOD]}'"
-        }
-        //TODO assert non null with contract
-        return method!!
+            ?: throw IllegalArgumentException("unknown release method '${this[KEY_RELEASE_METHOD]}'")
+        return method
     }
 
     private fun Map<String, String>.releaseDate() =
