@@ -2,7 +2,7 @@ package com.muandrew.stock.jvm
 
 import com.muandrew.money.Money
 import com.muandrew.stock.jvm.StatementParser.toDate
-import com.muandrew.stock.jvm.StatementParser.toLong
+import com.muandrew.stock.jvm.StatementParser.parseToLong
 import com.muandrew.stock.jvm.StatementParser.toMoney
 import java.time.LocalDate
 
@@ -18,7 +18,7 @@ fun Map<String, String>.toPartialWithdarawData(): PartialWithdarawData {
     return PartialWithdarawData(
         referenceNumber = this["Reference Number"]!!,
         settlementDate = this.toDate("Settlement Date"),
-        sharesSold = this.toLong("Shares Sold"),
+        sharesSold = this.parseToLong("Shares Sold"),
         netProceeds = this.toMoney("Net Proceeds")
     )
 }

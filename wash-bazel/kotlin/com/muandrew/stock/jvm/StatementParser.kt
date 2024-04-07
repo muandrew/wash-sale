@@ -1,8 +1,7 @@
 package com.muandrew.stock.jvm
 
 import com.muandrew.money.Money
-import com.muandrew.stock.jvm.StatementParser.toDate
-import com.muandrew.stock.jvm.StatementParser.toMoney
+import com.muandrew.stock.jvm.StatementParser.parseToInt
 import com.muandrew.stock.model.LotValue
 import com.muandrew.stock.model.RealTransaction
 import com.muandrew.stock.time.DateFormat
@@ -11,7 +10,6 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapter
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
-import org.jsoup.select.Elements
 import java.io.File
 import java.time.LocalDate
 
@@ -89,7 +87,7 @@ object StatementParser {
                     value = grossValue - soldWithheldValue,
                 ),
                 withheld = LotValue(
-                    shares = toLong("Number of Restricted Awards Withheld"),
+                    shares = parseToLong("Number of Restricted Awards Withheld"),
                     value = soldWithheldValue,
                 ),
                 releasePrice = releasePrice,
@@ -109,7 +107,7 @@ object StatementParser {
                     value = grossValue,
                 ),
                 sold = LotValue(
-                    shares = toLong("Number of Restricted Awards Sold"),
+                    shares = parseToLong("Number of Restricted Awards Sold"),
                     value = soldWithheldValue,
                 ),
                 releasePrice = releasePrice,
@@ -198,13 +196,13 @@ object StatementParser {
         toDate("Release Date")
 
     private fun Map<String, String>.releasedShares() =
-        toLong("Number of Restricted Awards Released")
+        parseToLong("Number of Restricted Awards Released")
 
     private fun Map<String, String>.grossValue() =
         toMoney("Gross Release Value")
 
     private fun Map<String, String>.disbursedShares() =
-        toLong("Number of Restricted Awards Disbursed")
+        parseToLong("Number of Restricted Awards Disbursed")
 
     private fun Map<String, String>.soldOrWithheldValue() =
         toMoney("Sold/Withheld Total Value")
@@ -219,11 +217,12 @@ object StatementParser {
     internal fun Element.toDate() = this.text().toDate()
     internal fun String.toDate() = LocalDate.parse(this, DateFormat.DMY)
 
-    internal fun Map<String, String>.toLong(key: String): Long =
+    internal fun Map<String, String>.parseToLong(key: String): Long =
         NuFormat.parseLong(this[key]!!)
+    internal fun Element.parseToLong() = this.text().parseToLong()
+    internal fun String.parseToLong() = NuFormat.parseLong(this)
 
-    internal fun Element.toLong() = this.text().toLong()
-    internal fun String.toLong() = NuFormat.parseLong(this)
+    internal fun String.parseToInt() = NuFormat.parseInt(this)
 
     internal fun Map<String, String>.toMoney(key: String): Money = this[key]!!.toMoney()
     internal fun Element.toMoney() = this.text().toMoney()
@@ -339,7 +338,7 @@ object StatementParser {
                 purchaseDateFMV = rowData[3].toMoney(),
                 purchasePricePerShare = rowData[4].toMoney(),
                 totalContributions = rowData[5].toMoney(),
-                quantity = rowData[6].toLong(),
+                quantity = rowData[6].parseToLong(),
                 totalPurchasePrice = rowData[7].toMoney(),
                 totalPurchaseDateFMV = rowData[8].toMoney(),
                 purchaseDateGain = rowData[8].toMoney(),

@@ -1,10 +1,7 @@
 package com.muandrew.stock.jvm.cli
 
-import com.muandrew.stock.jvm.PreferredLotDataRaw
-import com.muandrew.stock.jvm.RealtimeTransaction
-import com.muandrew.stock.jvm.StatementParser
+import com.muandrew.stock.jvm.*
 import com.muandrew.stock.jvm.StatementParser.readRealtimeTransaction
-import com.muandrew.stock.jvm.toPreferredLotData
 import com.muandrew.stock.model.*
 import com.muandrew.stock.model.Transaction.ReleaseTransaction
 import com.muandrew.stock.model.Transaction.SaleTransaction
@@ -50,7 +47,8 @@ object HtmlCli {
 
         listFiles.forEach { htmlFile ->
             val baseFilePath = htmlFile.absolutePath.removeSuffix(".html")
-            val preferredLot = File("$baseFilePath.preflot.json")
+            val preferredLotJson = File("$baseFilePath.preflot.json")
+            val preferredLotTsv = File("$baseFilePath.preflot.tsv")
             val currentFileNoSuffix = htmlFile.name.removeSuffix(".html")
             val saleData = fromFolder.listFiles()!!.filter {
                 it.name.endsWith(".json")
@@ -60,15 +58,16 @@ object HtmlCli {
             saleData.map { moshi.readRealtimeTransaction(it) }.forEach {
                 rtMap.put(it.listItem.referenceNumber, it)
             }
-            val preferredLotDataRaw: PreferredLotDataRaw? = if (preferredLot.exists()) {
-                preferredLot.bufferedReader().use {
-                    moshi.adapter<PreferredLotDataRaw>().fromJson(it.readText())
-                }
-            } else null
 
+            val preferredLotData = parsePreferredLotData(
+                moshi,
+                baseFilePath,
+                preferredLotTsv,
+                preferredLotJson,
+            )
             val statementData = StatementParser.parseStatementReport(
                 htmlFile,
-                preferredLotDataRaw?.toPreferredLotData()
+                preferredLotData
             )
 
             val transactions = mutableListOf<Transaction>()

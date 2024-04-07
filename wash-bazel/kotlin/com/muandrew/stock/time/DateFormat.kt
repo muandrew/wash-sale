@@ -9,7 +9,7 @@ object DateFormat {
     //01-Jan-2000
     val DMY = DateTimeFormatter.ofPattern("dd-MMM-yyyy")
 
-    fun parseDMY(input: String) : LocalDate {
+    fun parseDMY(input: String): LocalDate {
         return LocalDate.parse(input, DMY)
     }
 }
@@ -18,4 +18,6 @@ object NuFormat {
     private val nf = NumberFormat.getNumberInstance(Locale.US)
 
     fun parseLong(input: String): Long = nf.parse(input).toLong()
+
+    fun parseInt(input: String): Int = nf.parse(input).toInt()
 }
