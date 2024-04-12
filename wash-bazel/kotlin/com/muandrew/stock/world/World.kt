@@ -73,6 +73,7 @@ class World(val ignoreWash: Boolean = false) {
                         val saleRecord = TransactionReport.SaleReport.SaleRecord(
                             soldLotId = lotToSellFrom.runId,
                             soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
+                            soldLotDate = lotToSellFrom.date,
                             shares = assertEqual(fromLot.shares, fromSale.shares),
                             basis = fromLot.value,
                             gross = fromSale.value,
@@ -118,6 +119,7 @@ class World(val ignoreWash: Boolean = false) {
                             val washRecord = TransactionReport.SaleReport.WashRecord(
                                 soldLotId = lotToSellFrom.runId,
                                 soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
+                                soldLotDate = lotToSellFrom.date,
                                 transferredLotId = washTarget.runId,
                                 resultingId = washLot.runId,
                                 shares = assertEqual(washLot.current.shares, basisFromLotSplit.shares),
@@ -132,6 +134,7 @@ class World(val ignoreWash: Boolean = false) {
                             val saleRecord = TransactionReport.SaleReport.SaleRecord(
                                 soldLotId = lotToSellFrom.runId,
                                 soldLotDateForSalesCalculation = lotToSellFrom.dateForSales,
+                                soldLotDate = lotToSellFrom.date,
                                 shares = assertEqual(basisFromLot.shares, grossFromSale.shares),
                                 basis = basisFromLot.value,
                                 gross = grossFromSale.value,
@@ -229,6 +232,7 @@ data class BPD(
     var basis: Money = Money.ZERO,
     var gross: Money = Money.ZERO,
     var disallowed: Money = Money.ZERO,
+    var saleDates: MutableSet<LocalDate> = mutableSetOf(),
 )
 
 data class SaleReport1099(
@@ -249,6 +253,7 @@ fun List<TransactionReport>.generate1099Report(filePath: String) {
                 } else {
                     report.shortTerm
                 }
+                bpd.saleDates.add(it.soldLotDate)
                 bpd.shares += it.shares
                 bpd.basis += it.basis
                 bpd.gross += it.gross
@@ -260,6 +265,7 @@ fun List<TransactionReport>.generate1099Report(filePath: String) {
                 } else {
                     report.shortTerm
                 }
+                bpd.saleDates.add(it.soldLotDate)
                 bpd.shares += it.shares
                 bpd.basis += it.basis
                 bpd.gross += it.gross
@@ -271,7 +277,8 @@ fun List<TransactionReport>.generate1099Report(filePath: String) {
     }.open(targetFileName = filePath, append = false) {
         this.writeRow(
             "long/short",
-            "date",
+            "sale-date",
+            "acquired-date",
             "reference",
             "shares",
             "gross",
@@ -295,6 +302,13 @@ fun ICsvFileWriter.maybeWriteRow(longShort: String, ref: TransactionReference, d
     writeRow(
         longShort,
         ref.date,
+        if (data.saleDates.isEmpty()) {
+            throw IllegalStateException("should have sales data")
+        } else if (data.saleDates.size == 1) {
+            data.saleDates.toList()[0].toString()
+        } else {
+            "various"
+        },
         ref.referenceNumber,
         data.shares,
         data.gross,

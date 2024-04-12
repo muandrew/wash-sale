@@ -8,18 +8,11 @@ sealed interface TransactionReport {
 
     val ref: TransactionReference
 
-    fun print()
-
     data class ReceivedReport(
         override val ref: TransactionReference,
         val shares: Long,
         val costBasis: Money,
-    ) : TransactionReport {
-        override fun print() {
-            val valuePerShareWithRem = costBasis / shares
-            println("${ref.date}: rcv $shares share(s) totalling ${costBasis}. [${valuePerShareWithRem.res} per share]")
-        }
-    }
+    ) : TransactionReport
 
     data class SaleReport(
         override val ref: TransactionReference,
@@ -30,14 +23,11 @@ sealed interface TransactionReport {
         val disallowedTransfer: List<WashRecord>,
         val allowedTransfer: List<SaleRecord>,
     ) : TransactionReport {
-        override fun print() {
-            val net = saleValue - basisBeforeAdjustment
-            println("${ref.date}: sld $shares share(s) for $saleValue against cost basis of $basisBeforeAdjustment. [net: $net]")
-        }
 
         data class WashRecord(
             val soldLotId: String,
             val soldLotDateForSalesCalculation: LocalDate,
+            val soldLotDate: LocalDate,
             val transferredLotId: String,
             val resultingId: String,
             val shares: Long,
@@ -51,6 +41,7 @@ sealed interface TransactionReport {
         data class SaleRecord(
             val soldLotId: String,
             val soldLotDateForSalesCalculation: LocalDate,
+            val soldLotDate: LocalDate,
             val shares: Long,
             val basis: Money,
             val gross: Money,
