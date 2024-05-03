@@ -71,7 +71,7 @@ fun SaleReportUi(report: TransactionReport.SaleReport) {
             items(report.disallowedTransfer) {
                 Column(modifier = Modifier.border(1.dp, Color.Black)) {
                     Text("shares: ${it.shares}, basis: ${it.basis}, gross ${it.gross} soldLotId: ${it.soldLotId}")
-                    Text("disallowedValue: ${it.disallowedValue}, net: ${it.net}, toLot: ${it.transferredLotId}, res: ${it.resultingId}")
+                    Text("disallowedValue: ${it.net}, net: ${it.net}, toLot: ${it.transferredLotId}, res: ${it.resultingId}")
                 }
             }
         }

@@ -29,7 +29,7 @@ import com.muandrew.stock.world.filterByReference
 
 class RootNode(
     nodeContext: NodeContext,
-    private val world: World = Wash.create(),
+    public val world: World,
     private val backStack: BackStack<NavTarget> = BackStack(
         model = BackStackModel(
             initialTarget = NavTarget.Dummy,

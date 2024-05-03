@@ -8,12 +8,12 @@ data class TransactionReference(
 ) : Comparable<TransactionReference> {
 
     override operator fun compareTo(other: TransactionReference): Int {
-        val d = this.date.compareTo(date)
+        val d = this.date.compareTo(other.date)
         return if (d == 0) {
             if (referenceNumber == null && other.referenceNumber == null) 0
-            else if (referenceNumber == null && other.referenceNumber != null) 1
-            else if (referenceNumber != null && other.referenceNumber == null) -1
-            else referenceNumber!!.compareTo(other.referenceNumber!!)
+            else if (referenceNumber == null) 1
+            else if (other.referenceNumber == null) -1
+            else referenceNumber.compareTo(other.referenceNumber)
         } else d
     }
 }

@@ -151,7 +151,7 @@ object HtmlCli {
                     lv = rem
                     transactions.add(
                         SaleTransaction(
-                            date = partialWithdrawData.settlementDate,
+                            date = realtimeTransaction.listItem.transactionDate,
                             value = split.value,
                             shares = q,
                             lotId = LotReference(lot.purchaseDate, lot.lot),

@@ -8,6 +8,7 @@ data class RealtimeTransaction(
 ) {
     data class ListItem(
         val referenceNumber: String,
+        val transactionDate: LocalDate,
     )
     data class CostBasis(
         val shortTerm: TermedBasis?,

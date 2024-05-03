@@ -16,7 +16,7 @@ import com.muandrew.stock.model.TransactionReport
 @Composable
 fun App() {
     MaterialTheme {
-        val w = remember { Wash.create() }
+        val w = remember { Wash.create(TODO()) }
         var state by remember { mutableStateOf<RootState>(RootState.Home) }
         when (val currentState = state) {
             is RootState.Home -> {

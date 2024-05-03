@@ -16,6 +16,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.bumble.appyx.navigation.integration.DesktopNodeHost
 import com.muandrew.stock.App
 import com.muandrew.stock.RootNode
+import com.muandrew.stock.Wash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.lang.System.getenv
 
 sealed class Events {
     data object OnBackPressed : Events()
@@ -49,7 +51,10 @@ fun main() = application {
                         if (it is Events.OnBackPressed) Unit else null
                     }
                 ) {
-                    RootNode(nodeContext = it)
+                    RootNode(
+                        nodeContext = it,
+                        world = Wash.create(getenv("WASH_DIR")),
+                    )
                 }
         }
     }

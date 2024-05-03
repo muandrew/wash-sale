@@ -5,10 +5,8 @@ import com.muandrew.stock.cli.StockCli.sortAndProcessTransaction
 import com.muandrew.stock.world.World
 
 object Wash {
-    fun create(): World {
-        val transactions = StockCli.readTransactions(
-            ""
-        )
+    fun create(inputDirectory: String): World {
+        val transactions = StockCli.readTransactions(inputDirectory)
         val w = World()
         w.sortAndProcessTransaction(transactions)
         return w
