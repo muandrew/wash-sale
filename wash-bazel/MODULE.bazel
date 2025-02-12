@@ -19,6 +19,7 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     name = "maven",
     artifacts = [
+        "com.apollographql.apollo3:apollo-runtime:3.8.4",
         "com.github.doyaaaaaken:kotlin-csv-jvm:1.9.3",
         "com.squareup.moshi:moshi:1.15.0",
         "com.squareup.moshi:moshi-adapters:1.15.0",
