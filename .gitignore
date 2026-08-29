@@ -16,3 +16,7 @@ Cargo.lock
 
 # mac things
 .DS_Store
+
+# Gemini docs / notes
+GEMINI.md
+

@@ -26,3 +26,4 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+include(":forecast")
