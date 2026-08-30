@@ -19,15 +19,16 @@ value class Money(val value: Long) {
 
     infix operator fun compareTo(other: Money): Int = this.value.compareTo(other.value)
 
-    fun toFormattedString(): String {
+    fun toFormattedString(includeCents: Boolean = true): String {
         val absVal = abs(value)
         val dollars = absVal / 100
         val cents = absVal % 100
         val centsStr = if (cents < 10) "0$cents" else "$cents"
-        return if (value < 0) {
-            "($$dollars.$centsStr)"
+        val dollarsStr = formatNumberWithCommas(dollars)
+        return if (includeCents) {
+            if (value < 0) "($$dollarsStr.$centsStr)" else "$$dollarsStr.$centsStr"
         } else {
-            "$$dollars.$centsStr"
+            if (value < 0) "($$dollarsStr)" else "$$dollarsStr"
         }
     }
 
@@ -42,6 +43,24 @@ value class Money(val value: Long) {
 
         fun min(lhs: Money, rhs: Money): Money = Money(kotlin.math.min(lhs.value, rhs.value))
         fun max(lhs: Money, rhs: Money): Money = Money(kotlin.math.max(lhs.value, rhs.value))
+
+        fun formatNumberWithCommas(number: Long): String {
+            val str = number.toString()
+            val len = str.length
+            if (len <= 3) return str
+            val sb = StringBuilder()
+            val remainder = len % 3
+            if (remainder > 0) {
+                sb.append(str.substring(0, remainder))
+            }
+            for (i in remainder until len step 3) {
+                if (sb.isNotEmpty()) {
+                    sb.append(',')
+                }
+                sb.append(str.substring(i, i + 3))
+            }
+            return sb.toString()
+        }
     }
 }
 
