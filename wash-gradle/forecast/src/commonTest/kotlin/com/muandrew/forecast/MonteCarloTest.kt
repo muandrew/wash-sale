@@ -139,6 +139,239 @@ class MonteCarloTest {
     }
 
     @Test
+    fun testCashflowWaterfallPriorityOrder() {
+        val parent = com.muandrew.forecast.model.Entity(id = "p1", name = "Alex", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 70)
+        val child = com.muandrew.forecast.model.Entity(id = "c1", name = "Emma", birthYear = 2028, isPrimary = false)
+
+        // Limited income of $50,000
+        val income = com.muandrew.forecast.model.IncomeStream(
+            id = "inc1",
+            name = "Base Income",
+            entityId = parent.id,
+            initialAnnualAmount = Money.ofDollars(50_000),
+            timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
+            startYear = 2026,
+            endYear = 2030,
+            yearlyPayBumpRate = 0.0
+        )
+
+        // Debt of $20,000 (Priority 1)
+        val debt = com.muandrew.forecast.model.ExpenseItem(
+            id = "debt1",
+            name = "High Interest Loan",
+            category = ExpenseCategory.HOUSING_MORTGAGE,
+            annualAmount = Money.ofDollars(20_000),
+            entityId = parent.id,
+            timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
+            startYear = 2026,
+            endYear = 2030,
+            expenseType = com.muandrew.forecast.model.ExpenseType.COMPOUNDING_DEBT
+        )
+
+        // Living Essentials of $25,000 (Priority 2)
+        val living = com.muandrew.forecast.model.ExpenseItem(
+            id = "living1",
+            name = "Essentials",
+            category = ExpenseCategory.LIVING_ESSENTIALS,
+            annualAmount = Money.ofDollars(25_000),
+            entityId = parent.id,
+            timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
+            startYear = 2026,
+            endYear = 2030,
+            expenseType = com.muandrew.forecast.model.ExpenseType.RECURRING
+        )
+
+        // Child 529 Plan target contribution of $10,000 (Priority 3) -> Income remaining is $5,000, so $5,000 is funded and $5,000 is shortfall!
+        val pool529 = AssetPool(
+            id = "pool529",
+            name = "Emma 529",
+            category = AssetCategory.TAXABLE_BROKERAGE,
+            currentBalance = Money.ZERO,
+            entityId = child.id,
+            annualContribution = Money.ofDollars(10_000),
+            contributionEndAge = 18
+        )
+
+        val household = Household(
+            id = "h1",
+            name = "Test Family",
+            baseYear = 2026,
+            entities = listOf(parent, child),
+            incomeStreams = listOf(income),
+            expenses = listOf(debt, living),
+            assetPools = listOf(pool529)
+        )
+
+        val timeline = MultiAssetEngine.simulateHousehold(household, inflationRate = 0.0)
+        val year0 = timeline.first()
+
+        assertEquals(3, year0.itemFundings.size)
+
+        // 1. Debt: fully funded ($20,000)
+        val debtFunding = year0.itemFundings.first { it.id == "debt1" }
+        assertEquals(Money.ofDollars(20_000), debtFunding.actualAmount)
+        assertEquals(com.muandrew.forecast.model.FundingStatus.FULLY_FUNDED, debtFunding.status)
+
+        // 2. Living: fully funded ($25,000)
+        val livingFunding = year0.itemFundings.first { it.id == "living1" }
+        assertEquals(Money.ofDollars(25_000), livingFunding.actualAmount)
+        assertEquals(com.muandrew.forecast.model.FundingStatus.FULLY_FUNDED, livingFunding.status)
+
+        // 3. Child 529: partially funded ($5,000 / $10,000 target, shortfall $5,000)
+        val poolFunding = year0.itemFundings.first { it.id == "pool529" }
+        assertEquals(Money.ofDollars(5_000), poolFunding.actualAmount)
+        assertEquals(Money.ofDollars(5_000), poolFunding.shortfall)
+        assertEquals(com.muandrew.forecast.model.FundingStatus.PARTIALLY_FUNDED, poolFunding.status)
+        assertTrue(poolFunding.status.isProblem) // Flagged for red highlight!
+    }
+
+    @Test
+    fun testMultiPhaseAssetPoolContributions() {
+        val person = com.muandrew.forecast.model.Entity(id = "p1", name = "Alex", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 70)
+
+        // Phased pool: $1,000/yr for ages 20-30, $2,000/yr for ages 31-40
+        val pool = AssetPool(
+            id = "pool_phased",
+            name = "Tiered Brokerage",
+            category = AssetCategory.TAXABLE_BROKERAGE,
+            currentBalance = Money.ZERO,
+            entityId = person.id,
+            annualContribution = Money.ZERO,
+            phases = listOf(
+                com.muandrew.forecast.model.SchedulePhase(
+                    id = "phase1",
+                    name = "Early Career",
+                    timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
+                    startAge = 20,
+                    endAge = 30,
+                    amount = Money.ofDollars(1_000)
+                ),
+                com.muandrew.forecast.model.SchedulePhase(
+                    id = "phase2",
+                    name = "Peak Career",
+                    timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
+                    startAge = 31,
+                    endAge = 40,
+                    amount = Money.ofDollars(2_000)
+                )
+            )
+        )
+
+        // Age 30 (Year 2026): $1,000
+        assertEquals(Money.ofDollars(1_000), pool.targetContributionInYear(2026, person))
+
+        // Age 31 (Year 2027): $2,000
+        assertEquals(Money.ofDollars(2_000), pool.targetContributionInYear(2027, person))
+
+        // Age 35 (Year 2031): $2,000
+        assertEquals(Money.ofDollars(2_000), pool.targetContributionInYear(2031, person))
+
+        // Age 50 (Year 2046, past endAge): $0
+        assertEquals(Money.ZERO, pool.targetContributionInYear(2046, person))
+    }
+
+    @Test
+    fun testAssetPoolWithdrawals() {
+        val child = com.muandrew.forecast.model.Entity(id = "c1", name = "Emma", birthYear = 2028, isPrimary = false)
+
+        val pool529 = AssetPool(
+            id = "529",
+            name = "Emma 529",
+            category = AssetCategory.TAXABLE_BROKERAGE,
+            currentBalance = Money.ofDollars(10_000),
+            entityId = child.id,
+            annualContribution = Money.ofDollars(5_000),
+            phases = listOf(
+                com.muandrew.forecast.model.SchedulePhase(
+                    id = "save",
+                    name = "Ages 0-17 Contributions",
+                    timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
+                    startAge = 0,
+                    endAge = 17,
+                    amount = Money.ofDollars(5_000),
+                    isWithdrawal = false
+                ),
+                com.muandrew.forecast.model.SchedulePhase(
+                    id = "draw",
+                    name = "Ages 18-21 College Drawdown",
+                    timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
+                    startAge = 18,
+                    endAge = 21,
+                    amount = Money.ofDollars(20_000),
+                    isWithdrawal = true
+                )
+            )
+        )
+
+        // Age 10 (Year 2038): $5,000 contribution (green bar), $0 withdrawal
+        assertEquals(Money.ofDollars(5_000), pool529.targetContributionInYear(2038, child))
+        assertEquals(Money.ZERO, pool529.targetWithdrawalInYear(2038, child))
+
+        // Age 19 (Year 2047): $0 contribution, $20,000 withdrawal (red bar!)
+        assertEquals(Money.ZERO, pool529.targetContributionInYear(2047, child))
+        assertEquals(Money.ofDollars(20_000), pool529.targetWithdrawalInYear(2047, child))
+    }
+
+    @Test
+    fun testAssetPoolOverWithdrawalDeficit() {
+        val person = com.muandrew.forecast.model.Entity(id = "p1", name = "Test", birthYear = 1996, isPrimary = true)
+
+        // Starting with $10k, attempting to withdraw $30k
+        val smallPool = AssetPool(
+            id = "p_small",
+            name = "Small Brokerage",
+            category = AssetCategory.TAXABLE_BROKERAGE,
+            currentBalance = Money.ofDollars(10_000),
+            entityId = person.id,
+            phases = listOf(
+                com.muandrew.forecast.model.SchedulePhase(
+                    id = "draw",
+                    name = "Large Drawdown",
+                    timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
+                    startYear = 2026,
+                    endYear = 2028,
+                    amount = Money.ofDollars(30_000),
+                    isWithdrawal = true
+                )
+            )
+        )
+
+        var runningBalance = smallPool.currentBalance.value
+        val startYr = 2026
+        val yrPoints = (startYr..2028).map { yr ->
+            val contrib = smallPool.targetContributionInYear(yr, person)
+            val withdr = smallPool.targetWithdrawalInYear(yr, person)
+            val growth = if (runningBalance > 0L) (runningBalance * 0.05).toLong() else 0L
+
+            val netBeforeWithdrawal = runningBalance + growth + contrib.value
+            val isDeficit = withdr.value > 0L && netBeforeWithdrawal < withdr.value
+            val shortfallCents = if (isDeficit) withdr.value - netBeforeWithdrawal else 0L
+
+            runningBalance = maxOf(0L, netBeforeWithdrawal - withdr.value)
+
+            com.muandrew.forecast.ui.YearTrajectoryPoint(
+                calendarYear = yr,
+                age = person.ageInYear(yr),
+                balance = Money(runningBalance),
+                inflow = contrib,
+                outflow = withdr,
+                isDeficit = isDeficit || (runningBalance == 0L && withdr.value > 0L),
+                shortfall = Money(shortfallCents)
+            )
+        }
+
+        // Year 1 (2026): Net before = $10,500, Withdrawal = $30,000 -> Deficit is True, Shortfall = $19,500, Balance = $0
+        assertTrue(yrPoints[0].isDeficit)
+        assertEquals(Money.ZERO, yrPoints[0].balance)
+        assertEquals(Money.ofDollars(19_500), yrPoints[0].shortfall)
+
+        // Year 2 (2027): Net before = $0, Withdrawal = $30,000 -> Deficit is True, Shortfall = $30,000, Balance = $0
+        assertTrue(yrPoints[1].isDeficit)
+        assertEquals(Money.ZERO, yrPoints[1].balance)
+        assertEquals(Money.ofDollars(30_000), yrPoints[1].shortfall)
+    }
+
+    @Test
     fun testExpenseItemTypes() {
         // 1. Recurring Expense
         val recurring = com.muandrew.forecast.model.ExpenseItem(

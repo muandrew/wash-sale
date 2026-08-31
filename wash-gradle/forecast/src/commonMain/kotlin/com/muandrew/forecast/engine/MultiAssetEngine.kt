@@ -5,8 +5,12 @@ import com.muandrew.forecast.model.AssetPool
 import com.muandrew.forecast.model.ExpenseCategory
 import com.muandrew.forecast.model.ExpenseItem
 import com.muandrew.forecast.model.FinancialPlan
+import com.muandrew.forecast.model.FundingStatus
 import com.muandrew.forecast.model.Household
 import com.muandrew.forecast.model.Money
+import com.muandrew.forecast.model.PriorityItemType
+import com.muandrew.forecast.model.PriorityTargetType
+import com.muandrew.forecast.model.YearlyItemFunding
 import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.max
@@ -24,7 +28,9 @@ data class YearCategoryBreakdown(
     val totalNetWorth: Money,
     val totalIncome: Money,
     val totalExpenses: Money,
-    val netCashFlow: Money
+    val netCashFlow: Money,
+    val itemFundings: List<YearlyItemFunding> = emptyList(),
+    val unfundedCount: Int = itemFundings.count { it.status.isProblem }
 )
 
 data class HouseholdProjectionResult(
@@ -51,7 +57,7 @@ data class ConsolidatedPlanResult(
 object MultiAssetEngine {
 
     /**
-     * Deterministic simulation calculating exact category-by-category breakdown over time.
+     * Deterministic simulation calculating exact category-by-category breakdown and cashflow waterfall over time.
      */
     fun simulateHousehold(
         household: Household,
@@ -62,6 +68,7 @@ object MultiAssetEngine {
 
         val pools = household.allAssetPools()
         val allExpenses = household.allExpenses()
+        val priorityRules = household.activePriorityRules()
 
         // Track balance per pool (in cents)
         val currentBalances = pools.associate { it.id to it.currentBalance.value }.toMutableMap()
@@ -91,7 +98,7 @@ object MultiAssetEngine {
             // 2. Calculate income for this year
             val yearIncome = household.totalIncomeInYear(calendarYear, inflationRate).value
 
-            // 3. Snapshot current asset balances by category
+            // 3. Snapshot current asset balances by category before annual growth/flows
             val assetMap = mutableMapOf<AssetCategory, Long>()
             for (category in AssetCategory.entries) {
                 assetMap[category] = 0L
@@ -105,6 +112,85 @@ object MultiAssetEngine {
 
             val netCashFlow = yearIncome - totalYearExpenses
 
+            // 4. Run Cashflow Waterfall Allocation
+            var availableCash = yearIncome
+            val itemFundings = mutableListOf<YearlyItemFunding>()
+
+            for (rule in priorityRules.filter { it.enabled }) {
+                when (rule.targetType) {
+                    PriorityTargetType.EXPENSE_PAYOUT -> {
+                        val exp = allExpenses.firstOrNull { it.id == rule.targetId }
+                        if (exp != null) {
+                            val ent = household.findEntity(exp.entityId)
+                            val target = exp.amountInYear(calendarYear, household.baseYear, ent, inflationRate).value
+                            if (target > 0L) {
+                                val paid = min(availableCash, target)
+                                availableCash -= paid
+                                val shortfall = target - paid
+                                val status = if (shortfall == 0L) {
+                                    FundingStatus.FULLY_FUNDED
+                                } else if (paid > 0L) {
+                                    FundingStatus.PARTIALLY_FUNDED
+                                } else {
+                                    FundingStatus.UNFUNDED
+                                }
+                                itemFundings.add(
+                                    YearlyItemFunding(
+                                        id = exp.id,
+                                        name = exp.name,
+                                        entityId = exp.entityId,
+                                        targetType = PriorityTargetType.EXPENSE_PAYOUT,
+                                        itemType = rule.itemType,
+                                        targetAmount = Money(target),
+                                        actualAmount = Money(paid),
+                                        shortfall = Money(shortfall),
+                                        status = status
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    PriorityTargetType.POOL_CONTRIBUTION -> {
+                        val pool = pools.firstOrNull { it.id == rule.targetId }
+                        if (pool != null) {
+                            val owner = household.findEntity(pool.entityId) ?: primary
+                            val target = pool.targetContributionInYear(calendarYear, owner).value
+                            if (target > 0L) {
+                                val invested = min(availableCash, target)
+                                availableCash -= invested
+                                currentBalances[pool.id] = (currentBalances[pool.id] ?: 0L) + invested
+                                val shortfall = target - invested
+                                val status = if (shortfall == 0L) {
+                                    FundingStatus.FULLY_FUNDED
+                                } else if (invested > 0L) {
+                                    FundingStatus.PARTIALLY_FUNDED
+                                } else {
+                                    FundingStatus.UNFUNDED
+                                }
+                                itemFundings.add(
+                                    YearlyItemFunding(
+                                        id = pool.id,
+                                        name = pool.name,
+                                        entityId = pool.entityId,
+                                        targetType = PriorityTargetType.POOL_CONTRIBUTION,
+                                        itemType = rule.itemType,
+                                        targetAmount = Money(target),
+                                        actualAmount = Money(invested),
+                                        shortfall = Money(shortfall),
+                                        status = status
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    PriorityTargetType.SURPLUS_INVESTMENT -> {
+                        // Managed by surplus spillover below
+                    }
+                }
+            }
+
             timeline.add(
                 YearCategoryBreakdown(
                     yearIndex = year,
@@ -115,7 +201,8 @@ object MultiAssetEngine {
                     totalNetWorth = Money(totalYearAssets),
                     totalIncome = Money(yearIncome),
                     totalExpenses = Money(totalYearExpenses),
-                    netCashFlow = Money(netCashFlow)
+                    netCashFlow = Money(netCashFlow),
+                    itemFundings = itemFundings
                 )
             )
 
@@ -128,17 +215,9 @@ object MultiAssetEngine {
                         val growth = (balance.toDouble() * realReturn).toLong()
                         currentBalances[pool.id] = balance + growth
                     }
-
-                    // Apply annual contributions if applicable
-                    val owner = household.findEntity(pool.entityId) ?: primary
-                    val ownerAge = owner.ageInYear(calendarYear)
-                    val endAge = pool.contributionEndAge ?: owner.retirementAge
-                    if (ownerAge < endAge && pool.annualContribution.value > 0) {
-                        currentBalances[pool.id] = (currentBalances[pool.id] ?: 0L) + pool.annualContribution.value
-                    }
                 }
 
-                // Handle net deficit or surplus across pools
+                // Handle net deficit from assets if expenses exceeded income
                 if (netCashFlow < 0) {
                     var remainingDeficit = -netCashFlow
                     val withdrawalPriority = listOf(
@@ -161,13 +240,14 @@ object MultiAssetEngine {
                             }
                         }
                     }
-                } else if (netCashFlow > 0 && isWorking) {
+                } else if (availableCash > 0 && isWorking) {
+                    // Any leftover surplus after satisfying all priority rules flows into Taxable Brokerage or Cash
                     val defaultPool = pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE }
                         ?: pools.firstOrNull { it.category == AssetCategory.CASH_EMERGENCY }
                         ?: pools.firstOrNull()
 
                     if (defaultPool != null) {
-                        currentBalances[defaultPool.id] = (currentBalances[defaultPool.id] ?: 0L) + netCashFlow
+                        currentBalances[defaultPool.id] = (currentBalances[defaultPool.id] ?: 0L) + availableCash
                     }
                 }
             }
@@ -189,6 +269,7 @@ object MultiAssetEngine {
         val totalYears = max(1, household.lifeExpectancy - household.currentAge)
         val pools = household.allAssetPools()
         val allExpenses = household.allExpenses()
+        val priorityRules = household.activePriorityRules()
 
         val allPathBalances = Array(simulationsCount) { LongArray(totalYears + 1) }
         var successfulSims = 0
@@ -228,16 +309,34 @@ object MultiAssetEngine {
                         val growth = (bal.toDouble() * realReturn).toLong()
                         poolBalances[pool.id] = max(0L, bal + growth)
                     }
+                }
 
-                    val owner = household.findEntity(pool.entityId) ?: primary
-                    val ownerAge = owner.ageInYear(calendarYear)
-                    val endAge = pool.contributionEndAge ?: owner.retirementAge
-                    if (ownerAge < endAge && pool.annualContribution.value > 0) {
-                        poolBalances[pool.id] = (poolBalances[pool.id] ?: 0L) + pool.annualContribution.value
+                // 4. Waterfall contributions from available income
+                var availableCash = yearIncome
+                for (rule in priorityRules.filter { it.enabled }) {
+                    if (rule.targetType == PriorityTargetType.EXPENSE_PAYOUT) {
+                        val exp = allExpenses.firstOrNull { it.id == rule.targetId }
+                        if (exp != null) {
+                            val ent = household.findEntity(exp.entityId)
+                            val target = exp.amountInYear(calendarYear, household.baseYear, ent, inflationRate).value
+                            val paid = min(availableCash, target)
+                            availableCash -= paid
+                        }
+                    } else if (rule.targetType == PriorityTargetType.POOL_CONTRIBUTION) {
+                        val pool = pools.firstOrNull { it.id == rule.targetId }
+                        if (pool != null) {
+                            val owner = household.findEntity(pool.entityId) ?: primary
+                            val target = pool.targetContributionInYear(calendarYear, owner).value
+                            if (target > 0L) {
+                                val invested = min(availableCash, target)
+                                availableCash -= invested
+                                poolBalances[pool.id] = (poolBalances[pool.id] ?: 0L) + invested
+                            }
+                        }
                     }
                 }
 
-                // 4. Net cashflow
+                // 5. Net cashflow
                 val netCash = yearIncome - yearExpenses
                 if (netCash < 0) {
                     var deficit = -netCash
@@ -260,10 +359,10 @@ object MultiAssetEngine {
                             }
                         }
                     }
-                } else if (netCash > 0 && isWorking) {
+                } else if (availableCash > 0 && isWorking) {
                     val defaultPool = pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE } ?: pools.firstOrNull()
                     if (defaultPool != null) {
-                        poolBalances[defaultPool.id] = (poolBalances[defaultPool.id] ?: 0L) + netCash
+                        poolBalances[defaultPool.id] = (poolBalances[defaultPool.id] ?: 0L) + availableCash
                     }
                 }
 
@@ -351,6 +450,7 @@ object MultiAssetEngine {
             var p10Total = 0L
             var p50Total = 0L
             var p90Total = 0L
+            val consolidatedFundings = mutableListOf<YearlyItemFunding>()
 
             for (res in householdResults) {
                 if (year < res.timeline.size) {
@@ -364,6 +464,7 @@ object MultiAssetEngine {
                     totalNW += bk.totalNetWorth.value
                     totalInc += bk.totalIncome.value
                     totalExp += bk.totalExpenses.value
+                    consolidatedFundings.addAll(bk.itemFundings)
                 }
                 if (year < res.p10Path.size) p10Total += res.p10Path[year].value
                 if (year < res.p50Path.size) p50Total += res.p50Path[year].value
@@ -380,7 +481,8 @@ object MultiAssetEngine {
                     totalNetWorth = Money(totalNW),
                     totalIncome = Money(totalInc),
                     totalExpenses = Money(totalExp),
-                    netCashFlow = Money(totalInc - totalExp)
+                    netCashFlow = Money(totalInc - totalExp),
+                    itemFundings = consolidatedFundings
                 )
             )
 

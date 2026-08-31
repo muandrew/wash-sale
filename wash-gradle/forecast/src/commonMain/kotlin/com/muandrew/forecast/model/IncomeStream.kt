@@ -13,7 +13,8 @@ data class IncomeStream(
     val startYear: Int = 2026,
     val endYear: Int = 2061,
     val yearlyPayBumpRate: Double = 0.03, // 3.0% yearly raise / merit growth
-    val inflationAdjusted: Boolean = true
+    val inflationAdjusted: Boolean = true,
+    val phases: List<SchedulePhase> = emptyList()
 ) {
     fun effectiveStartYear(entity: Entity?): Int {
         return when (timeMode) {
@@ -30,12 +31,26 @@ data class IncomeStream(
     }
 
     fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
+        if (phases.isNotEmpty()) {
+            return phases.any { it.isApplicableInYear(calendarYear, entity) }
+        }
         val sYear = effectiveStartYear(entity)
         val eYear = effectiveEndYear(entity)
         return calendarYear in sYear..eYear
     }
 
     fun amountInYear(calendarYear: Int, baseYear: Int, entity: Entity?, inflationRate: Double): Money {
+        if (phases.isNotEmpty()) {
+            val matchingPhase = phases.firstOrNull { it.isApplicableInYear(calendarYear, entity) } ?: return Money.ZERO
+            val sYear = matchingPhase.effectiveStartYear(entity)
+            val yearsActive = (calendarYear - sYear).coerceAtLeast(0)
+            val raiseFactor = (1.0 + yearlyPayBumpRate).pow(yearsActive.toDouble())
+            val yearsFromBase = (calendarYear - baseYear).coerceAtLeast(0)
+            val infFactor = if (inflationAdjusted) (1.0 + inflationRate).pow(yearsFromBase.toDouble()) else 1.0
+            val totalCents = (matchingPhase.amount.value * raiseFactor * infFactor).toLong()
+            return Money(totalCents)
+        }
+
         if (!isApplicableInYear(calendarYear, entity)) return Money.ZERO
         val sYear = effectiveStartYear(entity)
         val yearsActive = (calendarYear - sYear).coerceAtLeast(0)

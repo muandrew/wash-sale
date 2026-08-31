@@ -15,7 +15,8 @@ data class Household(
     val assetPools: List<AssetPool> = emptyList(),
     val expenses: List<ExpenseItem> = emptyList(),
     val directExpenses: List<ExpenseItem> = emptyList(),
-    val lifeEvents: List<LifeEvent> = emptyList()
+    val lifeEvents: List<LifeEvent> = emptyList(),
+    val priorityRules: List<PriorityRule> = emptyList()
 ) {
     fun primaryEntity(): Entity {
         return entities.firstOrNull { it.isPrimary }
@@ -44,6 +45,172 @@ data class Household(
     fun totalInitialNetWorth(): Money {
         val sum = allAssetPools().sumOf { it.currentBalance.value }
         return Money(sum)
+    }
+
+    /**
+     * Generates default priority rules based on active expenses and asset pools.
+     */
+    fun defaultPriorityRules(): List<PriorityRule> {
+        val rules = mutableListOf<PriorityRule>()
+        var rank = 1
+
+        // 1. Debt Service
+        allExpenses().filter { it.expenseType == ExpenseType.COMPOUNDING_DEBT }.forEach { debt ->
+            rules.add(
+                PriorityRule(
+                    id = "rule_${debt.id}",
+                    name = debt.name,
+                    targetType = PriorityTargetType.EXPENSE_PAYOUT,
+                    targetId = debt.id,
+                    entityId = debt.entityId,
+                    itemType = PriorityItemType.DEBT_SERVICE,
+                    priorityRank = rank++
+                )
+            )
+        }
+
+        // 2. Essential Living & Childcare
+        allExpenses().filter {
+            it.expenseType != ExpenseType.COMPOUNDING_DEBT &&
+            (it.category == ExpenseCategory.LIVING_ESSENTIALS || it.category == ExpenseCategory.CHILDCARE_EARLY || it.category == ExpenseCategory.HEALTHCARE || it.category == ExpenseCategory.HOUSING_MORTGAGE)
+        }.forEach { exp ->
+            rules.add(
+                PriorityRule(
+                    id = "rule_${exp.id}",
+                    name = exp.name,
+                    targetType = PriorityTargetType.EXPENSE_PAYOUT,
+                    targetId = exp.id,
+                    entityId = exp.entityId,
+                    itemType = PriorityItemType.EXPENSE_ESSENTIAL,
+                    priorityRank = rank++
+                )
+            )
+        }
+
+        // 3. Emergency Cash Reserve Pool
+        allAssetPools().filter { it.category == AssetCategory.CASH_EMERGENCY }.forEach { pool ->
+            rules.add(
+                PriorityRule(
+                    id = "rule_${pool.id}",
+                    name = pool.name,
+                    targetType = PriorityTargetType.POOL_CONTRIBUTION,
+                    targetId = pool.id,
+                    entityId = pool.entityId,
+                    itemType = PriorityItemType.CASH_RESERVE,
+                    priorityRank = rank++
+                )
+            )
+        }
+
+        // 4. Tax-Advantaged Retirement Pools
+        allAssetPools().filter { it.category == AssetCategory.PRE_TAX_401K || it.category == AssetCategory.ROTH_IRA }.forEach { pool ->
+            rules.add(
+                PriorityRule(
+                    id = "rule_${pool.id}",
+                    name = pool.name,
+                    targetType = PriorityTargetType.POOL_CONTRIBUTION,
+                    targetId = pool.id,
+                    entityId = pool.entityId,
+                    itemType = PriorityItemType.TAX_ADVANTAGED_RETIREMENT,
+                    priorityRank = rank++
+                )
+            )
+        }
+
+        // 5. 529 / Dependent Education Pools and Tuition Expenses
+        allAssetPools().filter { it.name.contains("529", ignoreCase = true) || it.name.contains("Education", ignoreCase = true) }.forEach { pool ->
+            if (rules.none { it.targetId == pool.id }) {
+                rules.add(
+                    PriorityRule(
+                        id = "rule_${pool.id}",
+                        name = pool.name,
+                        targetType = PriorityTargetType.POOL_CONTRIBUTION,
+                        targetId = pool.id,
+                        entityId = pool.entityId,
+                        itemType = PriorityItemType.DEPENDENT_EDUCATION_529,
+                        priorityRank = rank++
+                    )
+                )
+            }
+        }
+        allExpenses().filter { it.category == ExpenseCategory.EDUCATION_TUITION }.forEach { exp ->
+            if (rules.none { it.targetId == exp.id }) {
+                rules.add(
+                    PriorityRule(
+                        id = "rule_${exp.id}",
+                        name = exp.name,
+                        targetType = PriorityTargetType.EXPENSE_PAYOUT,
+                        targetId = exp.id,
+                        entityId = exp.entityId,
+                        itemType = PriorityItemType.DEPENDENT_EDUCATION_529,
+                        priorityRank = rank++
+                    )
+                )
+            }
+        }
+
+        // 6. Discretionary & Milestone Expenses
+        allExpenses().filter {
+            it.category == ExpenseCategory.DISCRETIONARY_VACATION || it.category == ExpenseCategory.MILESTONE_OTHER
+        }.forEach { exp ->
+            if (rules.none { it.targetId == exp.id }) {
+                rules.add(
+                    PriorityRule(
+                        id = "rule_${exp.id}",
+                        name = exp.name,
+                        targetType = PriorityTargetType.EXPENSE_PAYOUT,
+                        targetId = exp.id,
+                        entityId = exp.entityId,
+                        itemType = PriorityItemType.EXPENSE_DISCRETIONARY,
+                        priorityRank = rank++
+                    )
+                )
+            }
+        }
+
+        // 7. Remaining Asset Pools
+        allAssetPools().forEach { pool ->
+            if (rules.none { it.targetId == pool.id }) {
+                rules.add(
+                    PriorityRule(
+                        id = "rule_${pool.id}",
+                        name = pool.name,
+                        targetType = PriorityTargetType.POOL_CONTRIBUTION,
+                        targetId = pool.id,
+                        entityId = pool.entityId,
+                        itemType = if (pool.category == AssetCategory.TAXABLE_BROKERAGE) PriorityItemType.TAXABLE_BROKERAGE_SURPLUS else PriorityItemType.CUSTOM_POOL,
+                        priorityRank = rank++
+                    )
+                )
+            }
+        }
+
+        // Remaining expenses not yet caught
+        allExpenses().forEach { exp ->
+            if (rules.none { it.targetId == exp.id }) {
+                rules.add(
+                    PriorityRule(
+                        id = "rule_${exp.id}",
+                        name = exp.name,
+                        targetType = PriorityTargetType.EXPENSE_PAYOUT,
+                        targetId = exp.id,
+                        entityId = exp.entityId,
+                        itemType = PriorityItemType.CUSTOM_EXPENSE,
+                        priorityRank = rank++
+                    )
+                )
+            }
+        }
+
+        return rules
+    }
+
+    fun activePriorityRules(): List<PriorityRule> {
+        val existing = priorityRules.ifEmpty { defaultPriorityRules() }
+        // Ensure any newly added pools or expenses are appended
+        val defaults = defaultPriorityRules()
+        val missing = defaults.filter { d -> existing.none { it.targetId == d.targetId } }
+        return (existing + missing).sortedBy { it.priorityRank }
     }
 
     /**

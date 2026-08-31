@@ -34,7 +34,8 @@ data class ExpenseItem(
     val endYear: Int = 2086,
     val expenseType: ExpenseType = ExpenseType.RECURRING,
     val compoundingInterestRate: Double = 0.0, // e.g. 0.07 for 7.0% APR compounding debt
-    val inflationAdjusted: Boolean = true
+    val inflationAdjusted: Boolean = true,
+    val phases: List<SchedulePhase> = emptyList()
 ) {
     fun effectiveStartYear(entity: Entity?): Int {
         return when (timeMode) {
@@ -55,12 +56,36 @@ data class ExpenseItem(
     }
 
     fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
+        if (phases.isNotEmpty()) {
+            return phases.any { it.isApplicableInYear(calendarYear, entity) }
+        }
         val sYear = effectiveStartYear(entity)
         val eYear = effectiveEndYear(entity)
         return calendarYear in sYear..eYear
     }
 
     fun amountInYear(calendarYear: Int, baseYear: Int, entity: Entity?, inflationRate: Double): Money {
+        if (phases.isNotEmpty()) {
+            val matchingPhase = phases.firstOrNull { it.isApplicableInYear(calendarYear, entity) } ?: return Money.ZERO
+            val sYear = matchingPhase.effectiveStartYear(entity)
+            val yearsFromBase = (calendarYear - baseYear).coerceAtLeast(0)
+            val infFactor = if (inflationAdjusted) (1.0 + inflationRate).pow(yearsFromBase.toDouble()) else 1.0
+
+            return when (expenseType) {
+                ExpenseType.ONE_TIME -> {
+                    if (calendarYear == sYear) Money((matchingPhase.amount.value * infFactor).toLong()) else Money.ZERO
+                }
+                ExpenseType.RECURRING -> {
+                    Money((matchingPhase.amount.value * infFactor).toLong())
+                }
+                ExpenseType.COMPOUNDING_DEBT -> {
+                    val yearsFromStart = (calendarYear - sYear).coerceAtLeast(0)
+                    val interestFactor = (1.0 + compoundingInterestRate).pow(yearsFromStart.toDouble())
+                    Money((matchingPhase.amount.value * interestFactor * infFactor).toLong())
+                }
+            }
+        }
+
         if (!isApplicableInYear(calendarYear, entity)) return Money.ZERO
         val sYear = effectiveStartYear(entity)
         val yearsFromBase = (calendarYear - baseYear).coerceAtLeast(0)
