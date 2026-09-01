@@ -8,6 +8,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,13 +41,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.muandrew.forecast.model.Money
+import kotlin.math.abs
 import kotlin.math.max
 
 enum class EntryChartMode {
     ASSET_POOL,      // Balance curve + superimposed input/contribution and withdrawal bars (Dual-Axis)
     INCOME_STREAM,   // Annual income bars only
     COMPOUNDING_DEBT,// Loan debt balance curve (inverse) + payment / interest bars (Dual-Axis)
-    EXPENSE_STREAM   // Annual expense outflow bars
+    EXPENSE_STREAM,  // Annual expense outflow bars
+    CASH_AVAILABLE   // Bidirectional bars (Green above $0 for surplus, Red below $0 for deficits/problems)
 }
 
 data class YearTrajectoryPoint(
@@ -54,10 +58,12 @@ data class YearTrajectoryPoint(
     val balance: Money = Money.ZERO,
     val inflow: Money = Money.ZERO,     // Contributions / Income
     val outflow: Money = Money.ZERO,    // Withdrawals / Expenses / Debt Payments
-    val isDeficit: Boolean = false,     // True if withdrawals exceed available balance in pool
-    val shortfall: Money = Money.ZERO   // Amount of unfunded withdrawal deficit
+    val isDeficit: Boolean = false,     // True if withdrawals exceed available balance in pool or cash deficit
+    val shortfall: Money = Money.ZERO,  // Amount of unfunded withdrawal deficit
+    val netCash: Money = Money.ZERO     // Signed cashflow (+ for surplus, - for deficit)
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EntryTrajectoryChart(
     title: String,
@@ -72,16 +78,18 @@ fun EntryTrajectoryChart(
 
     val activeIndex = hoveredIndex ?: (points.size / 2)
     val activePoint = points.getOrNull(activeIndex) ?: points.first()
-    val hasAnyDeficit = points.any { it.isDeficit }
+    val hasAnyDeficit = points.any { it.isDeficit || it.netCash.value < 0L }
 
-    // Dual-Axis Maximum Values:
-    // 1. Line Curve Axis Scale (Asset Balance or Debt Principal)
+    // Dual-Axis & Bidirectional Maximum Values:
     val maxBalanceCents = max(100L, points.maxOfOrNull { it.balance.value } ?: 100L)
-
-    // 2. Bar Graph Axis Scale (Annual Inflow / Outflow / Payments)
     val maxInflowCents = points.maxOfOrNull { it.inflow.value } ?: 0L
     val maxOutflowCents = points.maxOfOrNull { it.outflow.value } ?: 0L
     val maxFlowCents = max(100L, max(maxInflowCents, maxOutflowCents))
+
+    // Bidirectional Cash Available bounds:
+    val maxPositiveCashCents = max(100L, points.filter { it.netCash.value > 0L }.maxOfOrNull { it.netCash.value } ?: 100L)
+    val maxNegativeCashCents = points.filter { it.netCash.value < 0L }.maxOfOrNull { -it.netCash.value } ?: 0L
+    val totalCashSpanCents = max(100L, maxPositiveCashCents + maxNegativeCashCents)
 
     Column(
         modifier = modifier
@@ -90,81 +98,84 @@ fun EntryTrajectoryChart(
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Chart Header & Dual-Axis HUD
+        // 1. Top Header Row: Title on Left, Compact Active Inspection HUD on Right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = accentColor)
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
+                modifier = Modifier.weight(1f, fill = false)
+            )
 
-                // Legends & Dual-Axis Tags
-                when (chartMode) {
-                    EntryChartMode.ASSET_POOL -> {
-                        LegendBadge(label = "Line: Balance (Max ${Money(maxBalanceCents).toFormattedString()})", color = accentColor)
-                        LegendBadge(label = "Green: Deposits", color = Color(0xFF81C784))
-                        LegendBadge(label = "Red: Withdrawals", color = Color(0xFFEF5350))
-                        if (hasAnyDeficit) {
-                            LegendBadge(label = "⚠️ Red Background: Over-withdrawn / Deficit", color = Color(0xFFEF5350))
-                        }
-                    }
-                    EntryChartMode.INCOME_STREAM -> {
-                        LegendBadge(label = "Annual Pay Bars (Max ${Money(maxFlowCents).toFormattedString()}/yr)", color = Color(0xFF81C784))
-                    }
-                    EntryChartMode.COMPOUNDING_DEBT -> {
-                        LegendBadge(label = "Line: Debt (Max ${Money(maxBalanceCents).toFormattedString()})", color = Color(0xFFEF5350))
-                        LegendBadge(label = "Bars: Pmt (Max ${Money(maxFlowCents).toFormattedString()}/yr)", color = Color(0xFF64B5F6))
-                    }
-                    EntryChartMode.EXPENSE_STREAM -> {
-                        LegendBadge(label = "Annual Outflow Bars (Max ${Money(maxFlowCents).toFormattedString()}/yr)", color = Color(0xFFEF5350))
-                    }
-                }
-            }
-
-            // Top Numerical Inspection HUD
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Compact Active Inspection Tag
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .background(Color(0xFF262626), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
                 Text(
-                    "Year ${activePoint.calendarYear} (Age ${activePoint.age}):",
-                    fontSize = 11.sp,
+                    "Yr ${activePoint.calendarYear} (${activePoint.age}):",
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
 
-                if (chartMode == EntryChartMode.ASSET_POOL || chartMode == EntryChartMode.COMPOUNDING_DEBT) {
-                    if (activePoint.isDeficit) {
+                if (chartMode == EntryChartMode.CASH_AVAILABLE) {
+                    if (activePoint.netCash.value < 0L) {
                         Text(
-                            "⚠️ DEPLETED ($0.00) Shortfall: -${activePoint.shortfall.toFormattedString()}",
-                            fontSize = 11.sp,
+                            "-${Money(-activePoint.netCash.value).toFormattedString()}",
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFEF5350)
                         )
                     } else {
-                        val label = if (chartMode == EntryChartMode.ASSET_POOL) "Balance:" else "Debt:"
                         Text(
-                            "$label ${activePoint.balance.toFormattedString()}",
-                            fontSize = 11.sp,
+                            "+${activePoint.netCash.toFormattedString()}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF81C784)
+                        )
+                    }
+                }
+
+                if (chartMode == EntryChartMode.ASSET_POOL || chartMode == EntryChartMode.COMPOUNDING_DEBT) {
+                    if (activePoint.isDeficit) {
+                        Text(
+                            "Depleted (-${activePoint.shortfall.toFormattedString()})",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF5350)
+                        )
+                    } else {
+                        Text(
+                            activePoint.balance.toFormattedString(),
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = accentColor
                         )
                     }
                 }
 
-                if (activePoint.inflow.value > 0L) {
-                    val inLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Deposit:" else if (chartMode == EntryChartMode.INCOME_STREAM) "Pay:" else "Inflow:"
+                if (activePoint.inflow.value > 0L && chartMode != EntryChartMode.CASH_AVAILABLE) {
                     Text(
-                        "$inLabel +${activePoint.inflow.toFormattedString()}",
-                        fontSize = 11.sp,
+                        "+${activePoint.inflow.toFormattedString()}",
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF81C784)
                     )
                 }
 
-                if (activePoint.outflow.value > 0L) {
-                    val outLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Withdrawal:" else if (chartMode == EntryChartMode.COMPOUNDING_DEBT) "Pmt:" else "Outflow:"
+                if (activePoint.outflow.value > 0L && chartMode != EntryChartMode.CASH_AVAILABLE) {
                     Text(
-                        "$outLabel -${activePoint.outflow.toFormattedString()}",
-                        fontSize = 11.sp,
+                        "-${activePoint.outflow.toFormattedString()}",
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFEF5350)
                     )
@@ -172,11 +183,44 @@ fun EntryTrajectoryChart(
             }
         }
 
-        // Canvas Trajectory & Bars (with Dual-Axis Scaling & Over-withdrawal Red Shading)
+        // 2. Responsive Flexbox Legend (FlowRow) that wraps cleanly on mobile phone screens
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            when (chartMode) {
+                EntryChartMode.CASH_AVAILABLE -> {
+                    LegendBadge(label = "Surplus (+)", color = Color(0xFF81C784))
+                    LegendBadge(label = "Deficit (-)", color = Color(0xFFEF5350))
+                    LegendBadge(label = "\$0 Base", color = Color.White)
+                }
+                EntryChartMode.ASSET_POOL -> {
+                    LegendBadge(label = "Balance (Max ${Money(maxBalanceCents).toFormattedString()})", color = accentColor)
+                    LegendBadge(label = "Deposits (+)", color = Color(0xFF81C784))
+                    LegendBadge(label = "Withdrawals (-)", color = Color(0xFFEF5350))
+                    if (hasAnyDeficit) {
+                        LegendBadge(label = "⚠️ Over-withdrawn", color = Color(0xFFEF5350))
+                    }
+                }
+                EntryChartMode.INCOME_STREAM -> {
+                    LegendBadge(label = "Pay (Max ${Money(maxFlowCents).toFormattedString()}/yr)", color = Color(0xFF81C784))
+                }
+                EntryChartMode.COMPOUNDING_DEBT -> {
+                    LegendBadge(label = "Debt (Max ${Money(maxBalanceCents).toFormattedString()})", color = Color(0xFFEF5350))
+                    LegendBadge(label = "Payments (-)", color = Color(0xFF64B5F6))
+                }
+                EntryChartMode.EXPENSE_STREAM -> {
+                    LegendBadge(label = "Outflow (Max ${Money(maxFlowCents).toFormattedString()}/yr)", color = Color(0xFFEF5350))
+                }
+            }
+        }
+
+        // 3. Canvas Trajectory & Bars (with Dual-Axis, Bidirectional Cash Available & Deficit Shading)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(130.dp)
+                .height(120.dp)
                 .pointerInput(points) {
                     detectTapGestures { offset ->
                         val ratio = (offset.x / size.width).coerceIn(0f, 1f)
@@ -201,7 +245,99 @@ fun EntryTrajectoryChart(
                 if (count < 2) return@Canvas
 
                 val stepX = w / (count - 1).toFloat()
+                val barWidth = max(3f, (stepX * 0.55f))
 
+                // Special Bidirectional Mode: CASH_AVAILABLE
+                if (chartMode == EntryChartMode.CASH_AVAILABLE) {
+                    val yZero = if (maxNegativeCashCents == 0L) {
+                        chartHeight
+                    } else {
+                        (maxPositiveCashCents.toFloat() / totalCashSpanCents.toFloat()) * chartHeight
+                    }
+
+                    // 0. Red Warning Background for Negative Deficit Years
+                    points.forEachIndexed { i, pt ->
+                        if (pt.netCash.value < 0L) {
+                            val x = i * stepX
+                            val startX = max(0f, x - stepX * 0.5f)
+                            val endX = minOf(w, x + stepX * 0.5f)
+                            val colWidth = endX - startX
+
+                            drawRect(
+                                color = Color(0xFFEF5350).copy(alpha = 0.28f),
+                                topLeft = Offset(startX, 0f),
+                                size = Size(colWidth, chartHeight)
+                            )
+                        }
+                    }
+
+                    // Draw Horizontal Zero Axis Line ($0.00 Base)
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.85f),
+                        start = Offset(0f, yZero),
+                        end = Offset(w, yZero),
+                        strokeWidth = 1.5f
+                    )
+
+                    // Draw Bidirectional Cash Available Bars
+                    points.forEachIndexed { i, pt ->
+                        val x = i * stepX
+                        val isHovered = (i == activeIndex)
+                        val cash = pt.netCash.value
+
+                        if (cash > 0L) {
+                            val barH = (cash.toFloat() / totalCashSpanCents.toFloat()) * chartHeight
+                            val barAlpha = if (hoveredIndex == null || isHovered) 0.88f else 0.45f
+
+                            drawRect(
+                                color = Color(0xFF81C784).copy(alpha = barAlpha),
+                                topLeft = Offset(x - barWidth / 2f, yZero - barH),
+                                size = Size(barWidth, barH)
+                            )
+
+                            if (isHovered) {
+                                drawRect(
+                                    color = Color.White,
+                                    topLeft = Offset(x - barWidth / 2f, yZero - barH),
+                                    size = Size(barWidth, barH),
+                                    style = Stroke(width = 1.5f)
+                                )
+                            }
+                        } else if (cash < 0L) {
+                            val absCash = -cash
+                            val barH = (absCash.toFloat() / totalCashSpanCents.toFloat()) * chartHeight
+                            val barAlpha = if (hoveredIndex == null || isHovered) 0.95f else 0.50f
+
+                            drawRect(
+                                color = Color(0xFFEF5350).copy(alpha = barAlpha),
+                                topLeft = Offset(x - barWidth / 2f, yZero),
+                                size = Size(barWidth, barH)
+                            )
+
+                            drawRect(
+                                color = if (isHovered) Color.White else Color(0xFFFF5252),
+                                topLeft = Offset(x - barWidth / 2f, yZero),
+                                size = Size(barWidth, barH),
+                                style = Stroke(width = if (isHovered) 2f else 1.2f)
+                            )
+                        }
+                    }
+
+                    // Active Hover Scrubber Line
+                    if (hoveredIndex != null) {
+                        val hoverX = activeIndex * stepX
+                        val isDef = activePoint.netCash.value < 0L
+                        drawLine(
+                            color = if (isDef) Color(0xFFEF5350) else Color.White.copy(alpha = 0.7f),
+                            start = Offset(hoverX, 0f),
+                            end = Offset(hoverX, chartHeight),
+                            strokeWidth = if (isDef) 2f else 1.5f
+                        )
+                    }
+                    return@Canvas
+                }
+
+                // Standard Modes (Asset Pool, Income, Debt, Expense):
                 // 0. Draw Red Background Shading for Over-withdrawn / Deficit Zones
                 points.forEachIndexed { i, pt ->
                     if (pt.isDeficit || (pt.balance.value == 0L && pt.outflow.value > 0L)) {
@@ -256,8 +392,6 @@ fun EntryTrajectoryChart(
                 )
 
                 // 1. Draw Superimposed Bars on the Secondary Bar Axis Scale (maxFlowCents)
-                val barWidth = max(3f, (stepX * 0.55f))
-
                 points.forEachIndexed { i, pt ->
                     val x = i * stepX
                     val isHovered = (i == activeIndex)
@@ -395,12 +529,12 @@ fun EntryTrajectoryChart(
                     else -> Alignment.TopCenter
                 }
 
-                val isDeficitActive = activePoint.isDeficit
+                val isDeficitActive = activePoint.isDeficit || activePoint.netCash.value < 0L
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
                     contentAlignment = alignment
                 ) {
                     Row(
@@ -411,22 +545,40 @@ fun EntryTrajectoryChart(
                                 if (isDeficitActive) Color(0xFFEF5350) else Color(0xFF64B5F6),
                                 RoundedCornerShape(6.dp)
                             )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "${activePoint.calendarYear} (Age ${activePoint.age})",
-                            fontSize = 11.sp,
+                            "Yr ${activePoint.calendarYear} (${activePoint.age})",
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
 
-                        if (chartMode == EntryChartMode.ASSET_POOL || chartMode == EntryChartMode.COMPOUNDING_DEBT) {
-                            if (isDeficitActive) {
+                        if (chartMode == EntryChartMode.CASH_AVAILABLE) {
+                            if (activePoint.netCash.value < 0L) {
                                 Text(
-                                    "⚠️ DEPLETED ($0.00) Shortfall: -${activePoint.shortfall.toFormattedString()}",
-                                    fontSize = 11.sp,
+                                    "Deficit: -${Money(-activePoint.netCash.value).toFormattedString()}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFEF5350)
+                                )
+                            } else {
+                                Text(
+                                    "Cash: +${activePoint.netCash.toFormattedString()}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF81C784)
+                                )
+                            }
+                        }
+
+                        if (chartMode == EntryChartMode.ASSET_POOL || chartMode == EntryChartMode.COMPOUNDING_DEBT) {
+                            if (activePoint.isDeficit) {
+                                Text(
+                                    "Shortfall: -${activePoint.shortfall.toFormattedString()}",
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFEF5350)
                                 )
@@ -434,28 +586,28 @@ fun EntryTrajectoryChart(
                                 val balLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Bal:" else "Debt:"
                                 Text(
                                     "$balLabel ${activePoint.balance.toFormattedString()}",
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = accentColor
                                 )
                             }
                         }
 
-                        if (activePoint.inflow.value > 0L) {
-                            val inLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Deposit:" else if (chartMode == EntryChartMode.INCOME_STREAM) "Pay:" else "Inflow:"
+                        if (activePoint.inflow.value > 0L && chartMode != EntryChartMode.CASH_AVAILABLE) {
+                            val inLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Deposit:" else if (chartMode == EntryChartMode.INCOME_STREAM) "Pay:" else "In:"
                             Text(
                                 "$inLabel +${activePoint.inflow.toFormattedString()}",
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF81C784)
                             )
                         }
 
-                        if (activePoint.outflow.value > 0L) {
-                            val outLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Withdrawal:" else if (chartMode == EntryChartMode.COMPOUNDING_DEBT) "Pmt:" else "Outflow:"
+                        if (activePoint.outflow.value > 0L && chartMode != EntryChartMode.CASH_AVAILABLE) {
+                            val outLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Withdrawal:" else if (chartMode == EntryChartMode.COMPOUNDING_DEBT) "Pmt:" else "Out:"
                             Text(
                                 "$outLabel -${activePoint.outflow.toFormattedString()}",
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFEF5350)
                             )
@@ -474,17 +626,23 @@ fun EntryTrajectoryChart(
             val mid = points[points.size / 2]
             val last = points.last()
 
-            Text("${first.calendarYear} (Age ${first.age})", fontSize = 10.sp, color = Color(0xFF888888))
-            Text("${mid.calendarYear} (Age ${mid.age})", fontSize = 10.sp, color = Color(0xFF888888))
-            Text("${last.calendarYear} (Age ${last.age})", fontSize = 10.sp, color = Color(0xFF888888))
+            Text("${first.calendarYear} (${first.age})", fontSize = 9.sp, color = Color(0xFF888888))
+            Text("${mid.calendarYear} (${mid.age})", fontSize = 9.sp, color = Color(0xFF888888))
+            Text("${last.calendarYear} (${last.age})", fontSize = 9.sp, color = Color(0xFF888888))
         }
     }
 }
 
 @Composable
 private fun LegendBadge(label: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(modifier = Modifier.size(8.dp).background(color, CircleShape))
-        Text(label, fontSize = 10.sp, color = Color(0xFFAAAAAA))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .background(Color(0xFF262626), RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Box(modifier = Modifier.size(7.dp).background(color, CircleShape))
+        Text(label, fontSize = 9.sp, color = Color(0xFFCCCCCC), fontWeight = FontWeight.Medium)
     }
 }

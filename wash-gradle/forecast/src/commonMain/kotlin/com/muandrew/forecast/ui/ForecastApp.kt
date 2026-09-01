@@ -840,11 +840,11 @@ private fun FinancialStreamsManager(
 
             Divider(color = Color(0xFF333333))
 
-            // Filters Bar: Stream Type Filter & Entity Filter
-            Row(
+            // Filters Bar: Stream Type Filter & Entity Filter (Responsive Flexbox FlowRow)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Type Filter Chips
                 CashflowFilterType.entries.forEach { type ->
@@ -877,6 +877,87 @@ private fun FinancialStreamsManager(
                         onClick = { selectedEntityFilter = entity.id }
                     )
                 }
+            }
+
+            Divider(color = Color(0xFF333333))
+
+            // Special Cash Available (Surplus & Problem Deficits) Chart
+            val cashAvailablePoints = remember(household, selectedEntityFilter) {
+                val primary = household.primaryEntity()
+                val startYr = household.baseYear
+                val endYr = household.baseYear + 40
+
+                val filteredIncomes = household.incomeStreams.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
+                val filteredExpenses = household.expenses.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
+                val filteredPools = household.assetPools.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
+
+                (startYr..endYr).map { yr ->
+                    val age = primary.ageInYear(yr)
+                    val inAmt = filteredIncomes.sumOf { it.amountInYear(yr, household.baseYear, household.findEntity(it.entityId) ?: primary, inflationRate = 0.025).value }
+                    val outAmt = filteredExpenses.sumOf { it.amountInYear(yr, household.baseYear, household.findEntity(it.entityId) ?: primary, inflationRate = 0.025).value }
+                    val contribAmt = filteredPools.sumOf { it.targetContributionInYear(yr, household.findEntity(it.entityId) ?: primary).value }
+                    val withdrAmt = filteredPools.sumOf { it.targetWithdrawalInYear(yr, household.findEntity(it.entityId) ?: primary).value }
+
+                    val netCashCents = (inAmt + withdrAmt) - (outAmt + contribAmt)
+
+                    YearTrajectoryPoint(
+                        calendarYear = yr,
+                        age = age,
+                        balance = Money.ZERO,
+                        inflow = Money(inAmt + withdrAmt),
+                        outflow = Money(outAmt + contribAmt),
+                        isDeficit = netCashCents < 0L,
+                        shortfall = if (netCashCents < 0L) Money(-netCashCents) else Money.ZERO,
+                        netCash = Money(netCashCents)
+                    )
+                }
+            }
+
+            val deficitYearsCount = cashAvailablePoints.count { it.netCash.value < 0L }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
+                    .border(1.dp, if (deficitYearsCount > 0) Color(0xFFEF5350).copy(alpha = 0.6f) else Color(0xFF81C784).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("📊 Net Annual Cash Available (Surplus & Problem Deficits)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        if (deficitYearsCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFFEF5350).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, Color(0xFFEF5350), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text("⚠️ $deficitYearsCount Problem Deficit Years", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350))
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF81C784).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, Color(0xFF81C784), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text("✓ Fully Balanced Cashflow", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
+                            }
+                        }
+                    }
+                }
+
+                EntryTrajectoryChart(
+                    title = "Cash Available = (Income + Withdrawals) − (Expenses + Deposits)",
+                    points = cashAvailablePoints,
+                    chartMode = EntryChartMode.CASH_AVAILABLE,
+                    accentColor = Color(0xFF81C784)
+                )
             }
 
             Divider(color = Color(0xFF333333))

@@ -83,22 +83,22 @@ fun NetWorthChart(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header with Selected Year Inspection HUD
-            Row(
+            // Header with Selected Year Inspection HUD (Responsive Flexbox FlowRow)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         "Stacked Net Worth & Category Growth Over Time",
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colors.primary
                     )
                     Text(
-                        "Drag or tap chart to inspect at specific ages. Click categories to isolate & highlight.",
-                        fontSize = 12.sp,
+                        "Drag or tap chart to inspect at specific ages. Click categories to highlight.",
+                        fontSize = 11.sp,
                         color = Color(0xFFAAAAAA)
                     )
                 }
