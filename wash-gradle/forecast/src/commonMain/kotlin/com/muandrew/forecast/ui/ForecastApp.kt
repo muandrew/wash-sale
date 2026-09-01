@@ -59,6 +59,9 @@ import com.muandrew.forecast.model.FundingStatus
 import com.muandrew.forecast.model.Household
 import com.muandrew.forecast.model.IncomeStream
 import com.muandrew.forecast.model.Money
+import com.muandrew.forecast.model.AssetPoolOverride
+import com.muandrew.forecast.model.IncomeStreamOverride
+import com.muandrew.forecast.model.ExpenseItemOverride
 import com.muandrew.forecast.model.PriorityItemType
 import com.muandrew.forecast.model.PriorityRule
 import com.muandrew.forecast.model.PriorityTargetType
@@ -135,16 +138,16 @@ fun ForecastApp() {
                                 currentBalance = Money.ofDollars(50_000),
                                 entityId = "entity_primary",
                                 expectedNominalReturn = 0.075,
-                                annualContribution = Money.ofDollars(15_000),
-                                phases = listOf(
-                                    SchedulePhase("phase_tax_1", "Ages 30–40", TimeMode.ENTITY_AGE, startAge = 30, endAge = 40, startYear = 2026, endYear = 2036, amount = Money.ofDollars(12_000), isWithdrawal = false),
-                                    SchedulePhase("phase_tax_2", "Ages 41–60", TimeMode.ENTITY_AGE, startAge = 41, endAge = 60, startYear = 2037, endYear = 2056, amount = Money.ofDollars(20_000), isWithdrawal = false),
-                                    SchedulePhase("phase_tax_3", "Ages 61+ (Retirement Drawdown)", TimeMode.ENTITY_AGE, startAge = 61, endAge = 85, startYear = 2057, endYear = 2081, amount = Money.ofDollars(35_000), isWithdrawal = true)
+                                annualFlow = Money.ofDollars(12_000),
+                                startAge = 30,
+                                overrides = listOf(
+                                    AssetPoolOverride(id = "ov_tax_1", startAge = 41, annualFlow = Money.ofDollars(20_000), label = "Peak Career Raise (+Deposit)"),
+                                    AssetPoolOverride(id = "ov_tax_2", startAge = 61, annualFlow = Money.ofDollars(-35_000), label = "Retirement Drawdown (-Drawdown)")
                                 )
                             ),
-                            AssetPool("p_401k", "Workplace 401(k)", AssetCategory.PRE_TAX_401K, Money.ofDollars(40_000), entityId = "entity_primary", expectedNominalReturn = 0.070, annualContribution = Money.ofDollars(23_000)),
-                            AssetPool("p_roth", "Roth IRA", AssetCategory.ROTH_IRA, Money.ofDollars(20_000), entityId = "entity_primary", expectedNominalReturn = 0.075, annualContribution = Money.ofDollars(7_000)),
-                            AssetPool("p_cash", "Emergency HYSA", AssetCategory.CASH_EMERGENCY, Money.ofDollars(25_000), entityId = "entity_primary", expectedNominalReturn = 0.035, annualContribution = Money.ofDollars(2_000)),
+                            AssetPool("p_401k", "Workplace 401(k)", AssetCategory.PRE_TAX_401K, Money.ofDollars(40_000), entityId = "entity_primary", expectedNominalReturn = 0.070, annualFlow = Money.ofDollars(23_000)),
+                            AssetPool("p_roth", "Roth IRA", AssetCategory.ROTH_IRA, Money.ofDollars(20_000), entityId = "entity_primary", expectedNominalReturn = 0.075, annualFlow = Money.ofDollars(7_000)),
+                            AssetPool("p_cash", "Emergency HYSA", AssetCategory.CASH_EMERGENCY, Money.ofDollars(25_000), entityId = "entity_primary", expectedNominalReturn = 0.035, annualFlow = Money.ofDollars(2_000)),
                             AssetPool(
                                 id = "p_529",
                                 name = "Emma's 529 College Fund",
@@ -152,11 +155,10 @@ fun ForecastApp() {
                                 currentBalance = Money.ofDollars(10_000),
                                 entityId = "entity_child",
                                 expectedNominalReturn = 0.070,
-                                annualContribution = Money.ofDollars(6_000),
-                                contributionEndAge = 18,
-                                phases = listOf(
-                                    SchedulePhase("phase_529_save", "Ages 0–17 (Contributions)", TimeMode.ENTITY_AGE, startAge = 0, endAge = 17, startYear = 2028, endYear = 2045, amount = Money.ofDollars(6_000), isWithdrawal = false),
-                                    SchedulePhase("phase_529_draw", "Ages 18–21 (College Tuition Drawdown)", TimeMode.ENTITY_AGE, startAge = 18, endAge = 21, startYear = 2046, endYear = 2049, amount = Money.ofDollars(25_000), isWithdrawal = true)
+                                annualFlow = Money.ofDollars(6_000),
+                                startAge = 0,
+                                overrides = listOf(
+                                    AssetPoolOverride(id = "ov_529_1", startAge = 18, annualFlow = Money.ofDollars(-25_000), label = "College Tuition Drawdown (-Drawdown)")
                                 )
                             )
                         ),
@@ -881,7 +883,7 @@ private fun FinancialStreamsManager(
 
             Divider(color = Color(0xFF333333))
 
-            // Special Cash Available (Surplus & Problem Deficits) Chart
+            // Special Cash Available (Total Cash Line & Annual Net Cashflow Bars)
             val cashAvailablePoints = remember(household, selectedEntityFilter) {
                 val primary = household.primaryEntity()
                 val startYr = household.baseYear
@@ -891,6 +893,11 @@ private fun FinancialStreamsManager(
                 val filteredExpenses = household.expenses.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
                 val filteredPools = household.assetPools.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
 
+                var runningTotalCash = filteredPools.filter { it.category == AssetCategory.CASH_EMERGENCY || it.category == AssetCategory.TAXABLE_BROKERAGE }.sumOf { it.currentBalance.value }
+                if (runningTotalCash == 0L) {
+                    runningTotalCash = filteredPools.sumOf { it.currentBalance.value }
+                }
+
                 (startYr..endYr).map { yr ->
                     val age = primary.ageInYear(yr)
                     val inAmt = filteredIncomes.sumOf { it.amountInYear(yr, household.baseYear, household.findEntity(it.entityId) ?: primary, inflationRate = 0.025).value }
@@ -899,15 +906,18 @@ private fun FinancialStreamsManager(
                     val withdrAmt = filteredPools.sumOf { it.targetWithdrawalInYear(yr, household.findEntity(it.entityId) ?: primary).value }
 
                     val netCashCents = (inAmt + withdrAmt) - (outAmt + contribAmt)
+                    val totalBeforeDeficit = runningTotalCash + netCashCents
+                    val isDepleted = totalBeforeDeficit < 0L
+                    runningTotalCash = max(0L, totalBeforeDeficit)
 
                     YearTrajectoryPoint(
                         calendarYear = yr,
                         age = age,
-                        balance = Money.ZERO,
+                        balance = Money(runningTotalCash),
                         inflow = Money(inAmt + withdrAmt),
                         outflow = Money(outAmt + contribAmt),
-                        isDeficit = netCashCents < 0L,
-                        shortfall = if (netCashCents < 0L) Money(-netCashCents) else Money.ZERO,
+                        isDeficit = isDepleted || netCashCents < 0L,
+                        shortfall = if (isDepleted) Money(-totalBeforeDeficit) else Money.ZERO,
                         netCash = Money(netCashCents)
                     )
                 }
@@ -1053,7 +1063,7 @@ private fun FinancialStreamsManager(
 }
 
 /**
- * Income Stream Card with Multi-Phase Schedule Support
+ * Income Stream Card with Timeline Attribute Override Schedule
  */
 @Composable
 private fun IncomeStreamCard(
@@ -1063,18 +1073,8 @@ private fun IncomeStreamCard(
     onDelete: () -> Unit
 ) {
     val associatedEntity = household.findEntity(stream.entityId) ?: household.primaryEntity()
-
     var name by remember(stream.id) { mutableStateOf(stream.name) }
-    var startingPayText by remember(stream.id) { mutableStateOf((stream.initialAnnualAmount.value / 100).toString()) }
-    var payBumpText by remember(stream.id) { mutableStateOf(((stream.yearlyPayBumpRate * 1000).toInt() / 10.0).toString()) }
-
-    var startAgeText by remember(stream.id, stream.timeMode) { mutableStateOf(stream.startAge.toString()) }
-    var endAgeText by remember(stream.id, stream.timeMode) { mutableStateOf(stream.endAge.toString()) }
-    var startYearText by remember(stream.id, stream.timeMode) { mutableStateOf(stream.startYear.toString()) }
-    var endYearText by remember(stream.id, stream.timeMode) { mutableStateOf(stream.endYear.toString()) }
-
     var entityMenuExpanded by remember { mutableStateOf(false) }
-    var showPhases by remember { mutableStateOf(stream.phases.isNotEmpty()) }
 
     Box(
         modifier = Modifier
@@ -1083,7 +1083,7 @@ private fun IncomeStreamCard(
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Row 1: Name, Associated Entity, TimeMode Selector, Delete
+            // Row 1: Name, Associated Entity, Timing Mode, Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1122,7 +1122,6 @@ private fun IncomeStreamCard(
 
                 Spacer(Modifier.width(10.dp))
 
-                // Timing Mode Toggle
                 TimingModeToggle(
                     selectedMode = stream.timeMode,
                     onSelectMode = { newMode ->
@@ -1147,117 +1146,15 @@ private fun IncomeStreamCard(
                 }
             }
 
-            // Row 2: Starting Pay, Start & End, Pay Bump %
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedTextField(
-                    value = startingPayText,
-                    onValueChange = {
-                        startingPayText = it
-                        val dollars = it.toLongOrNull() ?: 0L
-                        onUpdate(stream.copy(initialAnnualAmount = Money.ofDollars(dollars)))
-                    },
-                    label = { Text("Starting Annual Pay ($)") },
-                    modifier = Modifier.weight(1.2f)
-                )
+            // Timeline Attribute Override Schedule Table
+            IncomeStreamScheduleTable(
+                stream = stream,
+                entity = associatedEntity,
+                baseYear = household.baseYear,
+                onUpdateStream = onUpdate
+            )
 
-                if (stream.timeMode == TimeMode.ENTITY_AGE) {
-                    OutlinedTextField(
-                        value = startAgeText,
-                        onValueChange = {
-                            startAgeText = it
-                            val age = it.toIntOrNull() ?: stream.startAge
-                            val yr = associatedEntity.yearAtAge(age)
-                            onUpdate(stream.copy(startAge = age, startYear = yr))
-                        },
-                        label = { Text("Start Age (${associatedEntity.name})") },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OutlinedTextField(
-                        value = endAgeText,
-                        onValueChange = {
-                            endAgeText = it
-                            val age = it.toIntOrNull() ?: stream.endAge
-                            val yr = associatedEntity.yearAtAge(age)
-                            onUpdate(stream.copy(endAge = age, endYear = yr))
-                        },
-                        label = { Text("Stop Age") },
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = startYearText,
-                        onValueChange = {
-                            startYearText = it
-                            val yr = it.toIntOrNull() ?: stream.startYear
-                            val age = associatedEntity.ageInYear(yr)
-                            onUpdate(stream.copy(startYear = yr, startAge = age))
-                        },
-                        label = { Text("Start Year") },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OutlinedTextField(
-                        value = endYearText,
-                        onValueChange = {
-                            endYearText = it
-                            val yr = it.toIntOrNull() ?: stream.endYear
-                            val age = associatedEntity.ageInYear(yr)
-                            onUpdate(stream.copy(endYear = yr, endAge = age))
-                        },
-                        label = { Text("Stop Year") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                OutlinedTextField(
-                    value = payBumpText,
-                    onValueChange = {
-                        payBumpText = it
-                        val bump = (it.toDoubleOrNull() ?: 0.0) / 100.0
-                        onUpdate(stream.copy(yearlyPayBumpRate = bump))
-                    },
-                    label = { Text("Yearly Pay Bump (%)") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Multi-Phase Year-by-Year Schedules Toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = { showPhases = !showPhases },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64B5F6))
-                ) {
-                    Text(if (showPhases) "Hide Year Schedules (${stream.phases.size})" else "+ Multi-Year Adjustments / Schedules (${stream.phases.size})", fontSize = 11.sp)
-                }
-
-                val effStartYear = stream.effectiveStartYear(associatedEntity)
-                val effEndYear = stream.effectiveEndYear(associatedEntity)
-                val effStartAge = associatedEntity.ageInYear(effStartYear)
-                val effEndAge = associatedEntity.ageInYear(effEndYear)
-                Text(
-                    "Active: Years $effStartYear–$effEndYear (${associatedEntity.name} Ages $effStartAge–$effEndAge)",
-                    fontSize = 11.sp,
-                    color = Color(0xFFAAAAAA)
-                )
-            }
-
-            if (showPhases) {
-                PhaseScheduleEditor(
-                    phases = stream.phases,
-                    entity = associatedEntity,
-                    baseYear = household.baseYear,
-                    onUpdatePhases = { onUpdate(stream.copy(phases = it)) }
-                )
-            }
-
+            // Trajectory Chart Preview
             val trajectoryPoints = remember(stream, associatedEntity, household.baseYear) {
                 val startYr = household.baseYear
                 val endYr = household.baseYear + 40
@@ -1285,8 +1182,218 @@ private fun IncomeStreamCard(
 }
 
 /**
- * Editable Asset Pool Card with Multi-Phase Year Schedules
- * (Asset pools compound on last year's balance + growth + contributions/withdrawals)
+ * Income Stream Schedule Table with Baseline and Override rows
+ */
+@Composable
+private fun IncomeStreamScheduleTable(
+    stream: IncomeStream,
+    entity: Entity,
+    baseYear: Int,
+    onUpdateStream: (IncomeStream) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFF333333), RoundedCornerShape(8.dp))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("📅 Timeline & Attribute Override Schedule", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
+                Text("Row 1 sets baseline starting pay & raise. Subsequent rows override salary or raise bumps at milestone times.", fontSize = 10.sp, color = Color(0xFFAAAAAA))
+            }
+
+            Button(
+                onClick = {
+                    val nextAge = if (stream.overrides.isEmpty()) stream.startAge + 10 else (stream.overrides.last().startAge + 5)
+                    val newOv = IncomeStreamOverride(
+                        id = "ov_${stream.overrides.size + 1}",
+                        timeMode = stream.timeMode,
+                        startAge = nextAge,
+                        startYear = entity.yearAtAge(nextAge),
+                        label = "Promotion / Phase #${stream.overrides.size + 2}"
+                    )
+                    onUpdateStream(stream.copy(overrides = stream.overrides + newOv))
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF81C784)),
+                modifier = Modifier.height(28.dp)
+            ) {
+                Text("+ Add Override Row", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        // Table Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF282828), RoundedCornerShape(4.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.2f))
+            Text("Annual Salary ($)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784), modifier = Modifier.weight(1.3f))
+            Text("Yearly Raise (%)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.1f))
+            Text("Note / Milestone", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
+            Spacer(Modifier.width(28.dp))
+        }
+
+        // Row 1 (Baseline Row - Fully Specified)
+        var baseAgeText by remember(stream.id) { mutableStateOf(stream.startAge.toString()) }
+        var basePayText by remember(stream.id) { mutableStateOf((stream.initialAnnualAmount.value / 100).toString()) }
+        var baseBumpText by remember(stream.id) { mutableStateOf(((stream.yearlyPayBumpRate * 1000).toInt() / 10.0).toString()) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                .border(1.dp, Color(0xFF81C784).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Column(modifier = Modifier.weight(1.2f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(modifier = Modifier.background(Color(0xFF81C784), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                        Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                    OutlinedTextField(
+                        value = baseAgeText,
+                        onValueChange = {
+                            baseAgeText = it
+                            val age = it.toIntOrNull() ?: stream.startAge
+                            onUpdateStream(stream.copy(startAge = age, startYear = entity.yearAtAge(age)))
+                        },
+                        label = { Text("Start Age") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = basePayText,
+                onValueChange = {
+                    basePayText = it
+                    val dollars = it.toLongOrNull() ?: 0L
+                    onUpdateStream(stream.copy(initialAnnualAmount = Money.ofDollars(dollars)))
+                },
+                label = { Text("Base Salary ($)") },
+                modifier = Modifier.weight(1.3f)
+            )
+
+            OutlinedTextField(
+                value = baseBumpText,
+                onValueChange = {
+                    baseBumpText = it
+                    val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
+                    onUpdateStream(stream.copy(yearlyPayBumpRate = rate))
+                },
+                label = { Text("Base Bump (%)") },
+                modifier = Modifier.weight(1.1f)
+            )
+
+            Text("Initial Career Salary", fontSize = 10.sp, color = Color(0xFFAAAAAA), modifier = Modifier.weight(1.4f).padding(start = 4.dp))
+            Spacer(Modifier.width(28.dp))
+        }
+
+        // Subsequent Override Rows (Row 2+)
+        stream.overrides.forEachIndexed { idx, ov ->
+            var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
+            var ovPayText by remember(ov.id) { mutableStateOf(ov.annualAmount?.let { (it.value / 100).toString() } ?: "") }
+            var ovBumpText by remember(ov.id) { mutableStateOf(ov.yearlyPayBumpRate?.let { ((it * 1000).toInt() / 10.0).toString() } ?: "") }
+            var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF252525), RoundedCornerShape(4.dp))
+                    .padding(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(modifier = Modifier.weight(1.2f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.background(Color(0xFF81C784).copy(alpha = 0.2f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                            Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
+                        }
+                        OutlinedTextField(
+                            value = ovAgeText,
+                            onValueChange = {
+                                ovAgeText = it
+                                val age = it.toIntOrNull() ?: ov.startAge
+                                val updated = stream.overrides.toMutableList()
+                                updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
+                                onUpdateStream(stream.copy(overrides = updated))
+                            },
+                            label = { Text("Start Age") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = ovPayText,
+                    onValueChange = {
+                        ovPayText = it
+                        val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
+                        val updated = stream.overrides.toMutableList()
+                        updated[idx] = ov.copy(annualAmount = dollars)
+                        onUpdateStream(stream.copy(overrides = updated))
+                    },
+                    label = { Text("New Salary ($)") },
+                    placeholder = { Text("(Compounded raise)", fontSize = 9.sp, color = Color.Gray) },
+                    modifier = Modifier.weight(1.3f)
+                )
+
+                OutlinedTextField(
+                    value = ovBumpText,
+                    onValueChange = {
+                        ovBumpText = it
+                        val rate = if (it.isBlank()) null else (it.toDoubleOrNull()?.let { r -> r / 100.0 })
+                        val updated = stream.overrides.toMutableList()
+                        updated[idx] = ov.copy(yearlyPayBumpRate = rate)
+                        onUpdateStream(stream.copy(overrides = updated))
+                    },
+                    label = { Text("New Raise (%)") },
+                    placeholder = { Text("—", fontSize = 10.sp, color = Color.Gray) },
+                    modifier = Modifier.weight(1.1f)
+                )
+
+                OutlinedTextField(
+                    value = ovLabelText,
+                    onValueChange = {
+                        ovLabelText = it
+                        val updated = stream.overrides.toMutableList()
+                        updated[idx] = ov.copy(label = it)
+                        onUpdateStream(stream.copy(overrides = updated))
+                    },
+                    label = { Text("Milestone / Note") },
+                    modifier = Modifier.weight(1.4f)
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        val updated = stream.overrides.filterIndexed { i, _ -> i != idx }
+                        onUpdateStream(stream.copy(overrides = updated))
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                    modifier = Modifier.size(28.dp).padding(0.dp)
+                ) {
+                    Text("✕", fontSize = 10.sp)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Editable Asset Pool Card with Timeline Attribute Override Schedule
  */
 @Composable
 private fun EditableAssetPoolCard(
@@ -1299,13 +1406,9 @@ private fun EditableAssetPoolCard(
 
     var name by remember(pool.id) { mutableStateOf(pool.name) }
     var balanceText by remember(pool.id) { mutableStateOf((pool.currentBalance.value / 100).toString()) }
-    var returnRateText by remember(pool.id) { mutableStateOf(((pool.expectedNominalReturn * 1000).toInt() / 10.0).toString()) }
-    var contributionText by remember(pool.id) { mutableStateOf((pool.annualContribution.value / 100).toString()) }
-    var withdrawalText by remember(pool.id) { mutableStateOf((pool.annualWithdrawal.value / 100).toString()) }
 
     var entityMenuExpanded by remember { mutableStateOf(false) }
     var catMenuExpanded by remember { mutableStateOf(false) }
-    var showPhases by remember { mutableStateOf(pool.phases.isNotEmpty()) }
 
     Box(
         modifier = Modifier
@@ -1329,9 +1432,20 @@ private fun EditableAssetPoolCard(
                             onUpdate(pool.copy(name = it))
                         },
                         label = { Text("Asset Pool Name") },
-                        modifier = Modifier.width(200.dp)
+                        modifier = Modifier.width(180.dp)
                     )
                 }
+
+                OutlinedTextField(
+                    value = balanceText,
+                    onValueChange = {
+                        balanceText = it
+                        val dollars = it.toLongOrNull() ?: 0L
+                        onUpdate(pool.copy(currentBalance = Money.ofDollars(dollars)))
+                    },
+                    label = { Text("Starting Balance ($)") },
+                    modifier = Modifier.width(160.dp)
+                )
 
                 // Owner Entity Dropdown
                 Box {
@@ -1381,93 +1495,24 @@ private fun EditableAssetPoolCard(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedTextField(
-                    value = balanceText,
-                    onValueChange = {
-                        balanceText = it
-                        val dollars = it.toLongOrNull() ?: 0L
-                        onUpdate(pool.copy(currentBalance = Money.ofDollars(dollars)))
-                    },
-                    label = { Text("Starting Balance ($)") },
-                    modifier = Modifier.weight(1.2f)
-                )
+            // Timeline Attribute Override Schedule Table
+            AssetPoolScheduleTable(
+                pool = pool,
+                entity = associatedEntity,
+                baseYear = household.baseYear,
+                onUpdatePool = onUpdate
+            )
 
-                OutlinedTextField(
-                    value = returnRateText,
-                    onValueChange = {
-                        returnRateText = it
-                        val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
-                        onUpdate(pool.copy(expectedNominalReturn = rate))
-                    },
-                    label = { Text("Expected Return (%)") },
-                    modifier = Modifier.weight(1.1f)
-                )
-
-                OutlinedTextField(
-                    value = contributionText,
-                    onValueChange = {
-                        contributionText = it
-                        val dollars = it.toLongOrNull() ?: 0L
-                        onUpdate(pool.copy(annualContribution = Money.ofDollars(dollars)))
-                    },
-                    label = { Text("Deposit/Contribution ($)") },
-                    modifier = Modifier.weight(1.2f)
-                )
-
-                OutlinedTextField(
-                    value = withdrawalText,
-                    onValueChange = {
-                        withdrawalText = it
-                        val dollars = it.toLongOrNull() ?: 0L
-                        onUpdate(pool.copy(annualWithdrawal = Money.ofDollars(dollars)))
-                    },
-                    label = { Text("Retirement Drawdown ($)") },
-                    modifier = Modifier.weight(1.2f)
-                )
-            }
-
-            // Phase Schedule Controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = { showPhases = !showPhases },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64B5F6))
-                ) {
-                    Text(if (showPhases) "Hide Year Schedules (${pool.phases.size})" else "+ Custom Contribution/Withdrawal Year Schedules (${pool.phases.size})", fontSize = 11.sp)
-                }
-
-                if (pool.phases.isNotEmpty()) {
-                    Text("Active: ${pool.phases.size} customized year tiers (Deposits & Withdrawals)", fontSize = 11.sp, color = Color(0xFF81C784), fontWeight = FontWeight.SemiBold)
-                }
-            }
-
-            if (showPhases) {
-                PhaseScheduleEditor(
-                    phases = pool.phases,
-                    entity = associatedEntity,
-                    baseYear = household.baseYear,
-                    isAssetPool = true,
-                    onUpdatePhases = { onUpdate(pool.copy(phases = it)) }
-                )
-            }
-
+            // Trajectory Chart Preview
             val trajectoryPoints = remember(pool, associatedEntity, household.baseYear) {
                 val startYr = household.baseYear
                 val endYr = household.baseYear + 40
                 var runningBalance = pool.currentBalance.value
-                val realReturn = (1.0 + pool.expectedNominalReturn) / (1.0 + 0.025) - 1.0
 
                 (startYr..endYr).map { yr ->
                     val age = associatedEntity.ageInYear(yr)
-                    val contrib = pool.targetContributionInYear(yr, associatedEntity)
-                    val withdr = pool.targetWithdrawalInYear(yr, associatedEntity)
+                    val (returnRate, contrib, withdr) = pool.effectiveAttributesInYear(yr, associatedEntity)
+                    val realReturn = (1.0 + returnRate) / (1.0 + 0.025) - 1.0
                     val growth = if (runningBalance > 0L) (runningBalance * realReturn).toLong() else 0L
 
                     val netBeforeWithdrawal = runningBalance + growth + contrib.value
@@ -1499,7 +1544,230 @@ private fun EditableAssetPoolCard(
 }
 
 /**
- * Editable Expense Card with Multi-Phase Year Schedules
+ * Asset Pool Schedule Table with Baseline and Override rows
+ */
+@Composable
+private fun AssetPoolScheduleTable(
+    pool: AssetPool,
+    entity: Entity,
+    baseYear: Int,
+    onUpdatePool: (AssetPool) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFF333333), RoundedCornerShape(8.dp))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("📅 Timeline & Attribute Override Schedule", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF42A5F5))
+                Text("Row 1 defines baseline values. Subsequent rows override only specified attributes from their start age.", fontSize = 10.sp, color = Color(0xFFAAAAAA))
+            }
+
+            Button(
+                onClick = {
+                    val nextAge = if (pool.overrides.isEmpty()) pool.startAge + 10 else (pool.overrides.last().startAge + 5)
+                    val newOv = AssetPoolOverride(
+                        id = "ov_${pool.overrides.size + 1}",
+                        timeMode = pool.timeMode,
+                        startAge = nextAge,
+                        startYear = entity.yearAtAge(nextAge),
+                        label = "Tier #${pool.overrides.size + 2}"
+                    )
+                    onUpdatePool(pool.copy(overrides = pool.overrides + newOv))
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF42A5F5)),
+                modifier = Modifier.height(28.dp)
+            ) {
+                Text("+ Add Override Row", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        // Table Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF282828), RoundedCornerShape(4.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+            Text("Return Rate (%)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.1f))
+            Text("Annual Flow ($) [+Deposit / -Drawdown]", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784), modifier = Modifier.weight(1.8f))
+            Text("Note / Label", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+            Spacer(Modifier.width(28.dp))
+        }
+
+        // Row 1 (Baseline Row - Fully Specified)
+        var baseAgeText by remember(pool.id) { mutableStateOf(pool.startAge.toString()) }
+        var baseReturnText by remember(pool.id) { mutableStateOf(((pool.expectedNominalReturn * 1000).toInt() / 10.0).toString()) }
+        val initialBaseFlow = pool.baseFlow()
+        var baseFlowText by remember(pool.id) { mutableStateOf((initialBaseFlow.value / 100).toString()) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                .border(1.dp, Color(0xFF42A5F5).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Column(modifier = Modifier.weight(1.3f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(modifier = Modifier.background(Color(0xFF42A5F5), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                        Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                    OutlinedTextField(
+                        value = baseAgeText,
+                        onValueChange = {
+                            baseAgeText = it
+                            val age = it.toIntOrNull() ?: pool.startAge
+                            onUpdatePool(pool.copy(startAge = age, startYear = entity.yearAtAge(age)))
+                        },
+                        label = { Text("Start Age") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = baseReturnText,
+                onValueChange = {
+                    baseReturnText = it
+                    val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
+                    onUpdatePool(pool.copy(expectedNominalReturn = rate))
+                },
+                label = { Text("Base %") },
+                modifier = Modifier.weight(1.1f)
+            )
+
+            OutlinedTextField(
+                value = baseFlowText,
+                onValueChange = {
+                    baseFlowText = it
+                    val dollars = it.toLongOrNull() ?: 0L
+                    onUpdatePool(
+                        pool.copy(
+                            annualFlow = Money.ofDollars(dollars),
+                            annualContribution = if (dollars > 0L) Money.ofDollars(dollars) else Money.ZERO,
+                            annualWithdrawal = if (dollars < 0L) Money.ofDollars(-dollars) else Money.ZERO
+                        )
+                    )
+                },
+                label = { Text("Flow (+In / -Drawdown)") },
+                modifier = Modifier.weight(1.8f)
+            )
+
+            Text("Initial Plan", fontSize = 10.sp, color = Color(0xFFAAAAAA), modifier = Modifier.weight(1.3f).padding(start = 4.dp))
+            Spacer(Modifier.width(28.dp))
+        }
+
+        // Subsequent Override Rows (Row 2+)
+        pool.overrides.forEachIndexed { idx, ov ->
+            var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
+            var ovReturnText by remember(ov.id) { mutableStateOf(ov.expectedNominalReturn?.let { ((it * 1000).toInt() / 10.0).toString() } ?: "") }
+            val existingFlow = ov.effectiveFlow()
+            var ovFlowText by remember(ov.id) { mutableStateOf(existingFlow?.let { (it.value / 100).toString() } ?: "") }
+            var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF252525), RoundedCornerShape(4.dp))
+                    .padding(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(modifier = Modifier.weight(1.3f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.background(Color(0xFF64B5F6).copy(alpha = 0.2f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                            Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64B5F6))
+                        }
+                        OutlinedTextField(
+                            value = ovAgeText,
+                            onValueChange = {
+                                ovAgeText = it
+                                val age = it.toIntOrNull() ?: ov.startAge
+                                val updated = pool.overrides.toMutableList()
+                                updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
+                                onUpdatePool(pool.copy(overrides = updated))
+                            },
+                            label = { Text("Start Age") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = ovReturnText,
+                    onValueChange = {
+                        ovReturnText = it
+                        val rate = if (it.isBlank()) null else (it.toDoubleOrNull()?.let { r -> r / 100.0 })
+                        val updated = pool.overrides.toMutableList()
+                        updated[idx] = ov.copy(expectedNominalReturn = rate)
+                        onUpdatePool(pool.copy(overrides = updated))
+                    },
+                    label = { Text("Override %") },
+                    placeholder = { Text("—", fontSize = 10.sp, color = Color.Gray) },
+                    modifier = Modifier.weight(1.1f)
+                )
+
+                OutlinedTextField(
+                    value = ovFlowText,
+                    onValueChange = {
+                        ovFlowText = it
+                        val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
+                        val updated = pool.overrides.toMutableList()
+                        updated[idx] = ov.copy(
+                            annualFlow = dollars,
+                            annualContribution = if (dollars != null && dollars.value > 0L) dollars else null,
+                            annualWithdrawal = if (dollars != null && dollars.value < 0L) Money(-dollars.value) else null
+                        )
+                        onUpdatePool(pool.copy(overrides = updated))
+                    },
+                    label = { Text("Override Flow (+/-)") },
+                    placeholder = { Text("(Inherited)", fontSize = 10.sp, color = Color.Gray) },
+                    modifier = Modifier.weight(1.8f)
+                )
+
+                OutlinedTextField(
+                    value = ovLabelText,
+                    onValueChange = {
+                        ovLabelText = it
+                        val updated = pool.overrides.toMutableList()
+                        updated[idx] = ov.copy(label = it)
+                        onUpdatePool(pool.copy(overrides = updated))
+                    },
+                    label = { Text("Note") },
+                    modifier = Modifier.weight(1.3f)
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        val updated = pool.overrides.filterIndexed { i, _ -> i != idx }
+                        onUpdatePool(pool.copy(overrides = updated))
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                    modifier = Modifier.size(28.dp).padding(0.dp)
+                ) {
+                    Text("✕", fontSize = 10.sp)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Editable Expense Card with Timeline Attribute Override Schedule
  */
 @Composable
 private fun EditableExpenseCard(
@@ -1511,18 +1779,8 @@ private fun EditableExpenseCard(
     val associatedEntity = household.findEntity(expense.entityId) ?: household.primaryEntity()
 
     var name by remember(expense.id) { mutableStateOf(expense.name) }
-    var amountText by remember(expense.id) { mutableStateOf((expense.annualAmount.value / 100).toString()) }
-    var interestText by remember(expense.id) { mutableStateOf(((expense.compoundingInterestRate * 1000).toInt() / 10.0).toString()) }
-
-    var startAgeText by remember(expense.id, expense.timeMode) { mutableStateOf(expense.startAge.toString()) }
-    var endAgeText by remember(expense.id, expense.timeMode) { mutableStateOf(expense.endAge.toString()) }
-    var startYearText by remember(expense.id, expense.timeMode) { mutableStateOf(expense.startYear.toString()) }
-    var endYearText by remember(expense.id, expense.timeMode) { mutableStateOf(expense.endYear.toString()) }
-
-    var typeMenuExpanded by remember { mutableStateOf(false) }
-    var catMenuExpanded by remember { mutableStateOf(false) }
     var entityMenuExpanded by remember { mutableStateOf(false) }
-    var showPhases by remember { mutableStateOf(expense.phases.isNotEmpty()) }
+    var catMenuExpanded by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1531,7 +1789,7 @@ private fun EditableExpenseCard(
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Row 1: Name, Associated Entity, Timing Mode, Type, Category, Delete
+            // Row 1: Name, Associated Entity, Timing Mode, Category, Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1543,7 +1801,7 @@ private fun EditableExpenseCard(
                         name = it
                         onUpdate(expense.copy(name = it))
                     },
-                    label = { Text("Expense Name") },
+                    label = { Text("Expense / Debt Name") },
                     modifier = Modifier.weight(1.3f)
                 )
 
@@ -1564,48 +1822,6 @@ private fun EditableExpenseCard(
                                 onUpdate(expense.copy(entityId = entity.id))
                             }) {
                                 Text("${entity.name} (Born ${entity.birthYear})")
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.width(8.dp))
-
-                // Timing Mode Toggle
-                TimingModeToggle(
-                    selectedMode = expense.timeMode,
-                    onSelectMode = { newMode ->
-                        if (newMode == TimeMode.CALENDAR_YEAR) {
-                            val sYr = associatedEntity.yearAtAge(expense.startAge)
-                            val eYr = associatedEntity.yearAtAge(expense.endAge)
-                            onUpdate(expense.copy(timeMode = newMode, startYear = sYr, endYear = eYr))
-                        } else {
-                            val sAge = associatedEntity.ageInYear(expense.startYear)
-                            val eAge = associatedEntity.ageInYear(expense.endYear)
-                            onUpdate(expense.copy(timeMode = newMode, startAge = sAge, endAge = eAge))
-                        }
-                    }
-                )
-
-                Spacer(Modifier.width(8.dp))
-
-                // Expense Type Dropdown
-                Box {
-                    OutlinedButton(onClick = { typeMenuExpanded = true }) {
-                        Text(expense.expenseType.displayName, fontSize = 11.sp, color = MaterialTheme.colors.primary)
-                    }
-                    DropdownMenu(
-                        expanded = typeMenuExpanded,
-                        onDismissRequest = { typeMenuExpanded = false }
-                    ) {
-                        ExpenseType.entries.forEach { type ->
-                            DropdownMenuItem(onClick = {
-                                typeMenuExpanded = false
-                                val newEndAge = if (type == ExpenseType.ONE_TIME) expense.startAge else expense.endAge
-                                val newEndYear = if (type == ExpenseType.ONE_TIME) expense.startYear else expense.endYear
-                                onUpdate(expense.copy(expenseType = type, endAge = newEndAge, endYear = newEndYear))
-                            }) {
-                                Text(type.displayName)
                             }
                         }
                     }
@@ -1643,132 +1859,13 @@ private fun EditableExpenseCard(
                 }
             }
 
-            // Row 2: Amount, Start & Stop (Age or Year), Interest Rate (if compounding debt)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                val amountLabel = when (expense.expenseType) {
-                    ExpenseType.RECURRING -> "Annual Amount ($)"
-                    ExpenseType.ONE_TIME -> "Lump Sum Amount ($)"
-                    ExpenseType.COMPOUNDING_DEBT -> "Annual Payment ($)"
-                }
-
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = {
-                        amountText = it
-                        val dollars = it.toLongOrNull() ?: 0L
-                        onUpdate(expense.copy(annualAmount = Money.ofDollars(dollars)))
-                    },
-                    label = { Text(amountLabel) },
-                    modifier = Modifier.weight(1.2f)
-                )
-
-                if (expense.timeMode == TimeMode.ENTITY_AGE) {
-                    OutlinedTextField(
-                        value = startAgeText,
-                        onValueChange = {
-                            startAgeText = it
-                            val age = it.toIntOrNull() ?: expense.startAge
-                            val end = if (expense.expenseType == ExpenseType.ONE_TIME) age else expense.endAge
-                            val sYr = associatedEntity.yearAtAge(age)
-                            val eYr = associatedEntity.yearAtAge(end)
-                            onUpdate(expense.copy(startAge = age, endAge = end, startYear = sYr, endYear = eYr))
-                        },
-                        label = { Text("Start Age (${associatedEntity.name})") },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    if (expense.expenseType != ExpenseType.ONE_TIME) {
-                        OutlinedTextField(
-                            value = endAgeText,
-                            onValueChange = {
-                                endAgeText = it
-                                val age = it.toIntOrNull() ?: expense.endAge
-                                val eYr = associatedEntity.yearAtAge(age)
-                                onUpdate(expense.copy(endAge = age, endYear = eYr))
-                            },
-                            label = { Text("Stop Age") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                } else {
-                    OutlinedTextField(
-                        value = startYearText,
-                        onValueChange = {
-                            startYearText = it
-                            val yr = it.toIntOrNull() ?: expense.startYear
-                            val end = if (expense.expenseType == ExpenseType.ONE_TIME) yr else expense.endYear
-                            val sAge = associatedEntity.ageInYear(yr)
-                            val eAge = associatedEntity.ageInYear(end)
-                            onUpdate(expense.copy(startYear = yr, endYear = end, startAge = sAge, endAge = eAge))
-                        },
-                        label = { Text("Start Year") },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    if (expense.expenseType != ExpenseType.ONE_TIME) {
-                        OutlinedTextField(
-                            value = endYearText,
-                            onValueChange = {
-                                endYearText = it
-                                val yr = it.toIntOrNull() ?: expense.endYear
-                                val eAge = associatedEntity.ageInYear(yr)
-                                onUpdate(expense.copy(endYear = yr, endAge = eAge))
-                            },
-                            label = { Text("Stop Year") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                if (expense.expenseType == ExpenseType.COMPOUNDING_DEBT) {
-                    OutlinedTextField(
-                        value = interestText,
-                        onValueChange = {
-                            interestText = it
-                            val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
-                            onUpdate(expense.copy(compoundingInterestRate = rate))
-                        },
-                        label = { Text("Interest APR (%)") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            // Phase Schedule Controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = { showPhases = !showPhases },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64B5F6))
-                ) {
-                    Text(if (showPhases) "Hide Year Schedules (${expense.phases.size})" else "+ Custom Expense Year Schedules (${expense.phases.size})", fontSize = 11.sp)
-                }
-
-                val effStartYear = expense.effectiveStartYear(associatedEntity)
-                val effEndYear = expense.effectiveEndYear(associatedEntity)
-                val effStartAge = associatedEntity.ageInYear(effStartYear)
-                val effEndAge = associatedEntity.ageInYear(effEndYear)
-                Text(
-                    "Active: Years $effStartYear–$effEndYear (${associatedEntity.name} Ages $effStartAge–$effEndAge)",
-                    fontSize = 11.sp,
-                    color = Color(0xFFAAAAAA)
-                )
-            }
-
-            if (showPhases) {
-                PhaseScheduleEditor(
-                    phases = expense.phases,
-                    entity = associatedEntity,
-                    baseYear = household.baseYear,
-                    onUpdatePhases = { onUpdate(expense.copy(phases = it)) }
-                )
-            }
+            // Timeline Attribute Override Schedule Table
+            ExpenseItemScheduleTable(
+                expense = expense,
+                entity = associatedEntity,
+                baseYear = household.baseYear,
+                onUpdateExpense = onUpdate
+            )
 
             val isLoanDebt = expense.expenseType == ExpenseType.COMPOUNDING_DEBT
             val trajectoryPoints = remember(expense, associatedEntity, household.baseYear) {
@@ -1825,20 +1922,20 @@ private fun EditableExpenseCard(
 }
 
 /**
- * Multi-Phase Schedule Editor (Reusable for Pools, Income Streams, and Expenses)
+ * Expense Item Schedule Table with Baseline and Override rows
  */
 @Composable
-private fun PhaseScheduleEditor(
-    phases: List<SchedulePhase>,
+private fun ExpenseItemScheduleTable(
+    expense: ExpenseItem,
     entity: Entity,
     baseYear: Int,
-    isAssetPool: Boolean = false,
-    onUpdatePhases: (List<SchedulePhase>) -> Unit
+    onUpdateExpense: (ExpenseItem) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF1E1E1E), RoundedCornerShape(6.dp))
+            .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFF333333), RoundedCornerShape(8.dp))
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -1847,130 +1944,221 @@ private fun PhaseScheduleEditor(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Year-to-Year Schedules & Tiers", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colors.primary)
+            Column {
+                Text("📅 Timeline & Attribute Override Schedule", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350))
+                Text("Row 1 sets baseline annual expense & type. Subsequent rows override amount, type, or debt interest at milestone times.", fontSize = 10.sp, color = Color(0xFFAAAAAA))
+            }
 
             Button(
                 onClick = {
-                    val newPhase = SchedulePhase(
-                        id = "phase_${phases.size + 1}",
-                        name = "Tier #${phases.size + 1}",
-                        timeMode = TimeMode.ENTITY_AGE,
-                        startAge = entity.ageInYear(baseYear),
-                        endAge = entity.retirementAge,
-                        startYear = baseYear,
-                        endYear = entity.yearAtAge(entity.retirementAge),
-                        amount = Money.ofDollars(5_000),
-                        isWithdrawal = false
+                    val nextAge = if (expense.overrides.isEmpty()) expense.startAge + 10 else (expense.overrides.last().startAge + 5)
+                    val newOv = ExpenseItemOverride(
+                        id = "ov_${expense.overrides.size + 1}",
+                        timeMode = expense.timeMode,
+                        startAge = nextAge,
+                        startYear = entity.yearAtAge(nextAge),
+                        label = "Phase #${expense.overrides.size + 2}"
                     )
-                    onUpdatePhases(phases + newPhase)
+                    onUpdateExpense(expense.copy(overrides = expense.overrides + newOv))
                 },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF64B5F6))
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFEF5350)),
+                modifier = Modifier.height(28.dp)
             ) {
-                Text("+ Add Year Tier", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("+ Add Override Row", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
 
-        phases.forEachIndexed { idx, phase ->
-            var phaseName by remember(phase.id) { mutableStateOf(phase.name) }
-            var startAgeText by remember(phase.id) { mutableStateOf(phase.startAge.toString()) }
-            var endAgeText by remember(phase.id) { mutableStateOf(phase.endAge.toString()) }
-            var amountText by remember(phase.id) { mutableStateOf((phase.amount.value / 100).toString()) }
+        // Table Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF282828), RoundedCornerShape(4.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.2f))
+            Text("Annual Cost ($)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350), modifier = Modifier.weight(1.3f))
+            Text("Type & Interest", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+            Text("Note / Milestone", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
+            Spacer(Modifier.width(28.dp))
+        }
+
+        // Row 1 (Baseline Row - Fully Specified)
+        var baseAgeText by remember(expense.id) { mutableStateOf(expense.startAge.toString()) }
+        var baseAmountText by remember(expense.id) { mutableStateOf((expense.annualAmount.value / 100).toString()) }
+        var baseInterestText by remember(expense.id) { mutableStateOf(((expense.compoundingInterestRate * 1000).toInt() / 10.0).toString()) }
+        var typeMenuExpanded by remember { mutableStateOf(false) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                .border(1.dp, Color(0xFFEF5350).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Column(modifier = Modifier.weight(1.2f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(modifier = Modifier.background(Color(0xFFEF5350), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                        Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                    OutlinedTextField(
+                        value = baseAgeText,
+                        onValueChange = {
+                            baseAgeText = it
+                            val age = it.toIntOrNull() ?: expense.startAge
+                            onUpdateExpense(expense.copy(startAge = age, startYear = entity.yearAtAge(age)))
+                        },
+                        label = { Text("Start Age") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = baseAmountText,
+                onValueChange = {
+                    baseAmountText = it
+                    val dollars = it.toLongOrNull() ?: 0L
+                    onUpdateExpense(expense.copy(annualAmount = Money.ofDollars(dollars)))
+                },
+                label = { Text("Base Cost ($)") },
+                modifier = Modifier.weight(1.3f)
+            )
+
+            Row(modifier = Modifier.weight(1.3f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box {
+                    OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.height(36.dp)) {
+                        Text(expense.expenseType.displayName, fontSize = 9.sp)
+                    }
+                    DropdownMenu(expanded = typeMenuExpanded, onDismissRequest = { typeMenuExpanded = false }) {
+                        ExpenseType.entries.forEach { t ->
+                            DropdownMenuItem(onClick = {
+                                typeMenuExpanded = false
+                                onUpdateExpense(expense.copy(expenseType = t))
+                            }) {
+                                Text(t.displayName, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+
+                if (expense.expenseType == ExpenseType.COMPOUNDING_DEBT) {
+                    OutlinedTextField(
+                        value = baseInterestText,
+                        onValueChange = {
+                            baseInterestText = it
+                            val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
+                            onUpdateExpense(expense.copy(compoundingInterestRate = rate))
+                        },
+                        label = { Text("APR %") },
+                        modifier = Modifier.width(65.dp)
+                    )
+                }
+            }
+
+            Text("Initial Baseline", fontSize = 10.sp, color = Color(0xFFAAAAAA), modifier = Modifier.weight(1.4f).padding(start = 4.dp))
+            Spacer(Modifier.width(28.dp))
+        }
+
+        // Subsequent Override Rows (Row 2+)
+        expense.overrides.forEachIndexed { idx, ov ->
+            var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
+            var ovAmountText by remember(ov.id) { mutableStateOf(ov.annualAmount?.let { (it.value / 100).toString() } ?: "") }
+            var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
+            var ovTypeMenuExpanded by remember { mutableStateOf(false) }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF282828), RoundedCornerShape(4.dp))
-                    .padding(8.dp),
+                    .background(Color(0xFF252525), RoundedCornerShape(4.dp))
+                    .padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = phaseName,
-                    onValueChange = {
-                        phaseName = it
-                        val updated = phases.toMutableList()
-                        updated[idx] = phase.copy(name = it)
-                        onUpdatePhases(updated)
-                    },
-                    label = { Text("Tier Label") },
-                    modifier = Modifier.weight(1.2f)
-                )
-
-                if (isAssetPool) {
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                if (phase.isWithdrawal) Color(0xFFEF5350).copy(alpha = 0.25f) else Color(0xFF81C784).copy(alpha = 0.25f),
-                                RoundedCornerShape(4.dp)
-                            )
-                            .border(
-                                1.dp,
-                                if (phase.isWithdrawal) Color(0xFFEF5350) else Color(0xFF81C784),
-                                RoundedCornerShape(4.dp)
-                            )
-                            .clickable {
-                                val updated = phases.toMutableList()
-                                updated[idx] = phase.copy(isWithdrawal = !phase.isWithdrawal)
-                                onUpdatePhases(updated)
-                            }
-                            .padding(horizontal = 8.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            if (phase.isWithdrawal) "Withdrawal (Red)" else "Deposit (Green)",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (phase.isWithdrawal) Color(0xFFEF5350) else Color(0xFF81C784)
+                Column(modifier = Modifier.weight(1.2f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.background(Color(0xFFEF5350).copy(alpha = 0.2f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                            Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350))
+                        }
+                        OutlinedTextField(
+                            value = ovAgeText,
+                            onValueChange = {
+                                ovAgeText = it
+                                val age = it.toIntOrNull() ?: ov.startAge
+                                val updated = expense.overrides.toMutableList()
+                                updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
+                                onUpdateExpense(expense.copy(overrides = updated))
+                            },
+                            label = { Text("Start Age") },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
                 OutlinedTextField(
-                    value = startAgeText,
+                    value = ovAmountText,
                     onValueChange = {
-                        startAgeText = it
-                        val age = it.toIntOrNull() ?: phase.startAge
-                        val updated = phases.toMutableList()
-                        updated[idx] = phase.copy(startAge = age, startYear = entity.yearAtAge(age))
-                        onUpdatePhases(updated)
+                        ovAmountText = it
+                        val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
+                        val updated = expense.overrides.toMutableList()
+                        updated[idx] = ov.copy(annualAmount = dollars)
+                        onUpdateExpense(expense.copy(overrides = updated))
                     },
-                    label = { Text("Start Age") },
-                    modifier = Modifier.weight(0.8f)
+                    label = { Text("New Cost ($)") },
+                    placeholder = { Text("(Inherited)", fontSize = 9.sp, color = Color.Gray) },
+                    modifier = Modifier.weight(1.3f)
                 )
 
-                OutlinedTextField(
-                    value = endAgeText,
-                    onValueChange = {
-                        endAgeText = it
-                        val age = it.toIntOrNull() ?: phase.endAge
-                        val updated = phases.toMutableList()
-                        updated[idx] = phase.copy(endAge = age, endYear = entity.yearAtAge(age))
-                        onUpdatePhases(updated)
-                    },
-                    label = { Text("End Age") },
-                    modifier = Modifier.weight(0.8f)
-                )
+                Box(modifier = Modifier.weight(1.3f)) {
+                    OutlinedButton(onClick = { ovTypeMenuExpanded = true }, modifier = Modifier.height(36.dp)) {
+                        Text(ov.expenseType?.displayName ?: "(Inherited Type)", fontSize = 9.sp)
+                    }
+                    DropdownMenu(expanded = ovTypeMenuExpanded, onDismissRequest = { ovTypeMenuExpanded = false }) {
+                        DropdownMenuItem(onClick = {
+                            ovTypeMenuExpanded = false
+                            val updated = expense.overrides.toMutableList()
+                            updated[idx] = ov.copy(expenseType = null)
+                            onUpdateExpense(expense.copy(overrides = updated))
+                        }) {
+                            Text("(Inherit Type)", fontSize = 11.sp, color = Color.Gray)
+                        }
+                        ExpenseType.entries.forEach { t ->
+                            DropdownMenuItem(onClick = {
+                                ovTypeMenuExpanded = false
+                                val updated = expense.overrides.toMutableList()
+                                updated[idx] = ov.copy(expenseType = t)
+                                onUpdateExpense(expense.copy(overrides = updated))
+                            }) {
+                                Text(t.displayName, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
 
                 OutlinedTextField(
-                    value = amountText,
+                    value = ovLabelText,
                     onValueChange = {
-                        amountText = it
-                        val dollars = it.toLongOrNull() ?: 0L
-                        val updated = phases.toMutableList()
-                        updated[idx] = phase.copy(amount = Money.ofDollars(dollars))
-                        onUpdatePhases(updated)
+                        ovLabelText = it
+                        val updated = expense.overrides.toMutableList()
+                        updated[idx] = ov.copy(label = it)
+                        onUpdateExpense(expense.copy(overrides = updated))
                     },
-                    label = { Text(if (phase.isWithdrawal) "Withdrawal ($)" else "Annual ($)") },
-                    modifier = Modifier.weight(1.2f)
+                    label = { Text("Note") },
+                    modifier = Modifier.weight(1.4f)
                 )
 
                 OutlinedButton(
                     onClick = {
-                        val updated = phases.filterIndexed { i, _ -> i != idx }
-                        onUpdatePhases(updated)
+                        val updated = expense.overrides.filterIndexed { i, _ -> i != idx }
+                        onUpdateExpense(expense.copy(overrides = updated))
                     },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373))
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                    modifier = Modifier.size(28.dp).padding(0.dp)
                 ) {
-                    Text("✕", fontSize = 11.sp)
+                    Text("✕", fontSize = 10.sp)
                 }
             }
         }

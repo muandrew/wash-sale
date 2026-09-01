@@ -22,44 +22,75 @@ data class AssetPool(
     val entityId: String = "",
     val expectedNominalReturn: Double = category.defaultReturnRate,
     val returnVolatility: Double = category.defaultVolatility,
+    val annualFlow: Money = Money.ZERO, // Signed Money: + for Deposit/Contribution, - for Drawdown/Withdrawal
     val annualContribution: Money = Money.ZERO,
     val contributionEndAge: Int? = null,
     val annualWithdrawal: Money = Money.ZERO,
     val withdrawalStartAge: Int? = null,
     val withdrawalEndAge: Int? = null,
+    val startAge: Int = 30,
+    val startYear: Int = 2026,
+    val timeMode: TimeMode = TimeMode.ENTITY_AGE,
+    val overrides: List<AssetPoolOverride> = emptyList(),
     val phases: List<SchedulePhase> = emptyList()
 ) {
-    /**
-     * Calculates the target annual contribution (inflow) in a specific calendar year.
-     */
-    fun targetContributionInYear(calendarYear: Int, owner: Entity?): Money {
-        val contribPhases = phases.filter { !it.isWithdrawal }
-        if (contribPhases.isNotEmpty()) {
-            val matchingPhase = contribPhases.firstOrNull { it.isApplicableInYear(calendarYear, owner) }
-            return matchingPhase?.amount ?: Money.ZERO
-        }
-        val ownerAge = owner?.ageInYear(calendarYear) ?: 30
-        val endAge = contributionEndAge ?: owner?.retirementAge ?: 65
-        return if (ownerAge < endAge) annualContribution else Money.ZERO
+    fun baseFlow(): Money {
+        if (annualFlow.value != 0L) return annualFlow
+        if (annualWithdrawal.value > 0L) return Money(-annualWithdrawal.value)
+        return annualContribution
     }
 
     /**
-     * Calculates the target annual withdrawal (outflow) in a specific calendar year.
+     * Calculates the effective return rate and signed flow (+ deposit, - drawdown) in a specific year.
      */
-    fun targetWithdrawalInYear(calendarYear: Int, owner: Entity?): Money {
-        val withdrPhases = phases.filter { it.isWithdrawal }
-        if (withdrPhases.isNotEmpty()) {
-            val matchingPhase = withdrPhases.firstOrNull { it.isApplicableInYear(calendarYear, owner) }
-            return matchingPhase?.amount ?: Money.ZERO
+    fun effectiveFlowInYear(calendarYear: Int, owner: Entity?): Pair<Double, Money> {
+        var rate = expectedNominalReturn
+        var flow = baseFlow()
+
+        // Legacy phases bridge if present and no overrides
+        if (phases.isNotEmpty() && overrides.isEmpty()) {
+            val contribPhases = phases.filter { !it.isWithdrawal }
+            val matchingContrib = contribPhases.firstOrNull { it.isApplicableInYear(calendarYear, owner) }
+            val contrib = matchingContrib?.amount ?: (if ((owner?.ageInYear(calendarYear) ?: 30) < (contributionEndAge ?: owner?.retirementAge ?: 65)) annualContribution else Money.ZERO)
+
+            val withdrPhases = phases.filter { it.isWithdrawal }
+            val matchingWithdr = withdrPhases.firstOrNull { it.isApplicableInYear(calendarYear, owner) }
+            val withdr = matchingWithdr?.amount ?: (if ((owner?.ageInYear(calendarYear) ?: 30) >= (withdrawalStartAge ?: contributionEndAge ?: owner?.retirementAge ?: 60)) annualWithdrawal else Money.ZERO)
+
+            val net = if (withdr.value > 0L) Money(-withdr.value) else contrib
+            return Pair(rate, net)
         }
-        if (annualWithdrawal.value > 0L) {
-            val ownerAge = owner?.ageInYear(calendarYear) ?: 30
-            val startAge = withdrawalStartAge ?: contributionEndAge ?: owner?.retirementAge ?: 60
-            val endAge = withdrawalEndAge ?: 95
-            if (ownerAge in startAge..endAge) {
-                return annualWithdrawal
+
+        // Chronologically evaluate overrides
+        val sortedOverrides = overrides.sortedBy { it.effectiveStartYear(owner) }
+        for (ov in sortedOverrides) {
+            if (ov.effectiveStartYear(owner) <= calendarYear) {
+                ov.expectedNominalReturn?.let { rate = it }
+                ov.effectiveFlow()?.let { flow = it }
             }
         }
-        return Money.ZERO
+        return Pair(rate, flow)
+    }
+
+    /**
+     * Calculates the effective return rate, contribution (deposit), and withdrawal in a specific year.
+     */
+    fun effectiveAttributesInYear(calendarYear: Int, owner: Entity?): Triple<Double, Money, Money> {
+        val (rate, flow) = effectiveFlowInYear(calendarYear, owner)
+        val contrib = if (flow.value > 0L) flow else Money.ZERO
+        val withdr = if (flow.value < 0L) Money(-flow.value) else Money.ZERO
+        return Triple(rate, contrib, withdr)
+    }
+
+    fun targetContributionInYear(calendarYear: Int, owner: Entity?): Money {
+        return effectiveAttributesInYear(calendarYear, owner).second
+    }
+
+    fun targetWithdrawalInYear(calendarYear: Int, owner: Entity?): Money {
+        return effectiveAttributesInYear(calendarYear, owner).third
+    }
+
+    fun expectedReturnInYear(calendarYear: Int, owner: Entity?): Double {
+        return effectiveAttributesInYear(calendarYear, owner).first
     }
 }

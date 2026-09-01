@@ -14,6 +14,7 @@ data class IncomeStream(
     val endYear: Int = 2061,
     val yearlyPayBumpRate: Double = 0.03, // 3.0% yearly raise / merit growth
     val inflationAdjusted: Boolean = true,
+    val overrides: List<IncomeStreamOverride> = emptyList(),
     val phases: List<SchedulePhase> = emptyList()
 ) {
     fun effectiveStartYear(entity: Entity?): Int {
@@ -31,16 +32,20 @@ data class IncomeStream(
     }
 
     fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
-        if (phases.isNotEmpty()) {
+        if (phases.isNotEmpty() && overrides.isEmpty()) {
             return phases.any { it.isApplicableInYear(calendarYear, entity) }
         }
         val sYear = effectiveStartYear(entity)
-        val eYear = effectiveEndYear(entity)
-        return calendarYear in sYear..eYear
+        if (calendarYear < sYear) return false
+        if (overrides.isEmpty()) {
+            val eYear = effectiveEndYear(entity)
+            return calendarYear in sYear..eYear
+        }
+        return true
     }
 
     fun amountInYear(calendarYear: Int, baseYear: Int, entity: Entity?, inflationRate: Double): Money {
-        if (phases.isNotEmpty()) {
+        if (phases.isNotEmpty() && overrides.isEmpty()) {
             val matchingPhase = phases.firstOrNull { it.isApplicableInYear(calendarYear, entity) } ?: return Money.ZERO
             val sYear = matchingPhase.effectiveStartYear(entity)
             val yearsActive = (calendarYear - sYear).coerceAtLeast(0)
@@ -51,17 +56,39 @@ data class IncomeStream(
             return Money(totalCents)
         }
 
-        if (!isApplicableInYear(calendarYear, entity)) return Money.ZERO
-        val sYear = effectiveStartYear(entity)
-        val yearsActive = (calendarYear - sYear).coerceAtLeast(0)
-        val raiseFactor = (1.0 + yearlyPayBumpRate).pow(yearsActive.toDouble())
+        val baseStartYear = effectiveStartYear(entity)
+        if (calendarYear < baseStartYear) return Money.ZERO
+
+        if (overrides.isEmpty()) {
+            val baseEndYear = effectiveEndYear(entity)
+            if (calendarYear > baseEndYear) return Money.ZERO
+        }
+
+        var activeStartYear = baseStartYear
+        var activeBaseAmount = initialAnnualAmount
+        var activeBumpRate = yearlyPayBumpRate
+
+        val sortedOverrides = overrides.sortedBy { it.effectiveStartYear(entity) }
+        for (ov in sortedOverrides) {
+            val ovStart = ov.effectiveStartYear(entity)
+            if (ovStart <= calendarYear) {
+                activeStartYear = ovStart
+                ov.annualAmount?.let { activeBaseAmount = it }
+                ov.yearlyPayBumpRate?.let { activeBumpRate = it }
+            }
+        }
+
+        if (activeBaseAmount.value <= 0L) return Money.ZERO
+
+        val yearsActive = (calendarYear - activeStartYear).coerceAtLeast(0)
+        val raiseFactor = (1.0 + activeBumpRate).pow(yearsActive.toDouble())
         val yearsFromBase = (calendarYear - baseYear).coerceAtLeast(0)
         val infFactor = if (inflationAdjusted) (1.0 + inflationRate).pow(yearsFromBase.toDouble()) else 1.0
-        val totalCents = (initialAnnualAmount.value * raiseFactor * infFactor).toLong()
+        val totalCents = (activeBaseAmount.value * raiseFactor * infFactor).toLong()
         return Money(totalCents)
     }
 
-    // Compatibility method when entity is not directly passed
+    // Compatibility methods
     fun isApplicableAtAge(age: Int): Boolean = age in startAge..endAge
 
     fun amountAtAge(age: Int, baseAge: Int, inflationRate: Double): Money {

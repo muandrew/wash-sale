@@ -35,6 +35,7 @@ data class ExpenseItem(
     val expenseType: ExpenseType = ExpenseType.RECURRING,
     val compoundingInterestRate: Double = 0.0, // e.g. 0.07 for 7.0% APR compounding debt
     val inflationAdjusted: Boolean = true,
+    val overrides: List<ExpenseItemOverride> = emptyList(),
     val phases: List<SchedulePhase> = emptyList()
 ) {
     fun effectiveStartYear(entity: Entity?): Int {
@@ -56,16 +57,20 @@ data class ExpenseItem(
     }
 
     fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
-        if (phases.isNotEmpty()) {
+        if (phases.isNotEmpty() && overrides.isEmpty()) {
             return phases.any { it.isApplicableInYear(calendarYear, entity) }
         }
         val sYear = effectiveStartYear(entity)
-        val eYear = effectiveEndYear(entity)
-        return calendarYear in sYear..eYear
+        if (calendarYear < sYear) return false
+        if (overrides.isEmpty()) {
+            val eYear = effectiveEndYear(entity)
+            return calendarYear in sYear..eYear
+        }
+        return true
     }
 
     fun amountInYear(calendarYear: Int, baseYear: Int, entity: Entity?, inflationRate: Double): Money {
-        if (phases.isNotEmpty()) {
+        if (phases.isNotEmpty() && overrides.isEmpty()) {
             val matchingPhase = phases.firstOrNull { it.isApplicableInYear(calendarYear, entity) } ?: return Money.ZERO
             val sYear = matchingPhase.effectiveStartYear(entity)
             val yearsFromBase = (calendarYear - baseYear).coerceAtLeast(0)
@@ -86,26 +91,46 @@ data class ExpenseItem(
             }
         }
 
-        if (!isApplicableInYear(calendarYear, entity)) return Money.ZERO
-        val sYear = effectiveStartYear(entity)
+        val baseStartYear = effectiveStartYear(entity)
+        if (calendarYear < baseStartYear) return Money.ZERO
+
+        if (overrides.isEmpty()) {
+            val baseEndYear = effectiveEndYear(entity)
+            if (calendarYear > baseEndYear) return Money.ZERO
+        }
+
+        var activeStartYear = baseStartYear
+        var activeAmount = annualAmount
+        var activeType = expenseType
+        var activeInterest = compoundingInterestRate
+
+        val sortedOverrides = overrides.sortedBy { it.effectiveStartYear(entity) }
+        for (ov in sortedOverrides) {
+            val ovStart = ov.effectiveStartYear(entity)
+            if (ovStart <= calendarYear) {
+                activeStartYear = ovStart
+                ov.annualAmount?.let { activeAmount = it }
+                ov.expenseType?.let { activeType = it }
+                ov.compoundingInterestRate?.let { activeInterest = it }
+            }
+        }
+
+        if (activeAmount.value <= 0L) return Money.ZERO
+
         val yearsFromBase = (calendarYear - baseYear).coerceAtLeast(0)
         val infFactor = if (inflationAdjusted) (1.0 + inflationRate).pow(yearsFromBase.toDouble()) else 1.0
 
-        return when (expenseType) {
+        return when (activeType) {
             ExpenseType.ONE_TIME -> {
-                if (calendarYear == sYear) {
-                    Money((annualAmount.value * infFactor).toLong())
-                } else {
-                    Money.ZERO
-                }
+                if (calendarYear == activeStartYear) Money((activeAmount.value * infFactor).toLong()) else Money.ZERO
             }
             ExpenseType.RECURRING -> {
-                Money((annualAmount.value * infFactor).toLong())
+                Money((activeAmount.value * infFactor).toLong())
             }
             ExpenseType.COMPOUNDING_DEBT -> {
-                val yearsFromStart = (calendarYear - sYear).coerceAtLeast(0)
-                val interestFactor = (1.0 + compoundingInterestRate).pow(yearsFromStart.toDouble())
-                Money((annualAmount.value * interestFactor * infFactor).toLong())
+                val yearsFromStart = (calendarYear - activeStartYear).coerceAtLeast(0)
+                val interestFactor = (1.0 + activeInterest).pow(yearsFromStart.toDouble())
+                Money((activeAmount.value * interestFactor * infFactor).toLong())
             }
         }
     }

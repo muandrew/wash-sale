@@ -211,7 +211,8 @@ object MultiAssetEngine {
                 for (pool in pools) {
                     val balance = currentBalances[pool.id] ?: 0L
                     if (balance > 0) {
-                        val realReturn = (1.0 + pool.expectedNominalReturn) / (1.0 + inflationRate) - 1.0
+                        val returnRate = pool.expectedReturnInYear(calendarYear, household.findEntity(pool.entityId) ?: primary)
+                        val realReturn = (1.0 + returnRate) / (1.0 + inflationRate) - 1.0
                         val growth = (balance.toDouble() * realReturn).toLong()
                         currentBalances[pool.id] = balance + growth
                     }

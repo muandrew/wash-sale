@@ -49,7 +49,7 @@ enum class EntryChartMode {
     INCOME_STREAM,   // Annual income bars only
     COMPOUNDING_DEBT,// Loan debt balance curve (inverse) + payment / interest bars (Dual-Axis)
     EXPENSE_STREAM,  // Annual expense outflow bars
-    CASH_AVAILABLE   // Bidirectional bars (Green above $0 for surplus, Red below $0 for deficits/problems)
+    CASH_AVAILABLE   // Dual-Axis: Total Cash Balance Line + Bidirectional Annual Cash Bars (Green +, Red -)
 }
 
 data class YearTrajectoryPoint(
@@ -128,16 +128,23 @@ fun EntryTrajectoryChart(
                 )
 
                 if (chartMode == EntryChartMode.CASH_AVAILABLE) {
+                    Text(
+                        "Total: ${activePoint.balance.toFormattedString()}",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64B5F6)
+                    )
+
                     if (activePoint.netCash.value < 0L) {
                         Text(
-                            "-${Money(-activePoint.netCash.value).toFormattedString()}",
+                            "Net: -${Money(-activePoint.netCash.value).toFormattedString()}",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFEF5350)
                         )
                     } else {
                         Text(
-                            "+${activePoint.netCash.toFormattedString()}",
+                            "Net: +${activePoint.netCash.toFormattedString()}",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF81C784)
@@ -191,9 +198,10 @@ fun EntryTrajectoryChart(
         ) {
             when (chartMode) {
                 EntryChartMode.CASH_AVAILABLE -> {
-                    LegendBadge(label = "Surplus (+)", color = Color(0xFF81C784))
-                    LegendBadge(label = "Deficit (-)", color = Color(0xFFEF5350))
-                    LegendBadge(label = "\$0 Base", color = Color.White)
+                    LegendBadge(label = "Line: Total Cash Available (Max ${Money(maxBalanceCents).toFormattedString()})", color = Color(0xFF64B5F6))
+                    LegendBadge(label = "Bars (+): Annual Surplus", color = Color(0xFF81C784))
+                    LegendBadge(label = "Bars (-): Deficit Problem", color = Color(0xFFEF5350))
+                    LegendBadge(label = "White Line: \$0 Base", color = Color.White)
                 }
                 EntryChartMode.ASSET_POOL -> {
                     LegendBadge(label = "Balance (Max ${Money(maxBalanceCents).toFormattedString()})", color = accentColor)
@@ -220,7 +228,7 @@ fun EntryTrajectoryChart(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(130.dp)
                 .pointerInput(points) {
                     detectTapGestures { offset ->
                         val ratio = (offset.x / size.width).coerceIn(0f, 1f)
@@ -247,7 +255,7 @@ fun EntryTrajectoryChart(
                 val stepX = w / (count - 1).toFloat()
                 val barWidth = max(3f, (stepX * 0.55f))
 
-                // Special Bidirectional Mode: CASH_AVAILABLE
+                // Special Mode: CASH_AVAILABLE (Dual-Axis: Total Cash Line + Annual Cash Bars)
                 if (chartMode == EntryChartMode.CASH_AVAILABLE) {
                     val yZero = if (maxNegativeCashCents == 0L) {
                         chartHeight
@@ -279,7 +287,7 @@ fun EntryTrajectoryChart(
                         strokeWidth = 1.5f
                     )
 
-                    // Draw Bidirectional Cash Available Bars
+                    // 1. Draw Bidirectional Cash Available Bars (Secondary Axis)
                     points.forEachIndexed { i, pt ->
                         val x = i * stepX
                         val isHovered = (i == activeIndex)
@@ -287,7 +295,7 @@ fun EntryTrajectoryChart(
 
                         if (cash > 0L) {
                             val barH = (cash.toFloat() / totalCashSpanCents.toFloat()) * chartHeight
-                            val barAlpha = if (hoveredIndex == null || isHovered) 0.88f else 0.45f
+                            val barAlpha = if (hoveredIndex == null || isHovered) 0.85f else 0.40f
 
                             drawRect(
                                 color = Color(0xFF81C784).copy(alpha = barAlpha),
@@ -306,7 +314,7 @@ fun EntryTrajectoryChart(
                         } else if (cash < 0L) {
                             val absCash = -cash
                             val barH = (absCash.toFloat() / totalCashSpanCents.toFloat()) * chartHeight
-                            val barAlpha = if (hoveredIndex == null || isHovered) 0.95f else 0.50f
+                            val barAlpha = if (hoveredIndex == null || isHovered) 0.90f else 0.45f
 
                             drawRect(
                                 color = Color(0xFFEF5350).copy(alpha = barAlpha),
@@ -323,7 +331,51 @@ fun EntryTrajectoryChart(
                         }
                     }
 
-                    // Active Hover Scrubber Line
+                    // 2. Draw Total Accumulated Cash Line Graph (Primary Axis: 0 to maxBalanceCents)
+                    if (maxBalanceCents > 100L) {
+                        for (i in 0 until count - 1) {
+                            val p1 = points[i]
+                            val p2 = points[i + 1]
+                            val x1 = i * stepX
+                            val y1 = chartHeight - ((p1.balance.value.toFloat() / maxBalanceCents.toFloat()) * chartHeight)
+                            val x2 = (i + 1) * stepX
+                            val y2 = chartHeight - ((p2.balance.value.toFloat() / maxBalanceCents.toFloat()) * chartHeight)
+
+                            val isSegmentDeficit = p2.balance.value == 0L && p2.netCash.value < 0L
+                            val segmentColor = if (isSegmentDeficit) Color(0xFFEF5350) else Color(0xFF64B5F6)
+
+                            // Shaded area under the total cash curve
+                            val segArea = Path().apply {
+                                moveTo(x1, chartHeight)
+                                lineTo(x1, y1)
+                                lineTo(x2, y2)
+                                lineTo(x2, chartHeight)
+                                close()
+                            }
+                            drawPath(
+                                path = segArea,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        segmentColor.copy(alpha = if (isSegmentDeficit) 0.28f else 0.20f),
+                                        Color.Transparent
+                                    ),
+                                    startY = 0f,
+                                    endY = chartHeight
+                                )
+                            )
+
+                            // Total cash line curve
+                            drawLine(
+                                color = segmentColor,
+                                start = Offset(x1, y1),
+                                end = Offset(x2, y2),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                        }
+                    }
+
+                    // Active Hover Scrubber Line & Point
                     if (hoveredIndex != null) {
                         val hoverX = activeIndex * stepX
                         val isDef = activePoint.netCash.value < 0L
@@ -333,6 +385,20 @@ fun EntryTrajectoryChart(
                             end = Offset(hoverX, chartHeight),
                             strokeWidth = if (isDef) 2f else 1.5f
                         )
+
+                        if (maxBalanceCents > 100L) {
+                            val hoverY = chartHeight - ((activePoint.balance.value.toFloat() / maxBalanceCents.toFloat()) * chartHeight)
+                            drawCircle(
+                                color = Color.White,
+                                radius = 5.5f,
+                                center = Offset(hoverX, hoverY)
+                            )
+                            drawCircle(
+                                color = if (activePoint.balance.value == 0L) Color(0xFFEF5350) else Color(0xFF64B5F6),
+                                radius = 3.5f,
+                                center = Offset(hoverX, hoverY)
+                            )
+                        }
                     }
                     return@Canvas
                 }
@@ -346,14 +412,12 @@ fun EntryTrajectoryChart(
                         val endX = minOf(w, x + stepX * 0.5f)
                         val colWidth = endX - startX
 
-                        // Full height red warning background tint
                         drawRect(
                             color = Color(0xFFEF5350).copy(alpha = 0.32f),
                             topLeft = Offset(startX, 0f),
                             size = Size(colWidth, chartHeight)
                         )
 
-                        // Top warning red accent border
                         drawLine(
                             color = Color(0xFFEF5350).copy(alpha = 0.9f),
                             start = Offset(startX, 0f),
@@ -361,7 +425,6 @@ fun EntryTrajectoryChart(
                             strokeWidth = 2.5f
                         )
 
-                        // Bottom depleted baseline red line (so zero balance is clearly visible!)
                         drawLine(
                             color = Color(0xFFFF5252),
                             start = Offset(startX, chartHeight),
@@ -453,7 +516,6 @@ fun EntryTrajectoryChart(
                         val isSegmentDeficit = p2.isDeficit || (p2.balance.value == 0L && p2.outflow.value > 0L)
                         val segmentColor = if (isSegmentDeficit) Color(0xFFEF5350) else accentColor
 
-                        // Draw filled area quad under this segment
                         val segArea = Path().apply {
                             moveTo(x1, chartHeight)
                             lineTo(x1, y1)
@@ -473,7 +535,6 @@ fun EntryTrajectoryChart(
                             )
                         )
 
-                        // Draw segment line
                         drawLine(
                             color = segmentColor,
                             start = Offset(x1, y1),
@@ -482,7 +543,6 @@ fun EntryTrajectoryChart(
                             cap = StrokeCap.Round
                         )
 
-                        // If entering deficit, draw a warning beacon dot
                         if (isSegmentDeficit) {
                             drawCircle(
                                 color = Color(0xFFEF5350),
@@ -557,16 +617,23 @@ fun EntryTrajectoryChart(
                         )
 
                         if (chartMode == EntryChartMode.CASH_AVAILABLE) {
+                            Text(
+                                "Total: ${activePoint.balance.toFormattedString()}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64B5F6)
+                            )
+
                             if (activePoint.netCash.value < 0L) {
                                 Text(
-                                    "Deficit: -${Money(-activePoint.netCash.value).toFormattedString()}",
+                                    "Net: -${Money(-activePoint.netCash.value).toFormattedString()}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFEF5350)
                                 )
                             } else {
                                 Text(
-                                    "Cash: +${activePoint.netCash.toFormattedString()}",
+                                    "Net: +${activePoint.netCash.toFormattedString()}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF81C784)
