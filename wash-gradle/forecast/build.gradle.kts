@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 import java.util.Properties
 
 plugins {
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.jetbrainsCompose)
 }
@@ -80,7 +81,8 @@ kotlin {
             implementation(libs.kotlin.test)
         }
 
-        val wasmJsMain by getting {
+
+        wasmJsMain {
             dependencies {
                 implementation(libs.kotlin.coroutines.core)
             }
