@@ -2,15 +2,17 @@ package com.muandrew.forecast.model
 
 import kotlin.math.pow
 
-enum class ExpenseType(val displayName: String) {
+enum class ExpenseType(
+    val displayName: String,
+) {
     RECURRING("Recurring Annual"),
     ONE_TIME("One-Time Lump Sum"),
-    COMPOUNDING_DEBT("Compounding Debt / Loan")
+    COMPOUNDING_DEBT("Compounding Debt / Loan"),
 }
 
 enum class ExpenseCategory(
     val displayName: String,
-    val hexColor: Long
+    val hexColor: Long,
 ) {
     LIVING_ESSENTIALS("Living & Essential Needs", 0xFFEF5350),
     DISCRETIONARY_VACATION("Discretionary & Vacation", 0xFF26A69A),
@@ -18,7 +20,7 @@ enum class ExpenseCategory(
     CHILDCARE_EARLY("Early Childcare & Daycare", 0xFFFFA726),
     HOUSING_MORTGAGE("Housing, Mortgage & Debt", 0xFF8D6E63),
     HEALTHCARE("Healthcare & Medical", 0xFFEC407A),
-    MILESTONE_OTHER("Milestone & Other Purchases", 0xFF7E57C2)
+    MILESTONE_OTHER("Milestone & Other Purchases", 0xFF7E57C2),
 }
 
 data class ExpenseItem(
@@ -36,27 +38,27 @@ data class ExpenseItem(
     val compoundingInterestRate: Double = 0.0, // e.g. 0.07 for 7.0% APR compounding debt
     val inflationAdjusted: Boolean = true,
     val overrides: List<ExpenseItemOverride> = emptyList(),
-    val phases: List<SchedulePhase> = emptyList()
+    val phases: List<SchedulePhase> = emptyList(),
 ) {
-    fun effectiveStartYear(entity: Entity?): Int {
-        return when (timeMode) {
-            TimeMode.CALENDAR_YEAR -> startYear
-            TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(startAge) else startYear
-        }
+    fun effectiveStartYear(entity: Entity?): Int = when (timeMode) {
+        TimeMode.CALENDAR_YEAR -> startYear
+        TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(startAge) else startYear
     }
 
-    fun effectiveEndYear(entity: Entity?): Int {
-        return when (timeMode) {
-            TimeMode.CALENDAR_YEAR -> if (expenseType == ExpenseType.ONE_TIME) startYear else endYear
-            TimeMode.ENTITY_AGE -> if (entity != null) {
+    fun effectiveEndYear(entity: Entity?): Int = when (timeMode) {
+        TimeMode.CALENDAR_YEAR -> if (expenseType == ExpenseType.ONE_TIME) startYear else endYear
+        TimeMode.ENTITY_AGE ->
+            if (entity != null) {
                 if (expenseType == ExpenseType.ONE_TIME) entity.yearAtAge(startAge) else entity.yearAtAge(endAge)
             } else {
                 if (expenseType == ExpenseType.ONE_TIME) startYear else endYear
             }
-        }
     }
 
-    fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
+    fun isApplicableInYear(
+        calendarYear: Int,
+        entity: Entity?,
+    ): Boolean {
         if (phases.isNotEmpty() && overrides.isEmpty()) {
             return phases.any { it.isApplicableInYear(calendarYear, entity) }
         }
@@ -69,7 +71,12 @@ data class ExpenseItem(
         return true
     }
 
-    fun amountInYear(calendarYear: Int, baseYear: Int, entity: Entity?, inflationRate: Double): Money {
+    fun amountInYear(
+        calendarYear: Int,
+        baseYear: Int,
+        entity: Entity?,
+        inflationRate: Double,
+    ): Money {
         if (phases.isNotEmpty() && overrides.isEmpty()) {
             val matchingPhase = phases.firstOrNull { it.isApplicableInYear(calendarYear, entity) } ?: return Money.ZERO
             val sYear = matchingPhase.effectiveStartYear(entity)
@@ -138,7 +145,11 @@ data class ExpenseItem(
     // Compatibility methods
     fun isApplicableAtAge(age: Int): Boolean = age in startAge..endAge
 
-    fun amountAtAge(age: Int, baseAge: Int, inflationRate: Double): Money {
+    fun amountAtAge(
+        age: Int,
+        baseAge: Int,
+        inflationRate: Double,
+    ): Money {
         if (!isApplicableAtAge(age)) return Money.ZERO
 
         return when (expenseType) {

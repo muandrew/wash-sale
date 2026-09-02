@@ -19,16 +19,16 @@ import com.muandrew.stock.model.TransactionReport
 
 class TransactionReportNode(
     nodeContext: NodeContext,
-    private val report: List<TransactionReport>
+    private val report: List<TransactionReport>,
 ) : LeafNode(
-    nodeContext = nodeContext
+    nodeContext = nodeContext,
 ) {
     @Composable
     override fun Content(modifier: Modifier) {
         Column {
             Text(
                 fontWeight = FontWeight.Bold,
-                text = "Transaction Report"
+                text = "Transaction Report",
             )
             report.forEach {
                 when (it) {
@@ -44,7 +44,7 @@ class TransactionReportNode(
 fun ReceivedReportUi(report: TransactionReport.ReceivedReport) {
     Column(
         Modifier.fillMaxWidth().border(2.dp, Color.Green).padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("received: ${report.ref.date}: ${report.ref.referenceNumber}")
         Text("shares: ${report.shares}, ${report.costBasis}")
@@ -55,7 +55,7 @@ fun ReceivedReportUi(report: TransactionReport.ReceivedReport) {
 fun SaleReportUi(report: TransactionReport.SaleReport) {
     Column(
         Modifier.fillMaxWidth().border(2.dp, Color.Red).padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("date: ${report.ref.date}")
         Text("refNumber: ${report.ref.referenceNumber}")

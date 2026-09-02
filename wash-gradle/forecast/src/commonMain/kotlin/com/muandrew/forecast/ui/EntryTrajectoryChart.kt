@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,26 +39,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.muandrew.forecast.model.Money
-import kotlin.math.abs
 import kotlin.math.max
 
 enum class EntryChartMode {
-    ASSET_POOL,      // Balance curve + superimposed input/contribution and withdrawal bars (Dual-Axis)
-    INCOME_STREAM,   // Annual income bars only
-    COMPOUNDING_DEBT,// Loan debt balance curve (inverse) + payment / interest bars (Dual-Axis)
-    EXPENSE_STREAM,  // Annual expense outflow bars
-    CASH_AVAILABLE   // Dual-Axis: Total Cash Balance Line + Bidirectional Annual Cash Bars (Green +, Red -)
+    ASSET_POOL, // Balance curve + superimposed input/contribution and withdrawal bars (Dual-Axis)
+    INCOME_STREAM, // Annual income bars only
+    COMPOUNDING_DEBT, // Loan debt balance curve (inverse) + payment / interest bars (Dual-Axis)
+    EXPENSE_STREAM, // Annual expense outflow bars
+    CASH_AVAILABLE, // Dual-Axis: Total Cash Balance Line + Bidirectional Annual Cash Bars (Green +, Red -)
 }
 
 data class YearTrajectoryPoint(
     val calendarYear: Int,
     val age: Int,
     val balance: Money = Money.ZERO,
-    val inflow: Money = Money.ZERO,     // Contributions / Income
-    val outflow: Money = Money.ZERO,    // Withdrawals / Expenses / Debt Payments
-    val isDeficit: Boolean = false,     // True if withdrawals exceed available balance in pool or cash deficit
-    val shortfall: Money = Money.ZERO,  // Amount of unfunded withdrawal deficit
-    val netCash: Money = Money.ZERO     // Signed cashflow (+ for surplus, - for deficit)
+    val inflow: Money = Money.ZERO, // Contributions / Income
+    val outflow: Money = Money.ZERO, // Withdrawals / Expenses / Debt Payments
+    val isDeficit: Boolean = false, // True if withdrawals exceed available balance in pool or cash deficit
+    val shortfall: Money = Money.ZERO, // Amount of unfunded withdrawal deficit
+    val netCash: Money = Money.ZERO, // Signed cashflow (+ for surplus, - for deficit)
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -70,7 +67,7 @@ fun EntryTrajectoryChart(
     points: List<YearTrajectoryPoint>,
     chartMode: EntryChartMode,
     accentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (points.isEmpty()) return
 
@@ -96,20 +93,20 @@ fun EntryTrajectoryChart(
             .fillMaxWidth()
             .background(Color(0xFF1E1E1E), RoundedCornerShape(8.dp))
             .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         // 1. Top Header Row: Title on Left, Compact Active Inspection HUD on Right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = title,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = accentColor,
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier.weight(1f, fill = false),
             )
 
             // Compact Active Inspection Tag
@@ -118,13 +115,13 @@ fun EntryTrajectoryChart(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .background(Color(0xFF262626), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             ) {
                 Text(
                     "Yr ${activePoint.calendarYear} (${activePoint.age}):",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.White,
                 )
 
                 if (chartMode == EntryChartMode.CASH_AVAILABLE) {
@@ -132,7 +129,7 @@ fun EntryTrajectoryChart(
                         "Total: ${activePoint.balance.toFormattedString()}",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64B5F6)
+                        color = Color(0xFF64B5F6),
                     )
 
                     if (activePoint.netCash.value < 0L) {
@@ -140,14 +137,14 @@ fun EntryTrajectoryChart(
                             "Net: -${Money(-activePoint.netCash.value).toFormattedString()}",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFEF5350)
+                            color = Color(0xFFEF5350),
                         )
                     } else {
                         Text(
                             "Net: +${activePoint.netCash.toFormattedString()}",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF81C784)
+                            color = Color(0xFF81C784),
                         )
                     }
                 }
@@ -158,14 +155,14 @@ fun EntryTrajectoryChart(
                             "Depleted (-${activePoint.shortfall.toFormattedString()})",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFEF5350)
+                            color = Color(0xFFEF5350),
                         )
                     } else {
                         Text(
                             activePoint.balance.toFormattedString(),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = accentColor
+                            color = accentColor,
                         )
                     }
                 }
@@ -175,7 +172,7 @@ fun EntryTrajectoryChart(
                         "+${activePoint.inflow.toFormattedString()}",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF81C784)
+                        color = Color(0xFF81C784),
                     )
                 }
 
@@ -184,7 +181,7 @@ fun EntryTrajectoryChart(
                         "-${activePoint.outflow.toFormattedString()}",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFEF5350)
+                        color = Color(0xFFEF5350),
                     )
                 }
             }
@@ -194,7 +191,7 @@ fun EntryTrajectoryChart(
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             when (chartMode) {
                 EntryChartMode.CASH_AVAILABLE -> {
@@ -241,7 +238,7 @@ fun EntryTrajectoryChart(
                         val ratio = (change.position.x / size.width).coerceIn(0f, 1f)
                         hoveredIndex = (ratio * (points.size - 1)).toInt()
                     }
-                }
+                },
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
@@ -274,7 +271,7 @@ fun EntryTrajectoryChart(
                             drawRect(
                                 color = Color(0xFFEF5350).copy(alpha = 0.28f),
                                 topLeft = Offset(startX, 0f),
-                                size = Size(colWidth, chartHeight)
+                                size = Size(colWidth, chartHeight),
                             )
                         }
                     }
@@ -284,7 +281,7 @@ fun EntryTrajectoryChart(
                         color = Color.White.copy(alpha = 0.85f),
                         start = Offset(0f, yZero),
                         end = Offset(w, yZero),
-                        strokeWidth = 1.5f
+                        strokeWidth = 1.5f,
                     )
 
                     // 1. Draw Bidirectional Cash Available Bars (Secondary Axis)
@@ -300,7 +297,7 @@ fun EntryTrajectoryChart(
                             drawRect(
                                 color = Color(0xFF81C784).copy(alpha = barAlpha),
                                 topLeft = Offset(x - barWidth / 2f, yZero - barH),
-                                size = Size(barWidth, barH)
+                                size = Size(barWidth, barH),
                             )
 
                             if (isHovered) {
@@ -308,7 +305,7 @@ fun EntryTrajectoryChart(
                                     color = Color.White,
                                     topLeft = Offset(x - barWidth / 2f, yZero - barH),
                                     size = Size(barWidth, barH),
-                                    style = Stroke(width = 1.5f)
+                                    style = Stroke(width = 1.5f),
                                 )
                             }
                         } else if (cash < 0L) {
@@ -319,14 +316,14 @@ fun EntryTrajectoryChart(
                             drawRect(
                                 color = Color(0xFFEF5350).copy(alpha = barAlpha),
                                 topLeft = Offset(x - barWidth / 2f, yZero),
-                                size = Size(barWidth, barH)
+                                size = Size(barWidth, barH),
                             )
 
                             drawRect(
                                 color = if (isHovered) Color.White else Color(0xFFFF5252),
                                 topLeft = Offset(x - barWidth / 2f, yZero),
                                 size = Size(barWidth, barH),
-                                style = Stroke(width = if (isHovered) 2f else 1.2f)
+                                style = Stroke(width = if (isHovered) 2f else 1.2f),
                             )
                         }
                     }
@@ -357,11 +354,11 @@ fun EntryTrajectoryChart(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
                                         segmentColor.copy(alpha = if (isSegmentDeficit) 0.28f else 0.20f),
-                                        Color.Transparent
+                                        Color.Transparent,
                                     ),
                                     startY = 0f,
-                                    endY = chartHeight
-                                )
+                                    endY = chartHeight,
+                                ),
                             )
 
                             // Total cash line curve
@@ -370,7 +367,7 @@ fun EntryTrajectoryChart(
                                 start = Offset(x1, y1),
                                 end = Offset(x2, y2),
                                 strokeWidth = 3f,
-                                cap = StrokeCap.Round
+                                cap = StrokeCap.Round,
                             )
                         }
                     }
@@ -383,7 +380,7 @@ fun EntryTrajectoryChart(
                             color = if (isDef) Color(0xFFEF5350) else Color.White.copy(alpha = 0.7f),
                             start = Offset(hoverX, 0f),
                             end = Offset(hoverX, chartHeight),
-                            strokeWidth = if (isDef) 2f else 1.5f
+                            strokeWidth = if (isDef) 2f else 1.5f,
                         )
 
                         if (maxBalanceCents > 100L) {
@@ -391,12 +388,12 @@ fun EntryTrajectoryChart(
                             drawCircle(
                                 color = Color.White,
                                 radius = 5.5f,
-                                center = Offset(hoverX, hoverY)
+                                center = Offset(hoverX, hoverY),
                             )
                             drawCircle(
                                 color = if (activePoint.balance.value == 0L) Color(0xFFEF5350) else Color(0xFF64B5F6),
                                 radius = 3.5f,
-                                center = Offset(hoverX, hoverY)
+                                center = Offset(hoverX, hoverY),
                             )
                         }
                     }
@@ -415,21 +412,21 @@ fun EntryTrajectoryChart(
                         drawRect(
                             color = Color(0xFFEF5350).copy(alpha = 0.32f),
                             topLeft = Offset(startX, 0f),
-                            size = Size(colWidth, chartHeight)
+                            size = Size(colWidth, chartHeight),
                         )
 
                         drawLine(
                             color = Color(0xFFEF5350).copy(alpha = 0.9f),
                             start = Offset(startX, 0f),
                             end = Offset(endX, 0f),
-                            strokeWidth = 2.5f
+                            strokeWidth = 2.5f,
                         )
 
                         drawLine(
                             color = Color(0xFFFF5252),
                             start = Offset(startX, chartHeight),
                             end = Offset(endX, chartHeight),
-                            strokeWidth = 3.5f
+                            strokeWidth = 3.5f,
                         )
                     }
                 }
@@ -439,19 +436,19 @@ fun EntryTrajectoryChart(
                     color = Color(0xFF2C2C2C),
                     start = Offset(0f, 0f),
                     end = Offset(w, 0f),
-                    strokeWidth = 1f
+                    strokeWidth = 1f,
                 )
                 drawLine(
                     color = Color(0xFF262626),
                     start = Offset(0f, chartHeight * 0.5f),
                     end = Offset(w, chartHeight * 0.5f),
-                    strokeWidth = 1f
+                    strokeWidth = 1f,
                 )
                 drawLine(
                     color = Color(0xFF383838),
                     start = Offset(0f, chartHeight),
                     end = Offset(w, chartHeight),
-                    strokeWidth = 1f
+                    strokeWidth = 1f,
                 )
 
                 // 1. Draw Superimposed Bars on the Secondary Bar Axis Scale (maxFlowCents)
@@ -467,7 +464,7 @@ fun EntryTrajectoryChart(
                         drawRect(
                             color = Color(0xFF81C784).copy(alpha = barAlpha),
                             topLeft = Offset(x - barWidth / 2f, chartHeight - barH),
-                            size = Size(barWidth, barH)
+                            size = Size(barWidth, barH),
                         )
 
                         if (isHovered) {
@@ -475,7 +472,7 @@ fun EntryTrajectoryChart(
                                 color = Color.White,
                                 topLeft = Offset(x - barWidth / 2f, chartHeight - barH),
                                 size = Size(barWidth, barH),
-                                style = Stroke(width = 1.5f)
+                                style = Stroke(width = 1.5f),
                             )
                         }
                     }
@@ -489,7 +486,7 @@ fun EntryTrajectoryChart(
                         drawRect(
                             color = barColor.copy(alpha = barAlpha),
                             topLeft = Offset(x - barWidth / 2f, chartHeight - barH),
-                            size = Size(barWidth, barH)
+                            size = Size(barWidth, barH),
                         )
 
                         if (isHovered || pt.isDeficit) {
@@ -497,7 +494,7 @@ fun EntryTrajectoryChart(
                                 color = if (pt.isDeficit) Color(0xFFFF5252) else Color.White,
                                 topLeft = Offset(x - barWidth / 2f, chartHeight - barH),
                                 size = Size(barWidth, barH),
-                                style = Stroke(width = if (pt.isDeficit) 2f else 1.5f)
+                                style = Stroke(width = if (pt.isDeficit) 2f else 1.5f),
                             )
                         }
                     }
@@ -528,11 +525,11 @@ fun EntryTrajectoryChart(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
                                     segmentColor.copy(alpha = if (isSegmentDeficit) 0.40f else 0.25f),
-                                    Color.Transparent
+                                    Color.Transparent,
                                 ),
                                 startY = 0f,
-                                endY = chartHeight
-                            )
+                                endY = chartHeight,
+                            ),
                         )
 
                         drawLine(
@@ -540,14 +537,14 @@ fun EntryTrajectoryChart(
                             start = Offset(x1, y1),
                             end = Offset(x2, y2),
                             strokeWidth = 3f,
-                            cap = StrokeCap.Round
+                            cap = StrokeCap.Round,
                         )
 
                         if (isSegmentDeficit) {
                             drawCircle(
                                 color = Color(0xFFEF5350),
                                 radius = 4f,
-                                center = Offset(x2, y2)
+                                center = Offset(x2, y2),
                             )
                         }
                     }
@@ -561,7 +558,7 @@ fun EntryTrajectoryChart(
                         color = if (activeIsDeficit) Color(0xFFEF5350) else Color.White.copy(alpha = 0.7f),
                         start = Offset(hoverX, 0f),
                         end = Offset(hoverX, chartHeight),
-                        strokeWidth = if (activeIsDeficit) 2f else 1.5f
+                        strokeWidth = if (activeIsDeficit) 2f else 1.5f,
                     )
 
                     if (chartMode == EntryChartMode.ASSET_POOL || chartMode == EntryChartMode.COMPOUNDING_DEBT) {
@@ -569,12 +566,12 @@ fun EntryTrajectoryChart(
                         drawCircle(
                             color = if (activeIsDeficit) Color(0xFFEF5350) else Color.White,
                             radius = 5.5f,
-                            center = Offset(hoverX, hoverY)
+                            center = Offset(hoverX, hoverY),
                         )
                         drawCircle(
                             color = if (activeIsDeficit) Color(0xFFFF5252) else accentColor,
                             radius = 3.5f,
-                            center = Offset(hoverX, hoverY)
+                            center = Offset(hoverX, hoverY),
                         )
                     }
                 }
@@ -595,7 +592,7 @@ fun EntryTrajectoryChart(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 6.dp, vertical = 2.dp),
-                    contentAlignment = alignment
+                    contentAlignment = alignment,
                 ) {
                     Row(
                         modifier = Modifier
@@ -603,17 +600,17 @@ fun EntryTrajectoryChart(
                             .border(
                                 1.dp,
                                 if (isDeficitActive) Color(0xFFEF5350) else Color(0xFF64B5F6),
-                                RoundedCornerShape(6.dp)
+                                RoundedCornerShape(6.dp),
                             )
                             .padding(horizontal = 6.dp, vertical = 3.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             "Yr ${activePoint.calendarYear} (${activePoint.age})",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color.White,
                         )
 
                         if (chartMode == EntryChartMode.CASH_AVAILABLE) {
@@ -621,7 +618,7 @@ fun EntryTrajectoryChart(
                                 "Total: ${activePoint.balance.toFormattedString()}",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF64B5F6)
+                                color = Color(0xFF64B5F6),
                             )
 
                             if (activePoint.netCash.value < 0L) {
@@ -629,14 +626,14 @@ fun EntryTrajectoryChart(
                                     "Net: -${Money(-activePoint.netCash.value).toFormattedString()}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFEF5350)
+                                    color = Color(0xFFEF5350),
                                 )
                             } else {
                                 Text(
                                     "Net: +${activePoint.netCash.toFormattedString()}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF81C784)
+                                    color = Color(0xFF81C784),
                                 )
                             }
                         }
@@ -647,7 +644,7 @@ fun EntryTrajectoryChart(
                                     "Shortfall: -${activePoint.shortfall.toFormattedString()}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFEF5350)
+                                    color = Color(0xFFEF5350),
                                 )
                             } else {
                                 val balLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Bal:" else "Debt:"
@@ -655,28 +652,40 @@ fun EntryTrajectoryChart(
                                     "$balLabel ${activePoint.balance.toFormattedString()}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = accentColor
+                                    color = accentColor,
                                 )
                             }
                         }
 
                         if (activePoint.inflow.value > 0L && chartMode != EntryChartMode.CASH_AVAILABLE) {
-                            val inLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Deposit:" else if (chartMode == EntryChartMode.INCOME_STREAM) "Pay:" else "In:"
+                            val inLabel = if (chartMode == EntryChartMode.ASSET_POOL) {
+                                "Deposit:"
+                            } else if (chartMode == EntryChartMode.INCOME_STREAM) {
+                                "Pay:"
+                            } else {
+                                "In:"
+                            }
                             Text(
                                 "$inLabel +${activePoint.inflow.toFormattedString()}",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF81C784)
+                                color = Color(0xFF81C784),
                             )
                         }
 
                         if (activePoint.outflow.value > 0L && chartMode != EntryChartMode.CASH_AVAILABLE) {
-                            val outLabel = if (chartMode == EntryChartMode.ASSET_POOL) "Withdrawal:" else if (chartMode == EntryChartMode.COMPOUNDING_DEBT) "Pmt:" else "Out:"
+                            val outLabel = if (chartMode == EntryChartMode.ASSET_POOL) {
+                                "Withdrawal:"
+                            } else if (chartMode == EntryChartMode.COMPOUNDING_DEBT) {
+                                "Pmt:"
+                            } else {
+                                "Out:"
+                            }
                             Text(
                                 "$outLabel -${activePoint.outflow.toFormattedString()}",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFEF5350)
+                                color = Color(0xFFEF5350),
                             )
                         }
                     }
@@ -687,7 +696,7 @@ fun EntryTrajectoryChart(
         // X-Axis Year Labels & Dual-Axis Bounds
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             val first = points.first()
             val mid = points[points.size / 2]
@@ -707,7 +716,7 @@ private fun LegendBadge(label: String, color: Color) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier
             .background(Color(0xFF262626), RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
         Box(modifier = Modifier.size(7.dp).background(color, CircleShape))
         Text(label, fontSize = 9.sp, color = Color(0xFFCCCCCC), fontWeight = FontWeight.Medium)

@@ -12,7 +12,7 @@ object RetirementCalculator {
      */
     fun calculateSWR(
         profile: ForecastProfile,
-        swrRate: Double = 0.04 // 4% rule
+        swrRate: Double = 0.04, // 4% rule
     ): SWRAnalysis {
         require(swrRate > 0.0) { "SWR rate must be positive." }
 
@@ -41,7 +41,7 @@ object RetirementCalculator {
             targetPortfolioSize = targetPortfolio,
             projectedPortfolioAtRetirement = projectedAtRetirement,
             fundingRatio = fundingRatio,
-            isRetirementFunded = fundingRatio >= 1.0
+            isRetirementFunded = fundingRatio >= 1.0,
         )
     }
 
@@ -51,12 +51,12 @@ object RetirementCalculator {
     data class GuytonKlingerBounds(
         val baselineWithdrawal: Money,
         val upperCapitalPreservationThreshold: Money,
-        val lowerProsperityThreshold: Money
+        val lowerProsperityThreshold: Money,
     )
 
     fun calculateGuytonKlingerBounds(
         portfolio: Money,
-        targetRate: Double = 0.04
+        targetRate: Double = 0.04,
     ): GuytonKlingerBounds {
         val baseline = Money((portfolio.value * targetRate).toLong())
         // Capital preservation rule: trigger cut if withdrawal rate exceeds target by 20%
@@ -67,7 +67,7 @@ object RetirementCalculator {
         return GuytonKlingerBounds(
             baselineWithdrawal = baseline,
             upperCapitalPreservationThreshold = upperTrigger,
-            lowerProsperityThreshold = lowerTrigger
+            lowerProsperityThreshold = lowerTrigger,
         )
     }
 }

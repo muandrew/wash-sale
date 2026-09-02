@@ -47,7 +47,6 @@ fun App() {
             is RootState.SaleReport -> {
                 SaleReportUi(currentState.report)
             }
-
         }
     }
 }

@@ -6,7 +6,7 @@ import com.muandrew.forecast.ui.ForecastApp
 fun main() {
     CanvasBasedWindow(
         title = "Financial Forecast",
-        canvasElementId = "ComposeTarget"
+        canvasElementId = "ComposeTarget",
     ) {
         ForecastApp()
     }

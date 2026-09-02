@@ -8,7 +8,7 @@ data class Household(
     val isPrimary: Boolean = true,
     val baseYear: Int = 2026,
     val entities: List<Entity> = listOf(
-        Entity("primary_person", "Primary Earner", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 90)
+        Entity("primary_person", "Primary Earner", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 90),
     ),
     val annualIncome: Money = Money.ofDollars(120_000),
     val incomeStreams: List<IncomeStream> = emptyList(),
@@ -16,17 +16,13 @@ data class Household(
     val expenses: List<ExpenseItem> = emptyList(),
     val directExpenses: List<ExpenseItem> = emptyList(),
     val lifeEvents: List<LifeEvent> = emptyList(),
-    val priorityRules: List<PriorityRule> = emptyList()
+    val priorityRules: List<PriorityRule> = emptyList(),
 ) {
-    fun primaryEntity(): Entity {
-        return entities.firstOrNull { it.isPrimary }
-            ?: entities.firstOrNull()
-            ?: Entity("default", name, birthYear = baseYear - 30, isPrimary = true)
-    }
+    fun primaryEntity(): Entity = entities.firstOrNull { it.isPrimary }
+        ?: entities.firstOrNull()
+        ?: Entity("default", name, birthYear = baseYear - 30, isPrimary = true)
 
-    fun findEntity(id: String): Entity? {
-        return entities.firstOrNull { it.id == id } ?: entities.firstOrNull { it.isPrimary } ?: entities.firstOrNull()
-    }
+    fun findEntity(id: String): Entity? = entities.firstOrNull { it.id == id } ?: entities.firstOrNull { it.isPrimary } ?: entities.firstOrNull()
 
     val currentAge: Int get() = primaryEntity().ageInYear(baseYear)
     val retirementAge: Int get() = primaryEntity().retirementAge
@@ -64,15 +60,15 @@ data class Household(
                     targetId = debt.id,
                     entityId = debt.entityId,
                     itemType = PriorityItemType.DEBT_SERVICE,
-                    priorityRank = rank++
-                )
+                    priorityRank = rank++,
+                ),
             )
         }
 
         // 2. Essential Living & Childcare
         allExpenses().filter {
             it.expenseType != ExpenseType.COMPOUNDING_DEBT &&
-            (it.category == ExpenseCategory.LIVING_ESSENTIALS || it.category == ExpenseCategory.CHILDCARE_EARLY || it.category == ExpenseCategory.HEALTHCARE || it.category == ExpenseCategory.HOUSING_MORTGAGE)
+                (it.category == ExpenseCategory.LIVING_ESSENTIALS || it.category == ExpenseCategory.CHILDCARE_EARLY || it.category == ExpenseCategory.HEALTHCARE || it.category == ExpenseCategory.HOUSING_MORTGAGE)
         }.forEach { exp ->
             rules.add(
                 PriorityRule(
@@ -82,8 +78,8 @@ data class Household(
                     targetId = exp.id,
                     entityId = exp.entityId,
                     itemType = PriorityItemType.EXPENSE_ESSENTIAL,
-                    priorityRank = rank++
-                )
+                    priorityRank = rank++,
+                ),
             )
         }
 
@@ -97,8 +93,8 @@ data class Household(
                     targetId = pool.id,
                     entityId = pool.entityId,
                     itemType = PriorityItemType.CASH_RESERVE,
-                    priorityRank = rank++
-                )
+                    priorityRank = rank++,
+                ),
             )
         }
 
@@ -112,8 +108,8 @@ data class Household(
                     targetId = pool.id,
                     entityId = pool.entityId,
                     itemType = PriorityItemType.TAX_ADVANTAGED_RETIREMENT,
-                    priorityRank = rank++
-                )
+                    priorityRank = rank++,
+                ),
             )
         }
 
@@ -128,8 +124,8 @@ data class Household(
                         targetId = pool.id,
                         entityId = pool.entityId,
                         itemType = PriorityItemType.DEPENDENT_EDUCATION_529,
-                        priorityRank = rank++
-                    )
+                        priorityRank = rank++,
+                    ),
                 )
             }
         }
@@ -143,8 +139,8 @@ data class Household(
                         targetId = exp.id,
                         entityId = exp.entityId,
                         itemType = PriorityItemType.DEPENDENT_EDUCATION_529,
-                        priorityRank = rank++
-                    )
+                        priorityRank = rank++,
+                    ),
                 )
             }
         }
@@ -162,8 +158,8 @@ data class Household(
                         targetId = exp.id,
                         entityId = exp.entityId,
                         itemType = PriorityItemType.EXPENSE_DISCRETIONARY,
-                        priorityRank = rank++
-                    )
+                        priorityRank = rank++,
+                    ),
                 )
             }
         }
@@ -179,8 +175,8 @@ data class Household(
                         targetId = pool.id,
                         entityId = pool.entityId,
                         itemType = if (pool.category == AssetCategory.TAXABLE_BROKERAGE) PriorityItemType.TAXABLE_BROKERAGE_SURPLUS else PriorityItemType.CUSTOM_POOL,
-                        priorityRank = rank++
-                    )
+                        priorityRank = rank++,
+                    ),
                 )
             }
         }
@@ -196,8 +192,8 @@ data class Household(
                         targetId = exp.id,
                         entityId = exp.entityId,
                         itemType = PriorityItemType.CUSTOM_EXPENSE,
-                        priorityRank = rank++
-                    )
+                        priorityRank = rank++,
+                    ),
                 )
             }
         }
@@ -249,7 +245,7 @@ data class FinancialPlan(
     val name: String = "Master Financial Plan",
     val baseYear: Int = 2026,
     val households: List<Household> = emptyList(),
-    val inflationRate: Double = 0.025
+    val inflationRate: Double = 0.025,
 ) {
     fun totalInitialNetWorth(): Money {
         val sum = households.sumOf { it.totalInitialNetWorth().value }

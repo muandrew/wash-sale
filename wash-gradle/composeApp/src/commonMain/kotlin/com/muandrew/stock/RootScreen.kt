@@ -30,42 +30,44 @@ import com.muandrew.stock.world.filterByReference
 class RootNode(
     nodeContext: NodeContext,
     public val world: World,
-    private val backStack: BackStack<NavTarget> = BackStack(
-        model = BackStackModel(
-            initialTarget = NavTarget.Dummy,
-            savedStateMap = nodeContext.savedStateMap,
+    private val backStack: BackStack<NavTarget> =
+        BackStack(
+            model =
+            BackStackModel(
+                initialTarget = NavTarget.Dummy,
+                savedStateMap = nodeContext.savedStateMap,
+            ),
+            visualisation = { BackStackFader(it) },
         ),
-        visualisation = { BackStackFader(it) }
-    )
 ) : Node<RootNode.NavTarget>(
     appyxComponent = backStack,
-    nodeContext = nodeContext
+    nodeContext = nodeContext,
 ) {
-
     @Composable
     override fun Content(modifier: Modifier) {
         Column(
-            modifier = modifier
+            modifier = modifier,
         ) {
             // Let's include the elements of our component into the composition
             AppyxNavigationContainer(
                 appyxComponent = backStack,
-                modifier = Modifier.weight(0.9f)
+                modifier = Modifier.weight(0.9f),
             )
 
             // Let's also add some controls so we can test it
             Row(
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
-                    .weight(0.1f)
+                    .weight(0.1f),
             ) {
                 TextButton(onClick = {
                     backStack.push(
                         NavTarget.Reports(
                             world.events,
-                            ::onTransactionRefClicked
-                        )
+                            ::onTransactionRefClicked,
+                        ),
                     )
                 }) {
                     Text(text = "Push Reports")
@@ -88,45 +90,50 @@ class RootNode(
     }
 
     private fun onTransactionRefClicked(ref: TransactionReference) {
-        val res = world.events.filter {
-            it.ref.date == ref.date &&
+        val res =
+            world.events.filter {
+                it.ref.date == ref.date &&
                     if (ref.referenceNumber != null) {
                         it.ref.referenceNumber == ref.referenceNumber
-                    } else true
-        }
+                    } else {
+                        true
+                    }
+            }
         backStack.push(NavTarget.TransactionReportNT(res))
     }
 
     override fun buildChildNode(
         reference: NavTarget,
-        nodeContext: NodeContext
-    ) =
-        when (reference) {
-            NavTarget.Dummy -> node(nodeContext) {
+        nodeContext: NodeContext,
+    ) = when (reference) {
+        NavTarget.Dummy ->
+            node(nodeContext) {
                 backStack.push(
                     NavTarget.Reports(
                         world.events,
-                        ::onTransactionRefClicked
-                    )
+                        ::onTransactionRefClicked,
+                    ),
                 )
             }
 
-            is NavTarget.Reports -> ReportsNode(
+        is NavTarget.Reports ->
+            ReportsNode(
                 nodeContext,
                 reference.reports,
-                reference.reportChosen
+                reference.reportChosen,
             )
 
-            is NavTarget.LotNT -> LotNode(
+        is NavTarget.LotNT ->
+            LotNode(
                 nodeContext,
                 reference.lot,
                 ::onTransactionRefClicked,
                 ::onLotRefClicked,
             )
-            is NavTarget.Lots -> LotsNode(nodeContext, reference.lots, ::onLotChosen)
-            is NavTarget.TransactionReportNT -> TransactionReportNode(nodeContext, reference.report)
-            is NavTarget.MergedLots -> MergedLotsNode(nodeContext, reference.lots, ::onLotsSelected)
-        }
+        is NavTarget.Lots -> LotsNode(nodeContext, reference.lots, ::onLotChosen)
+        is NavTarget.TransactionReportNT -> TransactionReportNode(nodeContext, reference.report)
+        is NavTarget.MergedLots -> MergedLotsNode(nodeContext, reference.lots, ::onLotsSelected)
+    }
 
     private fun onLotRefClicked(lotReference: LotReference) {
         val lots = world.lots.filterByReference(lotReference)
@@ -141,9 +148,7 @@ class RootNode(
         backStack.push(NavTarget.LotNT(lot))
     }
 
-
     sealed class NavTarget : Parcelable {
-
         @Parcelize
         data object Dummy : NavTarget()
 
@@ -154,16 +159,24 @@ class RootNode(
         ) : NavTarget()
 
         @Parcelize
-        data class LotNT(val lot: @RawValue Lot) : NavTarget()
+        data class LotNT(
+            val lot: @RawValue Lot,
+        ) : NavTarget()
 
         @Parcelize
-        data class Lots(val lots: @RawValue List<Lot>) : NavTarget()
+        data class Lots(
+            val lots: @RawValue List<Lot>,
+        ) : NavTarget()
 
         @Parcelize
-        data class MergedLots(val lots: @RawValue List<Lot>) : NavTarget()
+        data class MergedLots(
+            val lots: @RawValue List<Lot>,
+        ) : NavTarget()
 
         @Parcelize
-        data class TransactionReportNT(val report: @RawValue List<TransactionReport>) : NavTarget()
+        data class TransactionReportNT(
+            val report: @RawValue List<TransactionReport>,
+        ) : NavTarget()
     }
 }
 

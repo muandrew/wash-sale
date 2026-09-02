@@ -3,11 +3,15 @@ package com.muandrew.forecast.model
 import kotlin.math.abs
 
 @kotlin.jvm.JvmInline
-value class Money(val value: Long) {
-
+value class Money(
+    val value: Long,
+) {
     infix operator fun plus(other: Money): Money = Money(this.value + other.value)
+
     infix operator fun minus(other: Money): Money = Money(this.value - other.value)
+
     infix operator fun times(other: Int): Money = Money(this.value * other)
+
     infix operator fun times(other: Double): Money = Money((this.value * other).toLong())
 
     infix operator fun div(denominator: Long): DivRes {
@@ -39,10 +43,18 @@ value class Money(val value: Long) {
         val MIN_VALUE = Money(Long.MIN_VALUE)
 
         fun ofDollars(dollars: Long): Money = Money(dollars * 100)
+
         fun ofCents(cents: Long): Money = Money(cents)
 
-        fun min(lhs: Money, rhs: Money): Money = Money(kotlin.math.min(lhs.value, rhs.value))
-        fun max(lhs: Money, rhs: Money): Money = Money(kotlin.math.max(lhs.value, rhs.value))
+        fun min(
+            lhs: Money,
+            rhs: Money,
+        ): Money = Money(kotlin.math.min(lhs.value, rhs.value))
+
+        fun max(
+            lhs: Money,
+            rhs: Money,
+        ): Money = Money(kotlin.math.max(lhs.value, rhs.value))
 
         fun formatNumberWithCommas(number: Long): String {
             val str = number.toString()
@@ -64,4 +76,7 @@ value class Money(val value: Long) {
     }
 }
 
-data class DivRes(val res: Money, val rem: Money)
+data class DivRes(
+    val res: Money,
+    val rem: Money,
+)

@@ -27,13 +27,13 @@ import com.bumble.appyx.navigation.node.LeafNode
 import com.muandrew.stock.model.Lot
 import java.time.LocalDate
 
-typealias LotClicked = (Lot)->Unit
+typealias LotClicked = (Lot) -> Unit
 class LotsNode(
     nodeContext: NodeContext,
     private val lots: List<Lot>,
     private val clicked: LotClicked,
 ) : LeafNode(
-    nodeContext = nodeContext
+    nodeContext = nodeContext,
 ) {
     @Composable
     override fun Content(modifier: Modifier) {
@@ -46,7 +46,7 @@ fun LotsUi(lots: List<Lot>, clicked: LotClicked) {
     Column {
         var textField by remember { mutableStateOf("") }
         var displayedLots by remember { mutableStateOf(lots) }
-        Text( fontWeight = FontWeight.Bold, text = "Lots")
+        Text(fontWeight = FontWeight.Bold, text = "Lots")
         TextField(
             modifier = Modifier.fillMaxWidth(),
             value = textField,
@@ -61,10 +61,11 @@ fun LotsUi(lots: List<Lot>, clicked: LotClicked) {
                     } catch (_: Exception) {
                     }
                 }
-            })
+            },
+        )
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(displayedLots) { lot ->
                 Column(
@@ -72,13 +73,13 @@ fun LotsUi(lots: List<Lot>, clicked: LotClicked) {
                         .fillMaxWidth()
                         .border(
                             BorderStroke(2.dp, Color.Black),
-                            RoundedCornerShape(15.dp)
+                            RoundedCornerShape(15.dp),
                         )
                         .padding(
-                            PaddingValues(4.dp)
+                            PaddingValues(4.dp),
                         ).clickable {
                             clicked(lot)
-                        }
+                        },
                 ) {
                     Text("runId: ${lot.runId}")
                     Text("date: ${lot.date}")

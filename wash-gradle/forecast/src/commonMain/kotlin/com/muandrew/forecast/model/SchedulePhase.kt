@@ -9,23 +9,22 @@ data class SchedulePhase(
     val startYear: Int = 2026,
     val endYear: Int = 2086,
     val amount: Money = Money.ZERO,
-    val isWithdrawal: Boolean = false
+    val isWithdrawal: Boolean = false,
 ) {
-    fun effectiveStartYear(entity: Entity?): Int {
-        return when (timeMode) {
-            TimeMode.CALENDAR_YEAR -> startYear
-            TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(startAge) else startYear
-        }
+    fun effectiveStartYear(entity: Entity?): Int = when (timeMode) {
+        TimeMode.CALENDAR_YEAR -> startYear
+        TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(startAge) else startYear
     }
 
-    fun effectiveEndYear(entity: Entity?): Int {
-        return when (timeMode) {
-            TimeMode.CALENDAR_YEAR -> endYear
-            TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(endAge) else endYear
-        }
+    fun effectiveEndYear(entity: Entity?): Int = when (timeMode) {
+        TimeMode.CALENDAR_YEAR -> endYear
+        TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(endAge) else endYear
     }
 
-    fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
+    fun isApplicableInYear(
+        calendarYear: Int,
+        entity: Entity?,
+    ): Boolean {
         val sYear = effectiveStartYear(entity)
         val eYear = effectiveEndYear(entity)
         return calendarYear in sYear..eYear
@@ -45,8 +44,8 @@ data class AssetPoolOverride(
     val expectedNominalReturn: Double? = null,
     val annualFlow: Money? = null, // Signed: + for Deposit, - for Drawdown
     val annualContribution: Money? = null, // Backward-compat fallback
-    val annualWithdrawal: Money? = null,   // Backward-compat fallback
-    val label: String = ""
+    val annualWithdrawal: Money? = null, // Backward-compat fallback
+    val label: String = "",
 ) {
     fun effectiveFlow(): Money? {
         if (annualFlow != null) return annualFlow
@@ -72,7 +71,7 @@ data class IncomeStreamOverride(
     val startYear: Int = 2026,
     val annualAmount: Money? = null,
     val yearlyPayBumpRate: Double? = null,
-    val label: String = ""
+    val label: String = "",
 ) {
     fun effectiveStartYear(entity: Entity?): Int = when (timeMode) {
         TimeMode.CALENDAR_YEAR -> startYear
@@ -92,7 +91,7 @@ data class ExpenseItemOverride(
     val annualAmount: Money? = null,
     val expenseType: ExpenseType? = null,
     val compoundingInterestRate: Double? = null,
-    val label: String = ""
+    val label: String = "",
 ) {
     fun effectiveStartYear(entity: Entity?): Int = when (timeMode) {
         TimeMode.CALENDAR_YEAR -> startYear

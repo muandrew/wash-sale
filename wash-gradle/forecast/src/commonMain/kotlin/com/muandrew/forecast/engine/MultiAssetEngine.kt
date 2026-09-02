@@ -1,21 +1,17 @@
 package com.muandrew.forecast.engine
 
 import com.muandrew.forecast.model.AssetCategory
-import com.muandrew.forecast.model.AssetPool
 import com.muandrew.forecast.model.ExpenseCategory
-import com.muandrew.forecast.model.ExpenseItem
 import com.muandrew.forecast.model.FinancialPlan
 import com.muandrew.forecast.model.FundingStatus
 import com.muandrew.forecast.model.Household
 import com.muandrew.forecast.model.Money
-import com.muandrew.forecast.model.PriorityItemType
 import com.muandrew.forecast.model.PriorityTargetType
 import com.muandrew.forecast.model.YearlyItemFunding
 import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -30,7 +26,7 @@ data class YearCategoryBreakdown(
     val totalExpenses: Money,
     val netCashFlow: Money,
     val itemFundings: List<YearlyItemFunding> = emptyList(),
-    val unfundedCount: Int = itemFundings.count { it.status.isProblem }
+    val unfundedCount: Int = itemFundings.count { it.status.isProblem },
 )
 
 data class HouseholdProjectionResult(
@@ -41,7 +37,7 @@ data class HouseholdProjectionResult(
     val p10Path: List<Money>,
     val p50Path: List<Money>,
     val p90Path: List<Money>,
-    val successRate: Double
+    val successRate: Double,
 )
 
 data class ConsolidatedPlanResult(
@@ -51,17 +47,16 @@ data class ConsolidatedPlanResult(
     val p10Path: List<Money>,
     val p50Path: List<Money>,
     val p90Path: List<Money>,
-    val overallSuccessRate: Double
+    val overallSuccessRate: Double,
 )
 
 object MultiAssetEngine {
-
     /**
      * Deterministic simulation calculating exact category-by-category breakdown and cashflow waterfall over time.
      */
     fun simulateHousehold(
         household: Household,
-        inflationRate: Double = 0.025
+        inflationRate: Double = 0.025,
     ): List<YearCategoryBreakdown> {
         val totalYears = max(1, household.lifeExpectancy - household.currentAge)
         val timeline = mutableListOf<YearCategoryBreakdown>()
@@ -127,13 +122,14 @@ object MultiAssetEngine {
                                 val paid = min(availableCash, target)
                                 availableCash -= paid
                                 val shortfall = target - paid
-                                val status = if (shortfall == 0L) {
-                                    FundingStatus.FULLY_FUNDED
-                                } else if (paid > 0L) {
-                                    FundingStatus.PARTIALLY_FUNDED
-                                } else {
-                                    FundingStatus.UNFUNDED
-                                }
+                                val status =
+                                    if (shortfall == 0L) {
+                                        FundingStatus.FULLY_FUNDED
+                                    } else if (paid > 0L) {
+                                        FundingStatus.PARTIALLY_FUNDED
+                                    } else {
+                                        FundingStatus.UNFUNDED
+                                    }
                                 itemFundings.add(
                                     YearlyItemFunding(
                                         id = exp.id,
@@ -144,8 +140,8 @@ object MultiAssetEngine {
                                         targetAmount = Money(target),
                                         actualAmount = Money(paid),
                                         shortfall = Money(shortfall),
-                                        status = status
-                                    )
+                                        status = status,
+                                    ),
                                 )
                             }
                         }
@@ -161,13 +157,14 @@ object MultiAssetEngine {
                                 availableCash -= invested
                                 currentBalances[pool.id] = (currentBalances[pool.id] ?: 0L) + invested
                                 val shortfall = target - invested
-                                val status = if (shortfall == 0L) {
-                                    FundingStatus.FULLY_FUNDED
-                                } else if (invested > 0L) {
-                                    FundingStatus.PARTIALLY_FUNDED
-                                } else {
-                                    FundingStatus.UNFUNDED
-                                }
+                                val status =
+                                    if (shortfall == 0L) {
+                                        FundingStatus.FULLY_FUNDED
+                                    } else if (invested > 0L) {
+                                        FundingStatus.PARTIALLY_FUNDED
+                                    } else {
+                                        FundingStatus.UNFUNDED
+                                    }
                                 itemFundings.add(
                                     YearlyItemFunding(
                                         id = pool.id,
@@ -178,8 +175,8 @@ object MultiAssetEngine {
                                         targetAmount = Money(target),
                                         actualAmount = Money(invested),
                                         shortfall = Money(shortfall),
-                                        status = status
-                                    )
+                                        status = status,
+                                    ),
                                 )
                             }
                         }
@@ -202,8 +199,8 @@ object MultiAssetEngine {
                     totalIncome = Money(yearIncome),
                     totalExpenses = Money(totalYearExpenses),
                     netCashFlow = Money(netCashFlow),
-                    itemFundings = itemFundings
-                )
+                    itemFundings = itemFundings,
+                ),
             )
 
             if (year < totalYears) {
@@ -221,13 +218,14 @@ object MultiAssetEngine {
                 // Handle net deficit from assets if expenses exceeded income
                 if (netCashFlow < 0) {
                     var remainingDeficit = -netCashFlow
-                    val withdrawalPriority = listOf(
-                        AssetCategory.CASH_EMERGENCY,
-                        AssetCategory.TAXABLE_BROKERAGE,
-                        AssetCategory.PRE_TAX_401K,
-                        AssetCategory.ROTH_IRA,
-                        AssetCategory.OTHER
-                    )
+                    val withdrawalPriority =
+                        listOf(
+                            AssetCategory.CASH_EMERGENCY,
+                            AssetCategory.TAXABLE_BROKERAGE,
+                            AssetCategory.PRE_TAX_401K,
+                            AssetCategory.ROTH_IRA,
+                            AssetCategory.OTHER,
+                        )
 
                     for (cat in withdrawalPriority) {
                         if (remainingDeficit <= 0) break
@@ -243,9 +241,10 @@ object MultiAssetEngine {
                     }
                 } else if (availableCash > 0 && isWorking) {
                     // Any leftover surplus after satisfying all priority rules flows into Taxable Brokerage or Cash
-                    val defaultPool = pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE }
-                        ?: pools.firstOrNull { it.category == AssetCategory.CASH_EMERGENCY }
-                        ?: pools.firstOrNull()
+                    val defaultPool =
+                        pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE }
+                            ?: pools.firstOrNull { it.category == AssetCategory.CASH_EMERGENCY }
+                            ?: pools.firstOrNull()
 
                     if (defaultPool != null) {
                         currentBalances[defaultPool.id] = (currentBalances[defaultPool.id] ?: 0L) + availableCash
@@ -264,7 +263,7 @@ object MultiAssetEngine {
         household: Household,
         simulationsCount: Int = 500,
         inflationRate: Double = 0.025,
-        randomSeed: Long? = null
+        randomSeed: Long? = null,
     ): HouseholdProjectionResult {
         val random = if (randomSeed != null) Random(randomSeed) else Random.Default
         val totalYears = max(1, household.lifeExpectancy - household.currentAge)
@@ -341,13 +340,14 @@ object MultiAssetEngine {
                 val netCash = yearIncome - yearExpenses
                 if (netCash < 0) {
                     var deficit = -netCash
-                    val priority = listOf(
-                        AssetCategory.CASH_EMERGENCY,
-                        AssetCategory.TAXABLE_BROKERAGE,
-                        AssetCategory.PRE_TAX_401K,
-                        AssetCategory.ROTH_IRA,
-                        AssetCategory.OTHER
-                    )
+                    val priority =
+                        listOf(
+                            AssetCategory.CASH_EMERGENCY,
+                            AssetCategory.TAXABLE_BROKERAGE,
+                            AssetCategory.PRE_TAX_401K,
+                            AssetCategory.ROTH_IRA,
+                            AssetCategory.OTHER,
+                        )
                     for (cat in priority) {
                         if (deficit <= 0) break
                         for (p in pools.filter { it.category == cat }) {
@@ -406,7 +406,7 @@ object MultiAssetEngine {
             p10Path = p10List,
             p50Path = p50List,
             p90Path = p90List,
-            successRate = (successfulSims.toDouble() / simulationsCount.toDouble()) * 100.0
+            successRate = (successfulSims.toDouble() / simulationsCount.toDouble()) * 100.0,
         )
     }
 
@@ -415,11 +415,12 @@ object MultiAssetEngine {
      */
     fun simulatePlan(
         plan: FinancialPlan,
-        simulationsCount: Int = 500
+        simulationsCount: Int = 500,
     ): ConsolidatedPlanResult {
-        val householdResults = plan.households.map {
-            runHouseholdMonteCarlo(it, simulationsCount, plan.inflationRate)
-        }
+        val householdResults =
+            plan.households.map {
+                runHouseholdMonteCarlo(it, simulationsCount, plan.inflationRate)
+            }
 
         if (householdResults.isEmpty()) {
             return ConsolidatedPlanResult(
@@ -429,7 +430,7 @@ object MultiAssetEngine {
                 p10Path = emptyList(),
                 p50Path = emptyList(),
                 p90Path = emptyList(),
-                overallSuccessRate = 100.0
+                overallSuccessRate = 100.0,
             )
         }
 
@@ -439,8 +440,9 @@ object MultiAssetEngine {
         val p50Consolidated = mutableListOf<Money>()
         val p90Consolidated = mutableListOf<Money>()
 
-        val baseAge = plan.households.firstOrNull { it.isPrimary }?.currentAge
-            ?: plan.households.firstOrNull()?.currentAge ?: 30
+        val baseAge =
+            plan.households.firstOrNull { it.isPrimary }?.currentAge
+                ?: plan.households.firstOrNull()?.currentAge ?: 30
 
         for (year in 0 until maxTimelineLength) {
             val assetMap = mutableMapOf<AssetCategory, Long>()
@@ -483,8 +485,8 @@ object MultiAssetEngine {
                     totalIncome = Money(totalInc),
                     totalExpenses = Money(totalExp),
                     netCashFlow = Money(totalInc - totalExp),
-                    itemFundings = consolidatedFundings
-                )
+                    itemFundings = consolidatedFundings,
+                ),
             )
 
             p10Consolidated.add(Money(p10Total))
@@ -492,9 +494,12 @@ object MultiAssetEngine {
             p90Consolidated.add(Money(p90Total))
         }
 
-        val avgSuccess = if (householdResults.isNotEmpty()) {
-            householdResults.map { it.successRate }.average()
-        } else 100.0
+        val avgSuccess =
+            if (householdResults.isNotEmpty()) {
+                householdResults.map { it.successRate }.average()
+            } else {
+                100.0
+            }
 
         return ConsolidatedPlanResult(
             timeline = consolidatedTimeline,
@@ -503,7 +508,7 @@ object MultiAssetEngine {
             p10Path = p10Consolidated,
             p50Path = p50Consolidated,
             p90Path = p90Consolidated,
-            overallSuccessRate = avgSuccess
+            overallSuccessRate = avgSuccess,
         )
     }
 }

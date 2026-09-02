@@ -31,10 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -54,7 +52,7 @@ fun NetWorthChart(
     p90Path: List<Money> = emptyList(),
     selectedCategory: AssetCategory? = null,
     onSelectCategory: (AssetCategory?) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var hoveredYearIndex by remember { mutableStateOf<Int?>(null) }
 
@@ -69,8 +67,8 @@ fun NetWorthChart(
         1L,
         max(
             timeline.maxOfOrNull { it.totalNetWorth.value } ?: 1L,
-            p90Path.maxOfOrNull { it.value } ?: 1L
-        )
+            p90Path.maxOfOrNull { it.value } ?: 1L,
+        ),
     )
 
     val activeYearIndex = hoveredYearIndex ?: (timeline.size - 1)
@@ -80,26 +78,26 @@ fun NetWorthChart(
         backgroundColor = Color(0xFF1A1A1A),
         shape = RoundedCornerShape(12.dp),
         elevation = 6.dp,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header with Selected Year Inspection HUD (Responsive Flexbox FlowRow)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         "Stacked Net Worth & Category Growth Over Time",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colors.primary
+                        color = MaterialTheme.colors.primary,
                     )
                     Text(
                         "Drag or tap chart to inspect at specific ages. Click categories to highlight.",
                         fontSize = 11.sp,
-                        color = Color(0xFFAAAAAA)
+                        color = Color(0xFFAAAAAA),
                     )
                 }
 
@@ -108,7 +106,7 @@ fun NetWorthChart(
                     activeData = activeYearData,
                     selectedCategory = selectedCategory,
                     p10 = p10Path.getOrNull(activeYearIndex),
-                    p90 = p90Path.getOrNull(activeYearIndex)
+                    p90 = p90Path.getOrNull(activeYearIndex),
                 )
             }
 
@@ -118,7 +116,7 @@ fun NetWorthChart(
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 AssetCategory.entries.forEach { category ->
                     val isSelected = selectedCategory == category
@@ -129,32 +127,32 @@ fun NetWorthChart(
                         modifier = Modifier
                             .background(
                                 if (isSelected) catColor.copy(alpha = 0.25f) else Color(0xFF252525),
-                                RoundedCornerShape(6.dp)
+                                RoundedCornerShape(6.dp),
                             )
                             .clickable {
                                 onSelectCategory(if (isSelected) null else category)
                             }
                             .padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
-                                .background(catColor, CircleShape)
+                                .background(catColor, CircleShape),
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             category.displayName,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color.White else Color(0xFFCCCCCC)
+                            color = if (isSelected) Color.White else Color(0xFFCCCCCC),
                         )
                         if (currentBal.value > 0) {
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 "(${currentBal.toFormattedString()})",
                                 fontSize = 10.sp,
-                                color = catColor
+                                color = catColor,
                             )
                         }
                     }
@@ -167,7 +165,7 @@ fun NetWorthChart(
                         color = Color(0xFF81C784),
                         modifier = Modifier
                             .clickable { onSelectCategory(null) }
-                            .padding(start = 4.dp, top = 4.dp)
+                            .padding(start = 4.dp, top = 4.dp),
                     )
                 }
             }
@@ -190,7 +188,7 @@ fun NetWorthChart(
                             val xRatio = (change.position.x / size.width).coerceIn(0f, 1f)
                             hoveredYearIndex = (xRatio * (timeline.size - 1)).toInt().coerceIn(0, timeline.size - 1)
                         }
-                    }
+                    },
             ) {
                 Canvas(modifier = Modifier.fillMaxWidth().height(260.dp)) {
                     val width = size.width
@@ -205,7 +203,7 @@ fun NetWorthChart(
                             color = Color(0xFF333333),
                             start = Offset(0f, y),
                             end = Offset(width, y),
-                            strokeWidth = 1f
+                            strokeWidth = 1f,
                         )
                     }
 
@@ -287,7 +285,7 @@ fun NetWorthChart(
                             color = Color.White.copy(alpha = 0.75f),
                             start = Offset(cursorX, 0f),
                             end = Offset(cursorX, height),
-                            strokeWidth = 1.5f
+                            strokeWidth = 1.5f,
                         )
                     }
                 }
@@ -301,12 +299,12 @@ private fun InspectionBadge(
     activeData: YearCategoryBreakdown,
     selectedCategory: AssetCategory?,
     p10: Money?,
-    p90: Money?
+    p90: Money?,
 ) {
     Box(
         modifier = Modifier
             .background(Color(0xFF242424), RoundedCornerShape(8.dp))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column {
@@ -319,24 +317,26 @@ private fun InspectionBadge(
                     "Total: ${activeData.totalNetWorth.toFormattedString()}",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF81C784)
+                    color = Color(0xFF81C784),
                 )
                 if (selectedCategory != null) {
                     val catVal = activeData.assetBalances[selectedCategory] ?: Money.ZERO
                     val pct = if (activeData.totalNetWorth.value > 0) {
                         (catVal.value.toDouble() / activeData.totalNetWorth.value.toDouble() * 100.0).toInt()
-                    } else 0
+                    } else {
+                        0
+                    }
                     Text(
                         "${selectedCategory.displayName}: ${catVal.toFormattedString()} ($pct%)",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(selectedCategory.hexColor)
+                        color = Color(selectedCategory.hexColor),
                     )
                 } else if (p10 != null && p90 != null) {
                     Text(
                         "Risk Band: ${p10.toFormattedString()} – ${p90.toFormattedString()}",
                         fontSize = 10.sp,
-                        color = Color(0xFF64B5F6)
+                        color = Color(0xFF64B5F6),
                     )
                 }
             }

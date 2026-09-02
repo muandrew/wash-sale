@@ -8,8 +8,8 @@ data class ForecastProfile(
     val annualSavings: Money = Money.ofDollars(25_000),
     val annualRetirementExpenses: Money = Money.ofDollars(60_000),
     val expectedReturnRate: Double = 0.07, // 7% nominal return
-    val inflationRate: Double = 0.025,     // 2.5% inflation
-    val returnVolatility: Double = 0.15    // 15% standard deviation
+    val inflationRate: Double = 0.025, // 2.5% inflation
+    val returnVolatility: Double = 0.15, // 15% standard deviation
 )
 
 data class YearTrajectory(
@@ -19,7 +19,7 @@ data class YearTrajectory(
     val balanceP25: Money,
     val balanceP50: Money,
     val balanceP75: Money,
-    val balanceP90: Money
+    val balanceP90: Money,
 )
 
 data class MonteCarloResult(
@@ -29,7 +29,7 @@ data class MonteCarloResult(
     val trajectory: List<YearTrajectory>,
     val finalMedianNetWorth: Money,
     val p10FinalNetWorth: Money,
-    val p90FinalNetWorth: Money
+    val p90FinalNetWorth: Money,
 )
 
 data class SWRAnalysis(
@@ -38,5 +38,5 @@ data class SWRAnalysis(
     val targetPortfolioSize: Money,
     val projectedPortfolioAtRetirement: Money,
     val fundingRatio: Double,
-    val isRetirementFunded: Boolean
+    val isRetirementFunded: Boolean,
 )

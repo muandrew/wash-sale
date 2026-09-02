@@ -1,5 +1,4 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -44,18 +43,18 @@ fun main() = application {
             onKeyEvent(it, events, eventScope)
         },
     ) {
-            Surface {
-                DesktopNodeHost(
-                    windowState = windowState,
-                    onBackPressedEvents = events.receiveAsFlow().mapNotNull {
-                        if (it is Events.OnBackPressed) Unit else null
-                    }
-                ) {
-                    RootNode(
-                        nodeContext = it,
-                        world = Wash.create(getenv("WASH_DIR")),
-                    )
-                }
+        Surface {
+            DesktopNodeHost(
+                windowState = windowState,
+                onBackPressedEvents = events.receiveAsFlow().mapNotNull {
+                    if (it is Events.OnBackPressed) Unit else null
+                },
+            ) {
+                RootNode(
+                    nodeContext = it,
+                    world = Wash.create(getenv("WASH_DIR")),
+                )
+            }
         }
     }
 }
@@ -64,15 +63,14 @@ private fun onKeyEvent(
     keyEvent: KeyEvent,
     events: Channel<Events>,
     coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
-): Boolean =
-    when {
-        keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Backspace -> {
-            coroutineScope.launch { events.send(Events.OnBackPressed) }
-            true
-        }
-
-        else -> false
+): Boolean = when {
+    keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Backspace -> {
+        coroutineScope.launch { events.send(Events.OnBackPressed) }
+        true
     }
+
+    else -> false
+}
 
 @Preview
 @Composable

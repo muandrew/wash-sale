@@ -1,6 +1,5 @@
 package com.muandrew.forecast
 
-import com.muandrew.forecast.engine.MonteCarloEngine
 import com.muandrew.forecast.engine.MultiAssetEngine
 import com.muandrew.forecast.engine.RetirementCalculator
 import com.muandrew.forecast.model.AssetCategory
@@ -50,7 +49,7 @@ class MonteCarloTest {
             startAge = 30,
             endAge = 60,
             yearlyPayBumpRate = 0.05, // 5.0% yearly raise
-            inflationAdjusted = false
+            inflationAdjusted = false,
         )
 
         // Age 30 (year 0): $100,000
@@ -86,7 +85,7 @@ class MonteCarloTest {
             timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
             startAge = 30,
             endAge = 60,
-            yearlyPayBumpRate = 0.0
+            yearlyPayBumpRate = 0.0,
         )
         assertEquals(2026, job.effectiveStartYear(parent))
         assertEquals(2056, job.effectiveEndYear(parent))
@@ -102,7 +101,7 @@ class MonteCarloTest {
             entityId = parent.id,
             timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
             startYear = 2026,
-            endYear = 2030
+            endYear = 2030,
         )
         assertEquals(2026, carLoan.effectiveStartYear(parent))
         assertEquals(2030, carLoan.effectiveEndYear(parent))
@@ -118,7 +117,7 @@ class MonteCarloTest {
             entityId = child.id,
             timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
             startAge = 18,
-            endAge = 21
+            endAge = 21,
         )
         assertEquals(2046, college.effectiveStartYear(child)) // 2028 + 18 = 2046
         assertEquals(2049, college.effectiveEndYear(child)) // 2028 + 21 = 2049
@@ -133,7 +132,7 @@ class MonteCarloTest {
             currentBalance = Money.ofDollars(10_000),
             entityId = child.id,
             annualContribution = Money.ofDollars(5_000),
-            contributionEndAge = 18
+            contributionEndAge = 18,
         )
         assertEquals(child.id, pool529.entityId)
     }
@@ -152,7 +151,7 @@ class MonteCarloTest {
             timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
             startYear = 2026,
             endYear = 2030,
-            yearlyPayBumpRate = 0.0
+            yearlyPayBumpRate = 0.0,
         )
 
         // Debt of $20,000 (Priority 1)
@@ -165,7 +164,7 @@ class MonteCarloTest {
             timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
             startYear = 2026,
             endYear = 2030,
-            expenseType = com.muandrew.forecast.model.ExpenseType.COMPOUNDING_DEBT
+            expenseType = com.muandrew.forecast.model.ExpenseType.COMPOUNDING_DEBT,
         )
 
         // Living Essentials of $25,000 (Priority 2)
@@ -178,7 +177,7 @@ class MonteCarloTest {
             timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
             startYear = 2026,
             endYear = 2030,
-            expenseType = com.muandrew.forecast.model.ExpenseType.RECURRING
+            expenseType = com.muandrew.forecast.model.ExpenseType.RECURRING,
         )
 
         // Child 529 Plan target contribution of $10,000 (Priority 3) -> Income remaining is $5,000, so $5,000 is funded and $5,000 is shortfall!
@@ -189,7 +188,7 @@ class MonteCarloTest {
             currentBalance = Money.ZERO,
             entityId = child.id,
             annualContribution = Money.ofDollars(10_000),
-            contributionEndAge = 18
+            contributionEndAge = 18,
         )
 
         val household = Household(
@@ -199,7 +198,7 @@ class MonteCarloTest {
             entities = listOf(parent, child),
             incomeStreams = listOf(income),
             expenses = listOf(debt, living),
-            assetPools = listOf(pool529)
+            assetPools = listOf(pool529),
         )
 
         val timeline = MultiAssetEngine.simulateHousehold(household, inflationRate = 0.0)
@@ -244,7 +243,7 @@ class MonteCarloTest {
                     timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
                     startAge = 20,
                     endAge = 30,
-                    amount = Money.ofDollars(1_000)
+                    amount = Money.ofDollars(1_000),
                 ),
                 com.muandrew.forecast.model.SchedulePhase(
                     id = "phase2",
@@ -252,9 +251,9 @@ class MonteCarloTest {
                     timeMode = com.muandrew.forecast.model.TimeMode.ENTITY_AGE,
                     startAge = 31,
                     endAge = 40,
-                    amount = Money.ofDollars(2_000)
-                )
-            )
+                    amount = Money.ofDollars(2_000),
+                ),
+            ),
         )
 
         // Age 30 (Year 2026): $1,000
@@ -289,7 +288,7 @@ class MonteCarloTest {
                     startAge = 0,
                     endAge = 17,
                     amount = Money.ofDollars(5_000),
-                    isWithdrawal = false
+                    isWithdrawal = false,
                 ),
                 com.muandrew.forecast.model.SchedulePhase(
                     id = "draw",
@@ -298,9 +297,9 @@ class MonteCarloTest {
                     startAge = 18,
                     endAge = 21,
                     amount = Money.ofDollars(20_000),
-                    isWithdrawal = true
-                )
-            )
+                    isWithdrawal = true,
+                ),
+            ),
         )
 
         // Age 10 (Year 2038): $5,000 contribution (green bar), $0 withdrawal
@@ -331,9 +330,9 @@ class MonteCarloTest {
                     startYear = 2026,
                     endYear = 2028,
                     amount = Money.ofDollars(30_000),
-                    isWithdrawal = true
-                )
-            )
+                    isWithdrawal = true,
+                ),
+            ),
         )
 
         var runningBalance = smallPool.currentBalance.value
@@ -356,7 +355,7 @@ class MonteCarloTest {
                 inflow = contrib,
                 outflow = withdr,
                 isDeficit = isDeficit || (runningBalance == 0L && withdr.value > 0L),
-                shortfall = Money(shortfallCents)
+                shortfall = Money(shortfallCents),
             )
         }
 
@@ -382,7 +381,7 @@ class MonteCarloTest {
             annualAmount = Money.ofDollars(10_000),
             startAge = 30,
             endAge = 40,
-            inflationAdjusted = false
+            inflationAdjusted = false,
         )
         assertEquals(Money.ofDollars(10_000), recurring.amountAtAge(35, baseAge = 30, inflationRate = 0.0))
         assertEquals(Money.ZERO, recurring.amountAtAge(45, baseAge = 30, inflationRate = 0.0))
@@ -396,7 +395,7 @@ class MonteCarloTest {
             annualAmount = Money.ofDollars(80_000),
             startAge = 33,
             endAge = 33,
-            inflationAdjusted = false
+            inflationAdjusted = false,
         )
         assertEquals(Money.ofDollars(80_000), oneTime.amountAtAge(33, baseAge = 30, inflationRate = 0.0))
         assertEquals(Money.ZERO, oneTime.amountAtAge(34, baseAge = 30, inflationRate = 0.0))
@@ -411,7 +410,7 @@ class MonteCarloTest {
             startAge = 30,
             endAge = 35,
             compoundingInterestRate = 0.10,
-            inflationAdjusted = false
+            inflationAdjusted = false,
         )
         assertEquals(Money.ofDollars(5_000), debt.amountAtAge(30, baseAge = 30, inflationRate = 0.0))
         assertEquals(Money.ofDollars(5_500), debt.amountAtAge(31, baseAge = 30, inflationRate = 0.0))
@@ -423,7 +422,7 @@ class MonteCarloTest {
         val profile = ForecastProfile(
             currentAge = 30,
             retirementAge = 60,
-            annualRetirementExpenses = Money.ofDollars(40_000)
+            annualRetirementExpenses = Money.ofDollars(40_000),
         )
         val swr = RetirementCalculator.calculateSWR(profile, swrRate = 0.04)
 
@@ -440,7 +439,7 @@ class MonteCarloTest {
             annualDaycareCost = Money.ofDollars(20_000),
             annualSchoolAgeLivingCost = Money.ofDollars(10_000),
             annual529Contribution = Money.ofDollars(5_000),
-            annualCollegeTuition = Money.ofDollars(40_000)
+            annualCollegeTuition = Money.ofDollars(40_000),
         )
 
         val expenses = child.generateExpenses(parentCurrentAge = 28)
@@ -465,7 +464,7 @@ class MonteCarloTest {
             propertyName = "Suburban Home",
             parentAgeAtPurchase = 35,
             propertyValue = Money.ofDollars(500_000),
-            downPaymentPercent = 0.20
+            downPaymentPercent = 0.20,
         )
 
         val expenses = home.generateExpenses(30)
@@ -490,11 +489,11 @@ class MonteCarloTest {
             annualIncome = Money.ofDollars(100_000),
             assetPools = listOf(
                 AssetPool("p_tax", "Brokerage", AssetCategory.TAXABLE_BROKERAGE, Money.ofDollars(40_000), annualContribution = Money.ofDollars(10_000)),
-                AssetPool("p_401", "401k", AssetCategory.PRE_TAX_401K, Money.ofDollars(60_000), annualContribution = Money.ofDollars(15_000))
+                AssetPool("p_401", "401k", AssetCategory.PRE_TAX_401K, Money.ofDollars(60_000), annualContribution = Money.ofDollars(15_000)),
             ),
             directExpenses = listOf(
-                ExpenseItem("e_living", "Living", ExpenseCategory.LIVING_ESSENTIALS, Money.ofDollars(50_000), startAge = 30, endAge = 80)
-            )
+                ExpenseItem("e_living", "Living", ExpenseCategory.LIVING_ESSENTIALS, Money.ofDollars(50_000), startAge = 30, endAge = 80),
+            ),
         )
 
         val timeline = MultiAssetEngine.simulateHousehold(household, inflationRate = 0.02)
@@ -519,7 +518,7 @@ class MonteCarloTest {
             name = "Primary",
             baseYear = 2026,
             entities = listOf(com.muandrew.forecast.model.Entity("e1", "Primary", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 70)),
-            assetPools = listOf(AssetPool("p1", "Cash", AssetCategory.CASH_EMERGENCY, Money.ofDollars(50_000)))
+            assetPools = listOf(AssetPool("p1", "Cash", AssetCategory.CASH_EMERGENCY, Money.ofDollars(50_000))),
         )
 
         val h2 = Household(
@@ -527,7 +526,7 @@ class MonteCarloTest {
             name = "Parents",
             baseYear = 2026,
             entities = listOf(com.muandrew.forecast.model.Entity("e2", "Parents", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 70)),
-            assetPools = listOf(AssetPool("p2", "IRA", AssetCategory.PRE_TAX_401K, Money.ofDollars(100_000)))
+            assetPools = listOf(AssetPool("p2", "IRA", AssetCategory.PRE_TAX_401K, Money.ofDollars(100_000))),
         )
 
         val plan = FinancialPlan(households = listOf(h1, h2))

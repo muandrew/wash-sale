@@ -3,7 +3,9 @@ package com.muandrew.forecast.model
 sealed interface LifeEvent {
     val id: String
     val name: String
+
     fun generateExpenses(parentCurrentAge: Int): List<ExpenseItem>
+
     fun generateAssetPools(): List<AssetPool> = emptyList()
 }
 
@@ -21,7 +23,7 @@ data class ChildTemplate(
     val annualDaycareCost: Money = Money.ofDollars(18_000),
     val annualSchoolAgeLivingCost: Money = Money.ofDollars(8_000),
     val annual529Contribution: Money = Money.ofDollars(6_000),
-    val annualCollegeTuition: Money = Money.ofDollars(35_000)
+    val annualCollegeTuition: Money = Money.ofDollars(35_000),
 ) : LifeEvent {
     override val name: String = "Child: $childName"
 
@@ -36,8 +38,8 @@ data class ChildTemplate(
                 category = ExpenseCategory.CHILDCARE_EARLY,
                 annualAmount = annualDaycareCost,
                 startAge = parentAgeAtBirth,
-                endAge = parentAgeAtBirth + 5
-            )
+                endAge = parentAgeAtBirth + 5,
+            ),
         )
 
         // Stage 2: School-Age Living & Healthcare (Child ages 6 to 17)
@@ -48,8 +50,8 @@ data class ChildTemplate(
                 category = ExpenseCategory.LIVING_ESSENTIALS,
                 annualAmount = annualSchoolAgeLivingCost,
                 startAge = parentAgeAtBirth + 6,
-                endAge = parentAgeAtBirth + 17
-            )
+                endAge = parentAgeAtBirth + 17,
+            ),
         )
 
         // Stage 3: 529 College Savings Contributions (Child ages 0 to 17)
@@ -61,8 +63,8 @@ data class ChildTemplate(
                     category = ExpenseCategory.EDUCATION_TUITION,
                     annualAmount = annual529Contribution,
                     startAge = parentAgeAtBirth,
-                    endAge = parentAgeAtBirth + 17
-                )
+                    endAge = parentAgeAtBirth + 17,
+                ),
             )
         }
 
@@ -74,8 +76,8 @@ data class ChildTemplate(
                 category = ExpenseCategory.EDUCATION_TUITION,
                 annualAmount = annualCollegeTuition,
                 startAge = parentAgeAtBirth + 18,
-                endAge = parentAgeAtBirth + 21
-            )
+                endAge = parentAgeAtBirth + 21,
+            ),
         )
 
         return expenses
@@ -93,7 +95,7 @@ data class HomePurchaseTemplate(
     val propertyValue: Money = Money.ofDollars(600_000),
     val downPaymentPercent: Double = 0.20,
     val annualMortgageAndTax: Money = Money.ofDollars(36_000),
-    val loanTermYears: Int = 30
+    val loanTermYears: Int = 30,
 ) : LifeEvent {
     override val name: String = "Home Purchase: $propertyName"
 
@@ -106,7 +108,7 @@ data class HomePurchaseTemplate(
                 category = ExpenseCategory.HOUSING_MORTGAGE,
                 annualAmount = downPayment,
                 startAge = parentAgeAtPurchase,
-                endAge = parentAgeAtPurchase
+                endAge = parentAgeAtPurchase,
             ),
             ExpenseItem(
                 id = "${id}_mortgage",
@@ -114,23 +116,21 @@ data class HomePurchaseTemplate(
                 category = ExpenseCategory.HOUSING_MORTGAGE,
                 annualAmount = annualMortgageAndTax,
                 startAge = parentAgeAtPurchase + 1,
-                endAge = parentAgeAtPurchase + loanTermYears
-            )
+                endAge = parentAgeAtPurchase + loanTermYears,
+            ),
         )
     }
 
-    override fun generateAssetPools(): List<AssetPool> {
-        return listOf(
-            AssetPool(
-                id = "${id}_asset",
-                name = propertyName,
-                category = AssetCategory.REAL_ESTATE,
-                currentBalance = propertyValue,
-                expectedNominalReturn = 0.045,
-                returnVolatility = 0.06
-            )
-        )
-    }
+    override fun generateAssetPools(): List<AssetPool> = listOf(
+        AssetPool(
+            id = "${id}_asset",
+            name = propertyName,
+            category = AssetCategory.REAL_ESTATE,
+            currentBalance = propertyValue,
+            expectedNominalReturn = 0.045,
+            returnVolatility = 0.06,
+        ),
+    )
 }
 
 /**
@@ -141,20 +141,18 @@ data class VacationBudgetTemplate(
     val budgetName: String,
     val annualBudget: Money = Money.ofDollars(8_000),
     val startAge: Int = 30,
-    val endAge: Int = 85
+    val endAge: Int = 85,
 ) : LifeEvent {
     override val name: String = "Vacation: $budgetName"
 
-    override fun generateExpenses(parentCurrentAge: Int): List<ExpenseItem> {
-        return listOf(
-            ExpenseItem(
-                id = "${id}_vacation",
-                name = budgetName,
-                category = ExpenseCategory.DISCRETIONARY_VACATION,
-                annualAmount = annualBudget,
-                startAge = startAge,
-                endAge = endAge
-            )
-        )
-    }
+    override fun generateExpenses(parentCurrentAge: Int): List<ExpenseItem> = listOf(
+        ExpenseItem(
+            id = "${id}_vacation",
+            name = budgetName,
+            category = ExpenseCategory.DISCRETIONARY_VACATION,
+            annualAmount = annualBudget,
+            startAge = startAge,
+            endAge = endAge,
+        ),
+    )
 }

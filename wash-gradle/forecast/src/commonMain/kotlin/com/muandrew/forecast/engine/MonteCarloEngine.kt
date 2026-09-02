@@ -11,23 +11,23 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 object MonteCarloEngine {
-
     /**
      * Runs stochastic Monte Carlo simulations based on Box-Muller Gaussian sampling.
      */
     fun runSimulation(
         profile: ForecastProfile,
         simulationsCount: Int = 1000,
-        randomSeed: Long? = null
+        randomSeed: Long? = null,
     ): MonteCarloResult {
         val random = if (randomSeed != null) Random(randomSeed) else Random.Default
         val totalYears = max(1, profile.lifeExpectancy - profile.currentAge)
         val workingYears = max(0, profile.retirementAge - profile.currentAge)
 
         // Matrix of balances: simulationsCount x (totalYears + 1)
-        val allPaths = Array(simulationsCount) {
-            LongArray(totalYears + 1)
-        }
+        val allPaths =
+            Array(simulationsCount) {
+                LongArray(totalYears + 1)
+            }
 
         var successfulRuns = 0
 
@@ -92,8 +92,8 @@ object MonteCarloEngine {
                     balanceP25 = Money(percentile(0.25)),
                     balanceP50 = Money(percentile(0.50)),
                     balanceP75 = Money(percentile(0.75)),
-                    balanceP90 = Money(percentile(0.90))
-                )
+                    balanceP90 = Money(percentile(0.90)),
+                ),
             )
         }
 
@@ -106,7 +106,7 @@ object MonteCarloEngine {
             trajectory = trajectory,
             finalMedianNetWorth = finalTrajectory.balanceP50,
             p10FinalNetWorth = finalTrajectory.balanceP10,
-            p90FinalNetWorth = finalTrajectory.balanceP90
+            p90FinalNetWorth = finalTrajectory.balanceP90,
         )
     }
 }

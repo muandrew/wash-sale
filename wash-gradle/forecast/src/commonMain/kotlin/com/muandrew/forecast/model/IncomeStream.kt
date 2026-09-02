@@ -15,23 +15,22 @@ data class IncomeStream(
     val yearlyPayBumpRate: Double = 0.03, // 3.0% yearly raise / merit growth
     val inflationAdjusted: Boolean = true,
     val overrides: List<IncomeStreamOverride> = emptyList(),
-    val phases: List<SchedulePhase> = emptyList()
+    val phases: List<SchedulePhase> = emptyList(),
 ) {
-    fun effectiveStartYear(entity: Entity?): Int {
-        return when (timeMode) {
-            TimeMode.CALENDAR_YEAR -> startYear
-            TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(startAge) else startYear
-        }
+    fun effectiveStartYear(entity: Entity?): Int = when (timeMode) {
+        TimeMode.CALENDAR_YEAR -> startYear
+        TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(startAge) else startYear
     }
 
-    fun effectiveEndYear(entity: Entity?): Int {
-        return when (timeMode) {
-            TimeMode.CALENDAR_YEAR -> endYear
-            TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(endAge) else endYear
-        }
+    fun effectiveEndYear(entity: Entity?): Int = when (timeMode) {
+        TimeMode.CALENDAR_YEAR -> endYear
+        TimeMode.ENTITY_AGE -> if (entity != null) entity.yearAtAge(endAge) else endYear
     }
 
-    fun isApplicableInYear(calendarYear: Int, entity: Entity?): Boolean {
+    fun isApplicableInYear(
+        calendarYear: Int,
+        entity: Entity?,
+    ): Boolean {
         if (phases.isNotEmpty() && overrides.isEmpty()) {
             return phases.any { it.isApplicableInYear(calendarYear, entity) }
         }
@@ -44,7 +43,12 @@ data class IncomeStream(
         return true
     }
 
-    fun amountInYear(calendarYear: Int, baseYear: Int, entity: Entity?, inflationRate: Double): Money {
+    fun amountInYear(
+        calendarYear: Int,
+        baseYear: Int,
+        entity: Entity?,
+        inflationRate: Double,
+    ): Money {
         if (phases.isNotEmpty() && overrides.isEmpty()) {
             val matchingPhase = phases.firstOrNull { it.isApplicableInYear(calendarYear, entity) } ?: return Money.ZERO
             val sYear = matchingPhase.effectiveStartYear(entity)
@@ -91,7 +95,11 @@ data class IncomeStream(
     // Compatibility methods
     fun isApplicableAtAge(age: Int): Boolean = age in startAge..endAge
 
-    fun amountAtAge(age: Int, baseAge: Int, inflationRate: Double): Money {
+    fun amountAtAge(
+        age: Int,
+        baseAge: Int,
+        inflationRate: Double,
+    ): Money {
         if (!isApplicableAtAge(age)) return Money.ZERO
         val yearsActive = (age - startAge).coerceAtLeast(0)
         val raiseFactor = (1.0 + yearlyPayBumpRate).pow(yearsActive.toDouble())

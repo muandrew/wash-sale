@@ -26,7 +26,7 @@ class ReportsNode(
     private val reports: List<TransactionReport>,
     private val reportChosen: TransactionRefClicked,
 ) : LeafNode(
-    nodeContext = nodeContext
+    nodeContext = nodeContext,
 ) {
     @Composable
     override fun Content(modifier: Modifier) {
@@ -37,16 +37,16 @@ class ReportsNode(
 @Composable
 fun ReportsUi(
     sale: List<TransactionReport>,
-    reportChosen: TransactionRefClicked
+    reportChosen: TransactionRefClicked,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
             Text(
                 fontWeight = FontWeight.Bold,
-                text = "Reports"
+                text = "Reports",
             )
         }
         items(sale) { report ->
@@ -57,14 +57,14 @@ fun ReportsUi(
                             .fillMaxWidth()
                             .border(
                                 BorderStroke(2.dp, Color.Black),
-                                RoundedCornerShape(15.dp)
+                                RoundedCornerShape(15.dp),
                             )
                             .clickable {
                                 reportChosen(report.ref)
                             }
                             .padding(
-                                PaddingValues(4.dp)
-                            )
+                                PaddingValues(4.dp),
+                            ),
                     ) {
                         Text("Sale Reference Number: ${report.ref.referenceNumber}")
                         Text("${report.ref.date}")
@@ -72,14 +72,15 @@ fun ReportsUi(
                             "total allowed shares: ${
                                 report.allowedTransfer.map { it.shares }
                                     .reduceOrNull { a, b -> a + b } ?: 0
-                            }")
+                            }",
+                        )
                         Text(
                             "total disallowed shares: ${
                                 report.disallowedTransfer.map { it.shares }
                                     .reduceOrNull { a, b -> a + b } ?: 0
-                            }")
+                            }",
+                        )
                     }
-
                 }
 
                 is TransactionReport.ReceivedReport -> {
@@ -88,14 +89,14 @@ fun ReportsUi(
                             .fillMaxWidth()
                             .border(
                                 BorderStroke(2.dp, Color.Black),
-                                RoundedCornerShape(15.dp)
+                                RoundedCornerShape(15.dp),
                             )
                             .clickable {
                                 reportChosen(report.ref)
                             }
                             .padding(
-                                PaddingValues(4.dp)
-                            )
+                                PaddingValues(4.dp),
+                            ),
                     ) {
                         Text("date ${report.ref.date}")
                         Text("date ${report.ref.referenceNumber}")
@@ -109,4 +110,3 @@ fun ReportsUi(
         }
     }
 }
-
