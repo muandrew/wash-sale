@@ -52,7 +52,7 @@ fun main() = application {
             ) {
                 RootNode(
                     nodeContext = it,
-                    world = Wash.create(getenv("WASH_DIR")),
+                    world = Wash.create(getenv("WASH_DIR") ?: "."),
                 )
             }
         }

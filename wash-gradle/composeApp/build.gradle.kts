@@ -18,12 +18,9 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_1_8)
         }
     }
-
-    jvm("desktop")
+    jvm()
 
     sourceSets {
-        val desktopMain by getting
-
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
@@ -41,8 +38,10 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.wash.lib)
         }
-        desktopMain.dependencies {
+        jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation("org.jetbrains.skiko:skiko-awt-runtime-macos-arm64:0.9.4.2")
+            implementation("org.jetbrains.skiko:skiko-awt-runtime-macos-x64:0.9.4.2")
             implementation(libs.kotlin.coroutines.core)
             implementation(libs.kotlin.coroutines.swing)
         }
