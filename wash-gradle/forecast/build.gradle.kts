@@ -32,7 +32,7 @@ fun findDevServerPort(): Int? {
 kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        moduleName = "forecast"
+        outputModuleName.set("forecast")
         browser {
             commonWebpackConfig {
                 outputFileName = "forecast.js"

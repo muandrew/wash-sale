@@ -28,14 +28,14 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.appyx.navigation)
             implementation(libs.appyx.interactions)
-            implementation(libs.compose.material3)
+            implementation(compose.material3)
             implementation(libs.data.table.material3)
             api(libs.appyx.backstack)
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
             implementation(libs.wash.lib)
         }
         jvmMain.dependencies {
