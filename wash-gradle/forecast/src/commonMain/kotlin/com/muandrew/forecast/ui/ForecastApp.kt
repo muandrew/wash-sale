@@ -3,8 +3,10 @@ package com.muandrew.forecast.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,7 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
@@ -28,6 +32,7 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.ScrollableTabRow
 import androidx.compose.material.Surface
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
@@ -255,16 +260,17 @@ fun ForecastApp() {
 
                 // Navigation Tabs
                 item {
-                    TabRow(
+                    ScrollableTabRow(
                         selectedTabIndex = currentTab.ordinal,
                         backgroundColor = Color(0xFF1E1E1E),
                         contentColor = MaterialTheme.colors.primary,
+                        edgePadding = 8.dp,
                     ) {
                         AppTab.entries.forEach { tab ->
                             Tab(
                                 selected = currentTab == tab,
                                 onClick = { currentTab = tab },
-                                text = { Text(tab.title, fontWeight = FontWeight.SemiBold) },
+                                text = { Text(tab.title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) },
                             )
                         }
                     }
@@ -377,10 +383,10 @@ private fun HouseholdSwitcher(
         shape = RoundedCornerShape(10.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
+        FlowRow(
             modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("Entity View:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
 
@@ -399,7 +405,6 @@ private fun HouseholdSwitcher(
             }
 
             if (households.none { it.id == "elder_care" }) {
-                Spacer(Modifier.weight(1f))
                 OutlinedButton(
                     onClick = onAddElderCare,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF81C784)),
@@ -1082,10 +1087,10 @@ private fun IncomeStreamCard(
             .padding(14.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Row 1: Name, Associated Entity, Timing Mode, Delete
+            // Row 1: Name & Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedTextField(
@@ -1095,10 +1100,23 @@ private fun IncomeStreamCard(
                         onUpdate(stream.copy(name = it))
                     },
                     label = { Text("Income Stream Name") },
-                    modifier = Modifier.weight(1.3f),
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.width(10.dp))
 
+                OutlinedButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                ) {
+                    Text("Delete", fontSize = 11.sp)
+                }
+            }
+
+            // Row 2: Associated Entity Dropdown & Timing Mode Toggle
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 // Entity Dropdown
                 Box {
                     OutlinedButton(onClick = { entityMenuExpanded = true }) {
@@ -1119,8 +1137,6 @@ private fun IncomeStreamCard(
                     }
                 }
 
-                Spacer(Modifier.width(10.dp))
-
                 TimingModeToggle(
                     selectedMode = stream.timeMode,
                     onSelectMode = { newMode ->
@@ -1135,14 +1151,6 @@ private fun IncomeStreamCard(
                         }
                     },
                 )
-
-                Spacer(Modifier.width(8.dp))
-                OutlinedButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
-                ) {
-                    Text("Delete", fontSize = 11.sp)
-                }
             }
 
             // Timeline Attribute Override Schedule Table
@@ -1227,164 +1235,207 @@ private fun IncomeStreamScheduleTable(
             }
         }
 
-        // Table Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF282828), RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.2f))
-            Text("Annual Salary ($)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784), modifier = Modifier.weight(1.3f))
-            Text("Yearly Raise (%)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.1f))
-            Text("Note / Milestone", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
-            Spacer(Modifier.width(28.dp))
-        }
-
-        // Row 1 (Baseline Row - Fully Specified)
-        var baseAgeText by remember(stream.id) { mutableStateOf(stream.startAge.toString()) }
-        var basePayText by remember(stream.id) { mutableStateOf((stream.initialAnnualAmount.value / 100).toString()) }
-        var baseBumpText by remember(stream.id) { mutableStateOf(((stream.yearlyPayBumpRate * 1000).toInt() / 10.0).toString()) }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
-                .border(1.dp, Color(0xFF81C784).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(modifier = Modifier.weight(1.2f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.background(Color(0xFF81C784), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                        Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    }
-                    OutlinedTextField(
-                        value = baseAgeText,
-                        onValueChange = {
-                            baseAgeText = it
-                            val age = it.toIntOrNull() ?: stream.startAge
-                            onUpdateStream(stream.copy(startAge = age, startYear = entity.yearAtAge(age)))
-                        },
-                        label = { Text("Start Age") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-
-            OutlinedTextField(
-                value = basePayText,
-                onValueChange = {
-                    basePayText = it
-                    val dollars = it.toLongOrNull() ?: 0L
-                    onUpdateStream(stream.copy(initialAnnualAmount = Money.ofDollars(dollars)))
-                },
-                label = { Text("Base Salary ($)") },
-                modifier = Modifier.weight(1.3f),
-            )
-
-            OutlinedTextField(
-                value = baseBumpText,
-                onValueChange = {
-                    baseBumpText = it
-                    val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
-                    onUpdateStream(stream.copy(yearlyPayBumpRate = rate))
-                },
-                label = { Text("Base Bump (%)") },
-                modifier = Modifier.weight(1.1f),
-            )
-
-            Text("Initial Career Salary", fontSize = 10.sp, color = Color(0xFFAAAAAA), modifier = Modifier.weight(1.4f).padding(start = 4.dp))
-            Spacer(Modifier.width(28.dp))
-        }
-
-        // Subsequent Override Rows (Row 2+)
-        stream.overrides.forEachIndexed { idx, ov ->
-            var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
-            var ovPayText by remember(ov.id) { mutableStateOf(ov.annualAmount?.let { (it.value / 100).toString() } ?: "") }
-            var ovBumpText by remember(ov.id) { mutableStateOf(ov.yearlyPayBumpRate?.let { ((it * 1000).toInt() / 10.0).toString() } ?: "") }
-            var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
-
-            Row(
+        // Table Content with BoxWithConstraints for responsive desktop & mobile panning
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val isNarrow = maxWidth < 680.dp
+            val scrollState = rememberScrollState()
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF252525), RoundedCornerShape(4.dp))
-                    .padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .then(if (isNarrow) Modifier.horizontalScroll(scrollState) else Modifier),
             ) {
-                Column(modifier = Modifier.weight(1.2f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(modifier = Modifier.background(Color(0xFF81C784).copy(alpha = 0.2f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                            Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
-                        }
-                        OutlinedTextField(
-                            value = ovAgeText,
-                            onValueChange = {
-                                ovAgeText = it
-                                val age = it.toIntOrNull() ?: ov.startAge
-                                val updated = stream.overrides.toMutableList()
-                                updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
-                                onUpdateStream(stream.copy(overrides = updated))
-                            },
-                            label = { Text("Start Age") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = ovPayText,
-                    onValueChange = {
-                        ovPayText = it
-                        val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
-                        val updated = stream.overrides.toMutableList()
-                        updated[idx] = ov.copy(annualAmount = dollars)
-                        onUpdateStream(stream.copy(overrides = updated))
-                    },
-                    label = { Text("New Salary ($)") },
-                    placeholder = { Text("(Compounded raise)", fontSize = 9.sp, color = Color.Gray) },
-                    modifier = Modifier.weight(1.3f),
-                )
-
-                OutlinedTextField(
-                    value = ovBumpText,
-                    onValueChange = {
-                        ovBumpText = it
-                        val rate = if (it.isBlank()) null else (it.toDoubleOrNull()?.let { r -> r / 100.0 })
-                        val updated = stream.overrides.toMutableList()
-                        updated[idx] = ov.copy(yearlyPayBumpRate = rate)
-                        onUpdateStream(stream.copy(overrides = updated))
-                    },
-                    label = { Text("New Raise (%)") },
-                    placeholder = { Text("—", fontSize = 10.sp, color = Color.Gray) },
-                    modifier = Modifier.weight(1.1f),
-                )
-
-                OutlinedTextField(
-                    value = ovLabelText,
-                    onValueChange = {
-                        ovLabelText = it
-                        val updated = stream.overrides.toMutableList()
-                        updated[idx] = ov.copy(label = it)
-                        onUpdateStream(stream.copy(overrides = updated))
-                    },
-                    label = { Text("Milestone / Note") },
-                    modifier = Modifier.weight(1.4f),
-                )
-
-                OutlinedButton(
-                    onClick = {
-                        val updated = stream.overrides.filterIndexed { i, _ -> i != idx }
-                        onUpdateStream(stream.copy(overrides = updated))
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
-                    modifier = Modifier.size(28.dp).padding(0.dp),
+                Column(
+                    modifier = if (isNarrow) Modifier.width(680.dp) else Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text("✕", fontSize = 10.sp)
+                    // Table Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF282828), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+                        Text("Annual Salary ($)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784), modifier = Modifier.weight(1.2f))
+                        Text("Yearly Raise (%)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.0f))
+                        Text("Note / Milestone", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
+                        Spacer(Modifier.width(32.dp))
+                    }
+
+                    // Row 1 (Baseline Row - Fully Specified)
+                    var baseAgeText by remember(stream.id) { mutableStateOf(stream.startAge.toString()) }
+                    var basePayText by remember(stream.id) { mutableStateOf((stream.initialAnnualAmount.value / 100).toString()) }
+                    var baseBumpText by remember(stream.id) { mutableStateOf(((stream.yearlyPayBumpRate * 1000).toInt() / 10.0).toString()) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                            .border(1.dp, Color(0xFF81C784).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1.3f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF81C784), RoundedCornerShape(3.dp))
+                                    .padding(horizontal = 5.dp, vertical = 3.dp),
+                            ) {
+                                Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                            OutlinedTextField(
+                                value = baseAgeText,
+                                onValueChange = {
+                                    baseAgeText = it
+                                    val age = it.toIntOrNull() ?: stream.startAge
+                                    onUpdateStream(stream.copy(startAge = age, startYear = entity.yearAtAge(age)))
+                                },
+                                placeholder = { Text("Age", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = basePayText,
+                            onValueChange = {
+                                basePayText = it
+                                val dollars = it.toLongOrNull() ?: 0L
+                                onUpdateStream(stream.copy(initialAnnualAmount = Money.ofDollars(dollars)))
+                            },
+                            placeholder = { Text("Base Salary ($)", fontSize = 11.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1.2f),
+                        )
+
+                        OutlinedTextField(
+                            value = baseBumpText,
+                            onValueChange = {
+                                baseBumpText = it
+                                val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
+                                onUpdateStream(stream.copy(yearlyPayBumpRate = rate))
+                            },
+                            placeholder = { Text("Raise %", fontSize = 11.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1.0f),
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1.4f)
+                                .background(Color(0xFF1E1E1E), RoundedCornerShape(4.dp))
+                                .border(1.dp, Color(0xFF333333), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 10.dp, vertical = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Text("Initial Career Salary", fontSize = 11.sp, color = Color(0xFFAAAAAA), maxLines = 1)
+                        }
+
+                        Spacer(Modifier.width(32.dp))
+                    }
+
+                    // Subsequent Override Rows (Row 2+)
+                    stream.overrides.forEachIndexed { idx, ov ->
+                        var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
+                        var ovPayText by remember(ov.id) { mutableStateOf(ov.annualAmount?.let { (it.value / 100).toString() } ?: "") }
+                        var ovBumpText by remember(ov.id) { mutableStateOf(ov.yearlyPayBumpRate?.let { ((it * 1000).toInt() / 10.0).toString() } ?: "") }
+                        var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF252525), RoundedCornerShape(4.dp))
+                                .padding(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1.3f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF81C784).copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+                                        .padding(horizontal = 5.dp, vertical = 3.dp),
+                                ) {
+                                    Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
+                                }
+                                OutlinedTextField(
+                                    value = ovAgeText,
+                                    onValueChange = {
+                                        ovAgeText = it
+                                        val age = it.toIntOrNull() ?: ov.startAge
+                                        val updated = stream.overrides.toMutableList()
+                                        updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
+                                        onUpdateStream(stream.copy(overrides = updated))
+                                    },
+                                    placeholder = { Text("Age", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = ovPayText,
+                                onValueChange = {
+                                    ovPayText = it
+                                    val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
+                                    val updated = stream.overrides.toMutableList()
+                                    updated[idx] = ov.copy(annualAmount = dollars)
+                                    onUpdateStream(stream.copy(overrides = updated))
+                                },
+                                placeholder = { Text("(Compounded raise)", fontSize = 10.sp, color = Color.Gray) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.2f),
+                            )
+
+                            OutlinedTextField(
+                                value = ovBumpText,
+                                onValueChange = {
+                                    ovBumpText = it
+                                    val rate = if (it.isBlank()) null else (it.toDoubleOrNull()?.let { r -> r / 100.0 })
+                                    val updated = stream.overrides.toMutableList()
+                                    updated[idx] = ov.copy(yearlyPayBumpRate = rate)
+                                    onUpdateStream(stream.copy(overrides = updated))
+                                },
+                                placeholder = { Text("—", fontSize = 10.sp, color = Color.Gray) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.0f),
+                            )
+
+                            OutlinedTextField(
+                                value = ovLabelText,
+                                onValueChange = {
+                                    ovLabelText = it
+                                    val updated = stream.overrides.toMutableList()
+                                    updated[idx] = ov.copy(label = it)
+                                    onUpdateStream(stream.copy(overrides = updated))
+                                },
+                                placeholder = { Text("Milestone / Note", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.4f),
+                            )
+
+                            OutlinedButton(
+                                onClick = {
+                                    val updated = stream.overrides.filterIndexed { i, _ -> i != idx }
+                                    onUpdateStream(stream.copy(overrides = updated))
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                                modifier = Modifier.size(32.dp).padding(0.dp),
+                            ) {
+                                Text("✕", fontSize = 10.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1416,24 +1467,23 @@ private fun EditableAssetPoolCard(
             .padding(14.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Row 1: Name & Starting Balance & Delete Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(12.dp).background(Color(pool.category.hexColor), CircleShape))
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = {
-                            name = it
-                            onUpdate(pool.copy(name = it))
-                        },
-                        label = { Text("Asset Pool Name") },
-                        modifier = Modifier.width(180.dp),
-                    )
-                }
+                Box(modifier = Modifier.size(12.dp).background(Color(pool.category.hexColor), CircleShape))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        onUpdate(pool.copy(name = it))
+                    },
+                    label = { Text("Asset Pool Name") },
+                    modifier = Modifier.weight(1f),
+                )
 
                 OutlinedTextField(
                     value = balanceText,
@@ -1442,10 +1492,24 @@ private fun EditableAssetPoolCard(
                         val dollars = it.toLongOrNull() ?: 0L
                         onUpdate(pool.copy(currentBalance = Money.ofDollars(dollars)))
                     },
-                    label = { Text("Starting Balance ($)") },
-                    modifier = Modifier.width(160.dp),
+                    label = { Text("Balance ($)") },
+                    modifier = Modifier.weight(0.9f),
                 )
 
+                OutlinedButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                ) {
+                    Text("Delete", fontSize = 11.sp)
+                }
+            }
+
+            // Row 2: Owner Entity Dropdown & Category Dropdown
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 // Owner Entity Dropdown
                 Box {
                     OutlinedButton(onClick = { entityMenuExpanded = true }) {
@@ -1484,13 +1548,6 @@ private fun EditableAssetPoolCard(
                             }
                         }
                     }
-                }
-
-                OutlinedButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
-                ) {
-                    Text("Delete", fontSize = 12.sp)
                 }
             }
 
@@ -1589,176 +1646,219 @@ private fun AssetPoolScheduleTable(
             }
         }
 
-        // Table Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF282828), RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
-            Text("Return Rate (%)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.1f))
-            Text("Annual Flow ($) [+Deposit / -Drawdown]", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784), modifier = Modifier.weight(1.8f))
-            Text("Note / Label", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
-            Spacer(Modifier.width(28.dp))
-        }
-
-        // Row 1 (Baseline Row - Fully Specified)
-        var baseAgeText by remember(pool.id) { mutableStateOf(pool.startAge.toString()) }
-        var baseReturnText by remember(pool.id) { mutableStateOf(((pool.expectedNominalReturn * 1000).toInt() / 10.0).toString()) }
-        val initialBaseFlow = pool.baseFlow()
-        var baseFlowText by remember(pool.id) { mutableStateOf((initialBaseFlow.value / 100).toString()) }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
-                .border(1.dp, Color(0xFF42A5F5).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(modifier = Modifier.weight(1.3f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.background(Color(0xFF42A5F5), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                        Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    }
-                    OutlinedTextField(
-                        value = baseAgeText,
-                        onValueChange = {
-                            baseAgeText = it
-                            val age = it.toIntOrNull() ?: pool.startAge
-                            onUpdatePool(pool.copy(startAge = age, startYear = entity.yearAtAge(age)))
-                        },
-                        label = { Text("Start Age") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-
-            OutlinedTextField(
-                value = baseReturnText,
-                onValueChange = {
-                    baseReturnText = it
-                    val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
-                    onUpdatePool(pool.copy(expectedNominalReturn = rate))
-                },
-                label = { Text("Base %") },
-                modifier = Modifier.weight(1.1f),
-            )
-
-            OutlinedTextField(
-                value = baseFlowText,
-                onValueChange = {
-                    baseFlowText = it
-                    val dollars = it.toLongOrNull() ?: 0L
-                    onUpdatePool(
-                        pool.copy(
-                            annualFlow = Money.ofDollars(dollars),
-                            annualContribution = if (dollars > 0L) Money.ofDollars(dollars) else Money.ZERO,
-                            annualWithdrawal = if (dollars < 0L) Money.ofDollars(-dollars) else Money.ZERO,
-                        ),
-                    )
-                },
-                label = { Text("Flow (+In / -Drawdown)") },
-                modifier = Modifier.weight(1.8f),
-            )
-
-            Text("Initial Plan", fontSize = 10.sp, color = Color(0xFFAAAAAA), modifier = Modifier.weight(1.3f).padding(start = 4.dp))
-            Spacer(Modifier.width(28.dp))
-        }
-
-        // Subsequent Override Rows (Row 2+)
-        pool.overrides.forEachIndexed { idx, ov ->
-            var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
-            var ovReturnText by remember(ov.id) { mutableStateOf(ov.expectedNominalReturn?.let { ((it * 1000).toInt() / 10.0).toString() } ?: "") }
-            val existingFlow = ov.effectiveFlow()
-            var ovFlowText by remember(ov.id) { mutableStateOf(existingFlow?.let { (it.value / 100).toString() } ?: "") }
-            var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
-
-            Row(
+        // Table Content with BoxWithConstraints for responsive desktop & mobile panning
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val isNarrow = maxWidth < 680.dp
+            val scrollState = rememberScrollState()
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF252525), RoundedCornerShape(4.dp))
-                    .padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .then(if (isNarrow) Modifier.horizontalScroll(scrollState) else Modifier),
             ) {
-                Column(modifier = Modifier.weight(1.3f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(modifier = Modifier.background(Color(0xFF64B5F6).copy(alpha = 0.2f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                            Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64B5F6))
-                        }
-                        OutlinedTextField(
-                            value = ovAgeText,
-                            onValueChange = {
-                                ovAgeText = it
-                                val age = it.toIntOrNull() ?: ov.startAge
-                                val updated = pool.overrides.toMutableList()
-                                updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
-                                onUpdatePool(pool.copy(overrides = updated))
-                            },
-                            label = { Text("Start Age") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = ovReturnText,
-                    onValueChange = {
-                        ovReturnText = it
-                        val rate = if (it.isBlank()) null else (it.toDoubleOrNull()?.let { r -> r / 100.0 })
-                        val updated = pool.overrides.toMutableList()
-                        updated[idx] = ov.copy(expectedNominalReturn = rate)
-                        onUpdatePool(pool.copy(overrides = updated))
-                    },
-                    label = { Text("Override %") },
-                    placeholder = { Text("—", fontSize = 10.sp, color = Color.Gray) },
-                    modifier = Modifier.weight(1.1f),
-                )
-
-                OutlinedTextField(
-                    value = ovFlowText,
-                    onValueChange = {
-                        ovFlowText = it
-                        val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
-                        val updated = pool.overrides.toMutableList()
-                        updated[idx] = ov.copy(
-                            annualFlow = dollars,
-                            annualContribution = if (dollars != null && dollars.value > 0L) dollars else null,
-                            annualWithdrawal = if (dollars != null && dollars.value < 0L) Money(-dollars.value) else null,
-                        )
-                        onUpdatePool(pool.copy(overrides = updated))
-                    },
-                    label = { Text("Override Flow (+/-)") },
-                    placeholder = { Text("(Inherited)", fontSize = 10.sp, color = Color.Gray) },
-                    modifier = Modifier.weight(1.8f),
-                )
-
-                OutlinedTextField(
-                    value = ovLabelText,
-                    onValueChange = {
-                        ovLabelText = it
-                        val updated = pool.overrides.toMutableList()
-                        updated[idx] = ov.copy(label = it)
-                        onUpdatePool(pool.copy(overrides = updated))
-                    },
-                    label = { Text("Note") },
-                    modifier = Modifier.weight(1.3f),
-                )
-
-                OutlinedButton(
-                    onClick = {
-                        val updated = pool.overrides.filterIndexed { i, _ -> i != idx }
-                        onUpdatePool(pool.copy(overrides = updated))
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
-                    modifier = Modifier.size(28.dp).padding(0.dp),
+                Column(
+                    modifier = if (isNarrow) Modifier.width(680.dp) else Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text("✕", fontSize = 10.sp)
+                    // Table Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF282828), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+                        Text("Return Rate (%)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.0f))
+                        Text("Annual Flow ($) [+In / -Out]", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784), modifier = Modifier.weight(1.4f))
+                        Text("Note / Label", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
+                        Spacer(Modifier.width(32.dp))
+                    }
+
+                    // Row 1 (Baseline Row - Fully Specified)
+                    var baseAgeText by remember(pool.id) { mutableStateOf(pool.startAge.toString()) }
+                    var baseReturnText by remember(pool.id) { mutableStateOf(((pool.expectedNominalReturn * 1000).toInt() / 10.0).toString()) }
+                    val initialBaseFlow = pool.baseFlow()
+                    var baseFlowText by remember(pool.id) { mutableStateOf((initialBaseFlow.value / 100).toString()) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                            .border(1.dp, Color(0xFF42A5F5).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1.3f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF42A5F5), RoundedCornerShape(3.dp))
+                                    .padding(horizontal = 5.dp, vertical = 3.dp),
+                            ) {
+                                Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                            OutlinedTextField(
+                                value = baseAgeText,
+                                onValueChange = {
+                                    baseAgeText = it
+                                    val age = it.toIntOrNull() ?: pool.startAge
+                                    onUpdatePool(pool.copy(startAge = age, startYear = entity.yearAtAge(age)))
+                                },
+                                placeholder = { Text("Age", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = baseReturnText,
+                            onValueChange = {
+                                baseReturnText = it
+                                val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
+                                onUpdatePool(pool.copy(expectedNominalReturn = rate))
+                            },
+                            placeholder = { Text("Base %", fontSize = 11.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1.0f),
+                        )
+
+                        OutlinedTextField(
+                            value = baseFlowText,
+                            onValueChange = {
+                                baseFlowText = it
+                                val dollars = it.toLongOrNull() ?: 0L
+                                onUpdatePool(
+                                    pool.copy(
+                                        annualFlow = Money.ofDollars(dollars),
+                                        annualContribution = if (dollars > 0L) Money.ofDollars(dollars) else Money.ZERO,
+                                        annualWithdrawal = if (dollars < 0L) Money.ofDollars(-dollars) else Money.ZERO,
+                                    ),
+                                )
+                            },
+                            placeholder = { Text("+Deposit / -Drawdown", fontSize = 10.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1.4f),
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1.4f)
+                                .background(Color(0xFF1E1E1E), RoundedCornerShape(4.dp))
+                                .border(1.dp, Color(0xFF333333), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 10.dp, vertical = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Text("Initial Plan", fontSize = 11.sp, color = Color(0xFFAAAAAA), maxLines = 1)
+                        }
+
+                        Spacer(Modifier.width(32.dp))
+                    }
+
+                    // Subsequent Override Rows (Row 2+)
+                    pool.overrides.forEachIndexed { idx, ov ->
+                        var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
+                        var ovReturnText by remember(ov.id) { mutableStateOf(ov.expectedNominalReturn?.let { ((it * 1000).toInt() / 10.0).toString() } ?: "") }
+                        val existingFlow = ov.effectiveFlow()
+                        var ovFlowText by remember(ov.id) { mutableStateOf(existingFlow?.let { (it.value / 100).toString() } ?: "") }
+                        var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF252525), RoundedCornerShape(4.dp))
+                                .padding(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1.3f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF64B5F6).copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+                                        .padding(horizontal = 5.dp, vertical = 3.dp),
+                                ) {
+                                    Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64B5F6))
+                                }
+                                OutlinedTextField(
+                                    value = ovAgeText,
+                                    onValueChange = {
+                                        ovAgeText = it
+                                        val age = it.toIntOrNull() ?: ov.startAge
+                                        val updated = pool.overrides.toMutableList()
+                                        updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
+                                        onUpdatePool(pool.copy(overrides = updated))
+                                    },
+                                    placeholder = { Text("Age", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = ovReturnText,
+                                onValueChange = {
+                                    ovReturnText = it
+                                    val rate = if (it.isBlank()) null else (it.toDoubleOrNull()?.let { r -> r / 100.0 })
+                                    val updated = pool.overrides.toMutableList()
+                                    updated[idx] = ov.copy(expectedNominalReturn = rate)
+                                    onUpdatePool(pool.copy(overrides = updated))
+                                },
+                                placeholder = { Text("—", fontSize = 10.sp, color = Color.Gray) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.0f),
+                            )
+
+                            OutlinedTextField(
+                                value = ovFlowText,
+                                onValueChange = {
+                                    ovFlowText = it
+                                    val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
+                                    val updated = pool.overrides.toMutableList()
+                                    updated[idx] = ov.copy(
+                                        annualFlow = dollars,
+                                        annualContribution = if (dollars != null && dollars.value > 0L) dollars else null,
+                                        annualWithdrawal = if (dollars != null && dollars.value < 0L) Money(-dollars.value) else null,
+                                    )
+                                    onUpdatePool(pool.copy(overrides = updated))
+                                },
+                                placeholder = { Text("(Inherited)", fontSize = 10.sp, color = Color.Gray) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.4f),
+                            )
+
+                            OutlinedTextField(
+                                value = ovLabelText,
+                                onValueChange = {
+                                    ovLabelText = it
+                                    val updated = pool.overrides.toMutableList()
+                                    updated[idx] = ov.copy(label = it)
+                                    onUpdatePool(pool.copy(overrides = updated))
+                                },
+                                placeholder = { Text("Note / Label", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.4f),
+                            )
+
+                            OutlinedButton(
+                                onClick = {
+                                    val updated = pool.overrides.filterIndexed { i, _ -> i != idx }
+                                    onUpdatePool(pool.copy(overrides = updated))
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                                modifier = Modifier.size(32.dp).padding(0.dp),
+                            ) {
+                                Text("✕", fontSize = 10.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1788,10 +1888,10 @@ private fun EditableExpenseCard(
             .padding(14.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Row 1: Name, Associated Entity, Timing Mode, Category, Delete
+            // Row 1: Name & Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedTextField(
@@ -1801,11 +1901,23 @@ private fun EditableExpenseCard(
                         onUpdate(expense.copy(name = it))
                     },
                     label = { Text("Expense / Debt Name") },
-                    modifier = Modifier.weight(1.3f),
+                    modifier = Modifier.weight(1f),
                 )
 
-                Spacer(Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                ) {
+                    Text("Delete", fontSize = 11.sp)
+                }
+            }
 
+            // Row 2: Associated Entity Dropdown & Category Dropdown
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 // Entity Dropdown
                 Box {
                     OutlinedButton(onClick = { entityMenuExpanded = true }) {
@@ -1826,8 +1938,6 @@ private fun EditableExpenseCard(
                     }
                 }
 
-                Spacer(Modifier.width(8.dp))
-
                 // Category Dropdown
                 Box {
                     OutlinedButton(onClick = { catMenuExpanded = true }) {
@@ -1846,15 +1956,6 @@ private fun EditableExpenseCard(
                             }
                         }
                     }
-                }
-
-                Spacer(Modifier.width(8.dp))
-
-                OutlinedButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
-                ) {
-                    Text("Delete", fontSize = 11.sp)
                 }
             }
 
@@ -1967,197 +2068,244 @@ private fun ExpenseItemScheduleTable(
             }
         }
 
-        // Table Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF282828), RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.2f))
-            Text("Annual Cost ($)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350), modifier = Modifier.weight(1.3f))
-            Text("Type & Interest", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
-            Text("Note / Milestone", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
-            Spacer(Modifier.width(28.dp))
-        }
-
-        // Row 1 (Baseline Row - Fully Specified)
-        var baseAgeText by remember(expense.id) { mutableStateOf(expense.startAge.toString()) }
-        var baseAmountText by remember(expense.id) { mutableStateOf((expense.annualAmount.value / 100).toString()) }
-        var baseInterestText by remember(expense.id) { mutableStateOf(((expense.compoundingInterestRate * 1000).toInt() / 10.0).toString()) }
-        var typeMenuExpanded by remember { mutableStateOf(false) }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
-                .border(1.dp, Color(0xFFEF5350).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(modifier = Modifier.weight(1.2f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.background(Color(0xFFEF5350), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                        Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    }
-                    OutlinedTextField(
-                        value = baseAgeText,
-                        onValueChange = {
-                            baseAgeText = it
-                            val age = it.toIntOrNull() ?: expense.startAge
-                            onUpdateExpense(expense.copy(startAge = age, startYear = entity.yearAtAge(age)))
-                        },
-                        label = { Text("Start Age") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-
-            OutlinedTextField(
-                value = baseAmountText,
-                onValueChange = {
-                    baseAmountText = it
-                    val dollars = it.toLongOrNull() ?: 0L
-                    onUpdateExpense(expense.copy(annualAmount = Money.ofDollars(dollars)))
-                },
-                label = { Text("Base Cost ($)") },
-                modifier = Modifier.weight(1.3f),
-            )
-
-            Row(modifier = Modifier.weight(1.3f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box {
-                    OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.height(36.dp)) {
-                        Text(expense.expenseType.displayName, fontSize = 9.sp)
-                    }
-                    DropdownMenu(expanded = typeMenuExpanded, onDismissRequest = { typeMenuExpanded = false }) {
-                        ExpenseType.entries.forEach { t ->
-                            DropdownMenuItem(onClick = {
-                                typeMenuExpanded = false
-                                onUpdateExpense(expense.copy(expenseType = t))
-                            }) {
-                                Text(t.displayName, fontSize = 11.sp)
-                            }
-                        }
-                    }
-                }
-
-                if (expense.expenseType == ExpenseType.COMPOUNDING_DEBT) {
-                    OutlinedTextField(
-                        value = baseInterestText,
-                        onValueChange = {
-                            baseInterestText = it
-                            val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
-                            onUpdateExpense(expense.copy(compoundingInterestRate = rate))
-                        },
-                        label = { Text("APR %") },
-                        modifier = Modifier.width(65.dp),
-                    )
-                }
-            }
-
-            Text("Initial Baseline", fontSize = 10.sp, color = Color(0xFFAAAAAA), modifier = Modifier.weight(1.4f).padding(start = 4.dp))
-            Spacer(Modifier.width(28.dp))
-        }
-
-        // Subsequent Override Rows (Row 2+)
-        expense.overrides.forEachIndexed { idx, ov ->
-            var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
-            var ovAmountText by remember(ov.id) { mutableStateOf(ov.annualAmount?.let { (it.value / 100).toString() } ?: "") }
-            var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
-            var ovTypeMenuExpanded by remember { mutableStateOf(false) }
-
-            Row(
+        // Table Content with BoxWithConstraints for responsive desktop & mobile panning
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val isNarrow = maxWidth < 680.dp
+            val scrollState = rememberScrollState()
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF252525), RoundedCornerShape(4.dp))
-                    .padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .then(if (isNarrow) Modifier.horizontalScroll(scrollState) else Modifier),
             ) {
-                Column(modifier = Modifier.weight(1.2f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(modifier = Modifier.background(Color(0xFFEF5350).copy(alpha = 0.2f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                            Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350))
+                Column(
+                    modifier = if (isNarrow) Modifier.width(680.dp) else Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    // Table Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF282828), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Timeline Point", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+                        Text("Annual Cost ($)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350), modifier = Modifier.weight(1.2f))
+                        Text("Type & Interest", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.3f))
+                        Text("Note / Milestone", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCCCCCC), modifier = Modifier.weight(1.4f))
+                        Spacer(Modifier.width(32.dp))
+                    }
+
+                    // Row 1 (Baseline Row - Fully Specified)
+                    var baseAgeText by remember(expense.id) { mutableStateOf(expense.startAge.toString()) }
+                    var baseAmountText by remember(expense.id) { mutableStateOf((expense.annualAmount.value / 100).toString()) }
+                    var baseInterestText by remember(expense.id) { mutableStateOf(((expense.compoundingInterestRate * 1000).toInt() / 10.0).toString()) }
+                    var typeMenuExpanded by remember { mutableStateOf(false) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                            .border(1.dp, Color(0xFFEF5350).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1.3f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFFEF5350), RoundedCornerShape(3.dp))
+                                    .padding(horizontal = 5.dp, vertical = 3.dp),
+                            ) {
+                                Text("ROW 1", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                            OutlinedTextField(
+                                value = baseAgeText,
+                                onValueChange = {
+                                    baseAgeText = it
+                                    val age = it.toIntOrNull() ?: expense.startAge
+                                    onUpdateExpense(expense.copy(startAge = age, startYear = entity.yearAtAge(age)))
+                                },
+                                placeholder = { Text("Age", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
+
                         OutlinedTextField(
-                            value = ovAgeText,
+                            value = baseAmountText,
                             onValueChange = {
-                                ovAgeText = it
-                                val age = it.toIntOrNull() ?: ov.startAge
-                                val updated = expense.overrides.toMutableList()
-                                updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
-                                onUpdateExpense(expense.copy(overrides = updated))
+                                baseAmountText = it
+                                val dollars = it.toLongOrNull() ?: 0L
+                                onUpdateExpense(expense.copy(annualAmount = Money.ofDollars(dollars)))
                             },
-                            label = { Text("Start Age") },
-                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Base Cost ($)", fontSize = 11.sp) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1.2f),
                         )
-                    }
-                }
 
-                OutlinedTextField(
-                    value = ovAmountText,
-                    onValueChange = {
-                        ovAmountText = it
-                        val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
-                        val updated = expense.overrides.toMutableList()
-                        updated[idx] = ov.copy(annualAmount = dollars)
-                        onUpdateExpense(expense.copy(overrides = updated))
-                    },
-                    label = { Text("New Cost ($)") },
-                    placeholder = { Text("(Inherited)", fontSize = 9.sp, color = Color.Gray) },
-                    modifier = Modifier.weight(1.3f),
-                )
+                        Row(
+                            modifier = Modifier.weight(1.3f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box {
+                                OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.height(36.dp)) {
+                                    Text(expense.expenseType.displayName, fontSize = 9.sp)
+                                }
+                                DropdownMenu(expanded = typeMenuExpanded, onDismissRequest = { typeMenuExpanded = false }) {
+                                    ExpenseType.entries.forEach { t ->
+                                        DropdownMenuItem(onClick = {
+                                            typeMenuExpanded = false
+                                            onUpdateExpense(expense.copy(expenseType = t))
+                                        }) {
+                                            Text(t.displayName, fontSize = 11.sp)
+                                        }
+                                    }
+                                }
+                            }
 
-                Box(modifier = Modifier.weight(1.3f)) {
-                    OutlinedButton(onClick = { ovTypeMenuExpanded = true }, modifier = Modifier.height(36.dp)) {
-                        Text(ov.expenseType?.displayName ?: "(Inherited Type)", fontSize = 9.sp)
-                    }
-                    DropdownMenu(expanded = ovTypeMenuExpanded, onDismissRequest = { ovTypeMenuExpanded = false }) {
-                        DropdownMenuItem(onClick = {
-                            ovTypeMenuExpanded = false
-                            val updated = expense.overrides.toMutableList()
-                            updated[idx] = ov.copy(expenseType = null)
-                            onUpdateExpense(expense.copy(overrides = updated))
-                        }) {
-                            Text("(Inherit Type)", fontSize = 11.sp, color = Color.Gray)
+                            if (expense.expenseType == ExpenseType.COMPOUNDING_DEBT) {
+                                OutlinedTextField(
+                                    value = baseInterestText,
+                                    onValueChange = {
+                                        baseInterestText = it
+                                        val rate = (it.toDoubleOrNull() ?: 0.0) / 100.0
+                                        onUpdateExpense(expense.copy(compoundingInterestRate = rate))
+                                    },
+                                    placeholder = { Text("APR %", fontSize = 10.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.width(65.dp),
+                                )
+                            }
                         }
-                        ExpenseType.entries.forEach { t ->
-                            DropdownMenuItem(onClick = {
-                                ovTypeMenuExpanded = false
-                                val updated = expense.overrides.toMutableList()
-                                updated[idx] = ov.copy(expenseType = t)
-                                onUpdateExpense(expense.copy(overrides = updated))
-                            }) {
-                                Text(t.displayName, fontSize = 11.sp)
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1.4f)
+                                .background(Color(0xFF1E1E1E), RoundedCornerShape(4.dp))
+                                .border(1.dp, Color(0xFF333333), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 10.dp, vertical = 12.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Text("Initial Baseline", fontSize = 11.sp, color = Color(0xFFAAAAAA), maxLines = 1)
+                        }
+
+                        Spacer(Modifier.width(32.dp))
+                    }
+
+                    // Subsequent Override Rows (Row 2+)
+                    expense.overrides.forEachIndexed { idx, ov ->
+                        var ovAgeText by remember(ov.id) { mutableStateOf(ov.startAge.toString()) }
+                        var ovAmountText by remember(ov.id) { mutableStateOf(ov.annualAmount?.let { (it.value / 100).toString() } ?: "") }
+                        var ovLabelText by remember(ov.id) { mutableStateOf(ov.label) }
+                        var ovTypeMenuExpanded by remember { mutableStateOf(false) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF252525), RoundedCornerShape(4.dp))
+                                .padding(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1.3f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFFEF5350).copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+                                        .padding(horizontal = 5.dp, vertical = 3.dp),
+                                ) {
+                                    Text("ROW ${idx + 2}", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350))
+                                }
+                                OutlinedTextField(
+                                    value = ovAgeText,
+                                    onValueChange = {
+                                        ovAgeText = it
+                                        val age = it.toIntOrNull() ?: ov.startAge
+                                        val updated = expense.overrides.toMutableList()
+                                        updated[idx] = ov.copy(startAge = age, startYear = entity.yearAtAge(age))
+                                        onUpdateExpense(expense.copy(overrides = updated))
+                                    },
+                                    placeholder = { Text("Age", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = ovAmountText,
+                                onValueChange = {
+                                    ovAmountText = it
+                                    val dollars = if (it.isBlank()) null else it.toLongOrNull()?.let { d -> Money.ofDollars(d) }
+                                    val updated = expense.overrides.toMutableList()
+                                    updated[idx] = ov.copy(annualAmount = dollars)
+                                    onUpdateExpense(expense.copy(overrides = updated))
+                                },
+                                placeholder = { Text("(Inherited)", fontSize = 10.sp, color = Color.Gray) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.2f),
+                            )
+
+                            Box(modifier = Modifier.weight(1.3f)) {
+                                OutlinedButton(onClick = { ovTypeMenuExpanded = true }, modifier = Modifier.height(36.dp)) {
+                                    Text(ov.expenseType?.displayName ?: "(Inherited Type)", fontSize = 9.sp)
+                                }
+                                DropdownMenu(expanded = ovTypeMenuExpanded, onDismissRequest = { ovTypeMenuExpanded = false }) {
+                                    DropdownMenuItem(onClick = {
+                                        ovTypeMenuExpanded = false
+                                        val updated = expense.overrides.toMutableList()
+                                        updated[idx] = ov.copy(expenseType = null)
+                                        onUpdateExpense(expense.copy(overrides = updated))
+                                    }) {
+                                        Text("(Inherit Type)", fontSize = 11.sp, color = Color.Gray)
+                                    }
+                                    ExpenseType.entries.forEach { t ->
+                                        DropdownMenuItem(onClick = {
+                                            ovTypeMenuExpanded = false
+                                            val updated = expense.overrides.toMutableList()
+                                            updated[idx] = ov.copy(expenseType = t)
+                                            onUpdateExpense(expense.copy(overrides = updated))
+                                        }) {
+                                            Text(t.displayName, fontSize = 11.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = ovLabelText,
+                                onValueChange = {
+                                    ovLabelText = it
+                                    val updated = expense.overrides.toMutableList()
+                                    updated[idx] = ov.copy(label = it)
+                                    onUpdateExpense(expense.copy(overrides = updated))
+                                },
+                                placeholder = { Text("Note / Milestone", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.4f),
+                            )
+
+                            OutlinedButton(
+                                onClick = {
+                                    val updated = expense.overrides.filterIndexed { i, _ -> i != idx }
+                                    onUpdateExpense(expense.copy(overrides = updated))
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
+                                modifier = Modifier.size(32.dp).padding(0.dp),
+                            ) {
+                                Text("✕", fontSize = 10.sp)
                             }
                         }
                     }
-                }
-
-                OutlinedTextField(
-                    value = ovLabelText,
-                    onValueChange = {
-                        ovLabelText = it
-                        val updated = expense.overrides.toMutableList()
-                        updated[idx] = ov.copy(label = it)
-                        onUpdateExpense(expense.copy(overrides = updated))
-                    },
-                    label = { Text("Note") },
-                    modifier = Modifier.weight(1.4f),
-                )
-
-                OutlinedButton(
-                    onClick = {
-                        val updated = expense.overrides.filterIndexed { i, _ -> i != idx }
-                        onUpdateExpense(expense.copy(overrides = updated))
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE57373)),
-                    modifier = Modifier.size(28.dp).padding(0.dp),
-                ) {
-                    Text("✕", fontSize = 10.sp)
                 }
             }
         }

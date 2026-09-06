@@ -96,17 +96,16 @@ fun EntryTrajectoryChart(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         // 1. Top Header Row: Title on Left, Compact Active Inspection HUD on Right
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = title,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = accentColor,
-                modifier = Modifier.weight(1f, fill = false),
             )
 
             // Compact Active Inspection Tag
