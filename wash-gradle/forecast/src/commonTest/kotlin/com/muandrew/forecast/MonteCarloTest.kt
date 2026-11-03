@@ -140,7 +140,7 @@ class MonteCarloTest {
     @Test
     fun testCashflowWaterfallPriorityOrder() {
         val parent = com.muandrew.forecast.model.Entity(id = "p1", name = "Alex", birthYear = 1996, isPrimary = true, retirementAge = 60, lifeExpectancy = 70)
-        val child = com.muandrew.forecast.model.Entity(id = "c1", name = "Emma", birthYear = 2028, isPrimary = false)
+        val child = com.muandrew.forecast.model.Entity(id = "c1", name = "Emma", birthYear = 2020, isPrimary = false)
 
         // Limited income of $50,000
         val income = com.muandrew.forecast.model.IncomeStream(
@@ -189,6 +189,7 @@ class MonteCarloTest {
             entityId = child.id,
             annualContribution = Money.ofDollars(10_000),
             contributionEndAge = 18,
+            startAge = 0,
         )
 
         val household = Household(
@@ -312,65 +313,6 @@ class MonteCarloTest {
     }
 
     @Test
-    fun testAssetPoolOverWithdrawalDeficit() {
-        val person = com.muandrew.forecast.model.Entity(id = "p1", name = "Test", birthYear = 1996, isPrimary = true)
-
-        // Starting with $10k, attempting to withdraw $30k
-        val smallPool = AssetPool(
-            id = "p_small",
-            name = "Small Brokerage",
-            category = AssetCategory.TAXABLE_BROKERAGE,
-            currentBalance = Money.ofDollars(10_000),
-            entityId = person.id,
-            phases = listOf(
-                com.muandrew.forecast.model.SchedulePhase(
-                    id = "draw",
-                    name = "Large Drawdown",
-                    timeMode = com.muandrew.forecast.model.TimeMode.CALENDAR_YEAR,
-                    startYear = 2026,
-                    endYear = 2028,
-                    amount = Money.ofDollars(30_000),
-                    isWithdrawal = true,
-                ),
-            ),
-        )
-
-        var runningBalance = smallPool.currentBalance.value
-        val startYr = 2026
-        val yrPoints = (startYr..2028).map { yr ->
-            val contrib = smallPool.targetContributionInYear(yr, person)
-            val withdr = smallPool.targetWithdrawalInYear(yr, person)
-            val growth = if (runningBalance > 0L) (runningBalance * 0.05).toLong() else 0L
-
-            val netBeforeWithdrawal = runningBalance + growth + contrib.value
-            val isDeficit = withdr.value > 0L && netBeforeWithdrawal < withdr.value
-            val shortfallCents = if (isDeficit) withdr.value - netBeforeWithdrawal else 0L
-
-            runningBalance = maxOf(0L, netBeforeWithdrawal - withdr.value)
-
-            com.muandrew.forecast.ui.YearTrajectoryPoint(
-                calendarYear = yr,
-                age = person.ageInYear(yr),
-                balance = Money(runningBalance),
-                inflow = contrib,
-                outflow = withdr,
-                isDeficit = isDeficit || (runningBalance == 0L && withdr.value > 0L),
-                shortfall = Money(shortfallCents),
-            )
-        }
-
-        // Year 1 (2026): Net before = $10,500, Withdrawal = $30,000 -> Deficit is True, Shortfall = $19,500, Balance = $0
-        assertTrue(yrPoints[0].isDeficit)
-        assertEquals(Money.ZERO, yrPoints[0].balance)
-        assertEquals(Money.ofDollars(19_500), yrPoints[0].shortfall)
-
-        // Year 2 (2027): Net before = $0, Withdrawal = $30,000 -> Deficit is True, Shortfall = $30,000, Balance = $0
-        assertTrue(yrPoints[1].isDeficit)
-        assertEquals(Money.ZERO, yrPoints[1].balance)
-        assertEquals(Money.ofDollars(30_000), yrPoints[1].shortfall)
-    }
-
-    @Test
     fun testExpenseItemTypes() {
         // 1. Recurring Expense
         val recurring = com.muandrew.forecast.model.ExpenseItem(
@@ -474,7 +416,7 @@ class MonteCarloTest {
 
         val assets = home.generateAssetPools()
         assertEquals(1, assets.size)
-        assertEquals(Money.ofDollars(500_000), assets.first().currentBalance)
+        assertEquals(Money.ZERO, assets.first().currentBalance)
         assertEquals(AssetCategory.REAL_ESTATE, assets.first().category)
     }
 

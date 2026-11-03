@@ -1,11 +1,14 @@
 package com.muandrew.forecast.engine
 
 import com.muandrew.forecast.model.AssetCategory
+import com.muandrew.forecast.model.AssetPool
 import com.muandrew.forecast.model.ExpenseCategory
 import com.muandrew.forecast.model.FinancialPlan
 import com.muandrew.forecast.model.FundingStatus
+import com.muandrew.forecast.model.HomePurchaseTemplate
 import com.muandrew.forecast.model.Household
 import com.muandrew.forecast.model.Money
+import com.muandrew.forecast.model.PriorityItemType
 import com.muandrew.forecast.model.PriorityTargetType
 import com.muandrew.forecast.model.YearlyItemFunding
 import kotlin.math.cos
@@ -27,6 +30,17 @@ data class YearCategoryBreakdown(
     val netCashFlow: Money,
     val itemFundings: List<YearlyItemFunding> = emptyList(),
     val unfundedCount: Int = itemFundings.count { it.status.isProblem },
+    val poolBalances: Map<String, Money> = emptyMap(),
+    val poolFlows: Map<String, PoolYearFlow> = emptyMap(),
+    val totalLiabilities: Money = Money.ZERO,
+    val unfundedExpenses: Money = Money.ZERO,
+    val closingNetWorth: Money = totalNetWorth,
+)
+
+data class PoolYearFlow(
+    val contribution: Money = Money.ZERO,
+    val withdrawal: Money = Money.ZERO,
+    val withdrawalShortfall: Money = Money.ZERO,
 )
 
 data class HouseholdProjectionResult(
@@ -50,465 +64,337 @@ data class ConsolidatedPlanResult(
     val overallSuccessRate: Double,
 )
 
+/**
+ * All balances and cash flows use nominal dollars. A timeline row contains opening
+ * balances and that year's actual flows; its closing balances open the next row.
+ * The final row is a terminal snapshot, with no additional year of spending.
+ */
 object MultiAssetEngine {
-    /**
-     * Deterministic simulation calculating exact category-by-category breakdown and cashflow waterfall over time.
-     */
-    fun simulateHousehold(
-        household: Household,
-        inflationRate: Double = 0.025,
-    ): List<YearCategoryBreakdown> {
-        val totalYears = max(1, household.lifeExpectancy - household.currentAge)
-        val timeline = mutableListOf<YearCategoryBreakdown>()
+    private val withdrawalOrder = listOf(
+        AssetCategory.CASH_EMERGENCY,
+        AssetCategory.TAXABLE_BROKERAGE,
+        AssetCategory.PRE_TAX_401K,
+        AssetCategory.ROTH_IRA,
+        AssetCategory.OTHER,
+    )
 
+    private class Projection(val household: Household) {
         val pools = household.allAssetPools()
-        val allExpenses = household.allExpenses()
-        val priorityRules = household.activePriorityRules()
+        val expenses = household.allExpenses().associateBy { it.id }
+        val rules = household.activePriorityRules().filter { it.enabled }
+        val homes = household.lifeEvents.filterIsInstance<HomePurchaseTemplate>()
+        val balances = pools.associate { it.id to it.currentBalance.value }.toMutableMap()
+        val mortgages = mutableMapOf<String, Long>()
+        val acquiredHomes = mutableMapOf<String, Int>()
+        var cash = 0L
+        var failed = false
 
-        // Track balance per pool (in cents)
-        val currentBalances = pools.associate { it.id to it.currentBalance.value }.toMutableMap()
-
-        for (year in 0..totalYears) {
-            val calendarYear = household.baseYear + year
-            val primary = household.primaryEntity()
-            val age = primary.ageInYear(calendarYear)
-            val isWorking = age < primary.retirementAge
-
-            // 1. Calculate expenses for this year by category
-            val expenseMap = mutableMapOf<ExpenseCategory, Long>()
-            for (category in ExpenseCategory.entries) {
-                expenseMap[category] = 0L
+        fun snapshot(year: Int): YearCategoryBreakdown {
+            val assets = AssetCategory.entries.associateWith { category ->
+                Money(
+                    pools.filter { it.category == category }.sumOf { balances.getValue(it.id) } +
+                        if (category == AssetCategory.CASH_EMERGENCY) cash else 0L,
+                )
             }
-
-            var totalYearExpenses = 0L
-            for (expense in allExpenses) {
-                val entity = household.findEntity(expense.entityId)
-                val amount = expense.amountInYear(calendarYear, household.baseYear, entity, inflationRate).value
-                if (amount > 0L) {
-                    expenseMap[expense.category] = (expenseMap[expense.category] ?: 0L) + amount
-                    totalYearExpenses += amount
-                }
-            }
-
-            // 2. Calculate income for this year
-            val yearIncome = household.totalIncomeInYear(calendarYear, inflationRate).value
-
-            // 3. Snapshot current asset balances by category before annual growth/flows
-            val assetMap = mutableMapOf<AssetCategory, Long>()
-            for (category in AssetCategory.entries) {
-                assetMap[category] = 0L
-            }
-            var totalYearAssets = 0L
-            for (pool in pools) {
-                val balance = max(0L, currentBalances[pool.id] ?: 0L)
-                assetMap[pool.category] = (assetMap[pool.category] ?: 0L) + balance
-                totalYearAssets += balance
-            }
-
-            val netCashFlow = yearIncome - totalYearExpenses
-
-            // 4. Run Cashflow Waterfall Allocation
-            var availableCash = yearIncome
-            val itemFundings = mutableListOf<YearlyItemFunding>()
-
-            for (rule in priorityRules.filter { it.enabled }) {
-                when (rule.targetType) {
-                    PriorityTargetType.EXPENSE_PAYOUT -> {
-                        val exp = allExpenses.firstOrNull { it.id == rule.targetId }
-                        if (exp != null) {
-                            val ent = household.findEntity(exp.entityId)
-                            val target = exp.amountInYear(calendarYear, household.baseYear, ent, inflationRate).value
-                            if (target > 0L) {
-                                val paid = min(availableCash, target)
-                                availableCash -= paid
-                                val shortfall = target - paid
-                                val status =
-                                    if (shortfall == 0L) {
-                                        FundingStatus.FULLY_FUNDED
-                                    } else if (paid > 0L) {
-                                        FundingStatus.PARTIALLY_FUNDED
-                                    } else {
-                                        FundingStatus.UNFUNDED
-                                    }
-                                itemFundings.add(
-                                    YearlyItemFunding(
-                                        id = exp.id,
-                                        name = exp.name,
-                                        entityId = exp.entityId,
-                                        targetType = PriorityTargetType.EXPENSE_PAYOUT,
-                                        itemType = rule.itemType,
-                                        targetAmount = Money(target),
-                                        actualAmount = Money(paid),
-                                        shortfall = Money(shortfall),
-                                        status = status,
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    PriorityTargetType.POOL_CONTRIBUTION -> {
-                        val pool = pools.firstOrNull { it.id == rule.targetId }
-                        if (pool != null) {
-                            val owner = household.findEntity(pool.entityId) ?: primary
-                            val target = pool.targetContributionInYear(calendarYear, owner).value
-                            if (target > 0L) {
-                                val invested = min(availableCash, target)
-                                availableCash -= invested
-                                currentBalances[pool.id] = (currentBalances[pool.id] ?: 0L) + invested
-                                val shortfall = target - invested
-                                val status =
-                                    if (shortfall == 0L) {
-                                        FundingStatus.FULLY_FUNDED
-                                    } else if (invested > 0L) {
-                                        FundingStatus.PARTIALLY_FUNDED
-                                    } else {
-                                        FundingStatus.UNFUNDED
-                                    }
-                                itemFundings.add(
-                                    YearlyItemFunding(
-                                        id = pool.id,
-                                        name = pool.name,
-                                        entityId = pool.entityId,
-                                        targetType = PriorityTargetType.POOL_CONTRIBUTION,
-                                        itemType = rule.itemType,
-                                        targetAmount = Money(target),
-                                        actualAmount = Money(invested),
-                                        shortfall = Money(shortfall),
-                                        status = status,
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    PriorityTargetType.SURPLUS_INVESTMENT -> {
-                        // Managed by surplus spillover below
-                    }
-                }
-            }
-
-            timeline.add(
-                YearCategoryBreakdown(
-                    yearIndex = year,
-                    calendarYear = calendarYear,
-                    age = age,
-                    assetBalances = assetMap.mapValues { Money(it.value) },
-                    expenseBalances = expenseMap.mapValues { Money(it.value) },
-                    totalNetWorth = Money(totalYearAssets),
-                    totalIncome = Money(yearIncome),
-                    totalExpenses = Money(totalYearExpenses),
-                    netCashFlow = Money(netCashFlow),
-                    itemFundings = itemFundings,
-                ),
+            val liabilities = Money(mortgages.values.sum())
+            return YearCategoryBreakdown(
+                yearIndex = year,
+                calendarYear = household.baseYear + year,
+                age = household.currentAge + year,
+                assetBalances = assets,
+                expenseBalances = ExpenseCategory.entries.associateWith { Money.ZERO },
+                totalNetWorth = Money(assets.values.sumOf { it.value } - liabilities.value),
+                totalIncome = Money.ZERO,
+                totalExpenses = Money.ZERO,
+                netCashFlow = Money.ZERO,
+                poolBalances = balances.mapValues { Money(it.value) },
+                totalLiabilities = liabilities,
             )
-
-            if (year < totalYears) {
-                // Apply investment growth per pool
-                for (pool in pools) {
-                    val balance = currentBalances[pool.id] ?: 0L
-                    if (balance > 0) {
-                        val returnRate = pool.expectedReturnInYear(calendarYear, household.findEntity(pool.entityId) ?: primary)
-                        val realReturn = (1.0 + returnRate) / (1.0 + inflationRate) - 1.0
-                        val growth = (balance.toDouble() * realReturn).toLong()
-                        currentBalances[pool.id] = balance + growth
-                    }
-                }
-
-                // Handle net deficit from assets if expenses exceeded income
-                if (netCashFlow < 0) {
-                    var remainingDeficit = -netCashFlow
-                    val withdrawalPriority =
-                        listOf(
-                            AssetCategory.CASH_EMERGENCY,
-                            AssetCategory.TAXABLE_BROKERAGE,
-                            AssetCategory.PRE_TAX_401K,
-                            AssetCategory.ROTH_IRA,
-                            AssetCategory.OTHER,
-                        )
-
-                    for (cat in withdrawalPriority) {
-                        if (remainingDeficit <= 0) break
-                        for (pool in pools.filter { it.category == cat }) {
-                            val available = currentBalances[pool.id] ?: 0L
-                            if (available > 0) {
-                                val deduction = min(available, remainingDeficit)
-                                currentBalances[pool.id] = available - deduction
-                                remainingDeficit -= deduction
-                                if (remainingDeficit <= 0) break
-                            }
-                        }
-                    }
-                } else if (availableCash > 0 && isWorking) {
-                    // Any leftover surplus after satisfying all priority rules flows into Taxable Brokerage or Cash
-                    val defaultPool =
-                        pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE }
-                            ?: pools.firstOrNull { it.category == AssetCategory.CASH_EMERGENCY }
-                            ?: pools.firstOrNull()
-
-                    if (defaultPool != null) {
-                        currentBalances[defaultPool.id] = (currentBalances[defaultPool.id] ?: 0L) + availableCash
-                    }
-                }
-            }
         }
 
-        return timeline
+        /** Shared deterministic/stochastic annual ledger. Withdrawals are transfers, not income. */
+        fun step(year: Int, inflation: Double, returnFor: (AssetPool, Int) -> Double): YearCategoryBreakdown {
+            val opening = snapshot(year)
+            val calendarYear = opening.calendarYear
+            val primary = household.primaryEntity()
+            val flows = mutableMapOf<String, PoolYearFlow>()
+            val fundings = mutableListOf<YearlyItemFunding>()
+            val expenseTotals = ExpenseCategory.entries.associateWith { 0L }.toMutableMap()
+
+            // Grow only opening assets. Contributions occur at year end in every mode.
+            for (pool in pools) {
+                val rate = returnFor(pool, calendarYear)
+                require(rate.isFinite()) { "Investment return must be finite" }
+                val balance = balances.getValue(pool.id)
+                balances[pool.id] = max(0L, balance + (balance * max(-1.0, rate)).toLong())
+            }
+            for (home in homes.filter { it.id in acquiredHomes }) {
+                val debt = mortgages.getValue(home.id)
+                mortgages[home.id] = debt + (debt * home.mortgageInterestRate).toLong()
+            }
+
+            val income = household.totalIncomeInYear(calendarYear, inflation).value
+            require(income >= 0L) { "Scheduled income must be nonnegative" }
+            var available = income + cash
+            cash = 0L
+            for (pool in pools) {
+                val owner = household.findEntity(pool.entityId) ?: primary
+                val target = pool.targetWithdrawalInYear(calendarYear, owner).value
+                val actual = min(target, balances.getValue(pool.id))
+                balances[pool.id] = balances.getValue(pool.id) - actual
+                available += actual
+                flows[pool.id] = PoolYearFlow(withdrawal = Money(actual), withdrawalShortfall = Money(target - actual))
+            }
+
+            fun drawAssets(amount: Long): Long {
+                var remaining = amount
+                for (category in withdrawalOrder) {
+                    for (pool in pools.filter { it.category == category }) {
+                        val drawn = min(remaining, balances.getValue(pool.id))
+                        balances[pool.id] = balances.getValue(pool.id) - drawn
+                        val old = flows.getValue(pool.id)
+                        flows[pool.id] = old.copy(withdrawal = old.withdrawal + Money(drawn))
+                        remaining -= drawn
+                        if (remaining == 0L) return amount
+                    }
+                }
+                return amount - remaining
+            }
+
+            fun funding(id: String, name: String, entityId: String, type: PriorityTargetType, itemType: PriorityItemType, target: Long, actual: Long) {
+                fundings.add(
+                    YearlyItemFunding(
+                        id, name, entityId, type, itemType, Money(target), Money(actual), Money(target - actual),
+                        when {
+                            actual == target -> FundingStatus.FULLY_FUNDED
+                            actual > 0L -> FundingStatus.PARTIALLY_FUNDED
+                            else -> FundingStatus.UNFUNDED
+                        },
+                    ),
+                )
+            }
+
+            for (rule in rules) {
+                when (rule.targetType) {
+                    PriorityTargetType.EXPENSE_PAYOUT -> {
+                        val expense = expenses[rule.targetId] ?: continue
+                        val purchase = homes.firstOrNull { "${it.id}_downpayment" == expense.id }
+                        val mortgage = homes.firstOrNull { "${it.id}_mortgage" == expense.id }
+                        var target = expense.amountInYear(calendarYear, household.baseYear, household.findEntity(expense.entityId), inflation).value
+                        if (purchase != null) {
+                            target = if (purchase.id in acquiredHomes) 0L else (purchase.propertyValue.value * purchase.downPaymentPercent).toLong()
+                        }
+                        if (mortgage != null) {
+                            target = if (mortgage.id in acquiredHomes && calendarYear > acquiredHomes.getValue(mortgage.id)) {
+                                val debt = mortgages.getValue(mortgage.id)
+                                val atMaturity = calendarYear >= acquiredHomes.getValue(mortgage.id) + mortgage.loanTermYears
+                                val debtPayment = if (atMaturity) debt else min(debt, mortgage.annualMortgageAndTax.value - mortgage.annualPropertyCosts.value)
+                                debtPayment + mortgage.annualPropertyCosts.value
+                            } else {
+                                0L
+                            }
+                        }
+                        if (target <= 0L && purchase == null) continue
+                        if (purchase != null && (purchase.id in acquiredHomes || calendarYear != primary.yearAtAge(purchase.parentAgeAtPurchase))) continue
+                        // Purchases are atomic: an unfunded down payment cannot create equity.
+                        val liquid = pools.filter { it.category in withdrawalOrder }.sumOf { balances.getValue(it.id) }
+                        val canPurchase = purchase == null || available + liquid >= target
+                        val fromCash = if (canPurchase) min(available, target) else 0L
+                        available -= fromCash
+                        val paid = fromCash + if (canPurchase) drawAssets(target - fromCash) else 0L
+                        expenseTotals[expense.category] = expenseTotals.getValue(expense.category) + target
+                        funding(expense.id, expense.name, expense.entityId, rule.targetType, rule.itemType, target, paid)
+                        if (paid < target) failed = true
+                        if (purchase != null && paid == target) {
+                            acquiredHomes[purchase.id] = calendarYear
+                            balances["${purchase.id}_asset"] = purchase.propertyValue.value
+                            mortgages[purchase.id] = purchase.propertyValue.value - target
+                        }
+                        if (mortgage != null && mortgage.id in acquiredHomes) {
+                            // Property costs are paid before servicing the mortgage. Unpaid interest remains debt.
+                            val debtPayment = max(0L, paid - mortgage.annualPropertyCosts.value)
+                            mortgages[mortgage.id] = max(0L, mortgages.getValue(mortgage.id) - debtPayment)
+                        }
+                    }
+                    PriorityTargetType.POOL_CONTRIBUTION -> {
+                        val pool = pools.firstOrNull { it.id == rule.targetId } ?: continue
+                        val target = pool.targetContributionInYear(calendarYear, household.findEntity(pool.entityId)).value
+                        if (target <= 0L) continue
+                        val invested = min(available, target)
+                        available -= invested
+                        balances[pool.id] = balances.getValue(pool.id) + invested
+                        flows[pool.id] = flows.getValue(pool.id).copy(contribution = Money(invested))
+                        funding(pool.id, pool.name, pool.entityId, rule.targetType, rule.itemType, target, invested)
+                    }
+                    PriorityTargetType.SURPLUS_INVESTMENT -> Unit
+                }
+            }
+            // Retain every dollar of surplus, including retirement income and unspent withdrawals.
+            val hasScheduledWithdrawal = flows.values.any { it.withdrawal.value > 0L }
+            val explicitSurplusPool = rules.firstOrNull { it.targetType == PriorityTargetType.SURPLUS_INVESTMENT }
+                ?.let { rule -> pools.firstOrNull { it.id == rule.targetId } }
+            val surplusPool = explicitSurplusPool ?: if (opening.age < primary.retirementAge && !hasScheduledWithdrawal) {
+                pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE }
+                    ?: pools.firstOrNull { it.category == AssetCategory.CASH_EMERGENCY }
+            } else {
+                pools.firstOrNull { it.category == AssetCategory.CASH_EMERGENCY }
+            }
+            if (surplusPool != null) {
+                balances[surplusPool.id] = balances.getValue(surplusPool.id) + available
+                val old = flows.getValue(surplusPool.id)
+                flows[surplusPool.id] = old.copy(contribution = old.contribution + Money(available))
+            } else {
+                cash = available
+            }
+
+            val totalExpenses = expenseTotals.values.sum()
+            return opening.copy(
+                expenseBalances = expenseTotals.mapValues { Money(it.value) },
+                totalIncome = Money(income),
+                totalExpenses = Money(totalExpenses),
+                netCashFlow = Money(income - totalExpenses),
+                itemFundings = fundings,
+                unfundedCount = fundings.count { it.status.isProblem } + flows.values.count { it.withdrawalShortfall.value > 0L },
+                poolFlows = flows,
+                unfundedExpenses = Money(fundings.filter { it.targetType == PriorityTargetType.EXPENSE_PAYOUT }.sumOf { it.shortfall.value }),
+                closingNetWorth = snapshot(year + 1).totalNetWorth,
+            )
+        }
     }
 
-    /**
-     * Runs stochastic Monte Carlo simulations across all asset pools in a household.
-     */
+    private fun validate(household: Household, inflationRate: Double) {
+        require(inflationRate.isFinite() && inflationRate > -1.0) { "Inflation must be finite and greater than -100%" }
+        require(household.lifeExpectancy >= household.currentAge) { "Life expectancy must not precede current age" }
+        val pools = household.allAssetPools()
+        val expenses = household.allExpenses()
+        require(household.incomeStreams.all { stream -> stream.yearlyPayBumpRate.isFinite() && stream.yearlyPayBumpRate >= -1.0 }) { "Invalid income growth rate" }
+        require(pools.map { it.id }.distinct().size == pools.size) { "Asset pool IDs must be unique" }
+        require(expenses.map { it.id }.distinct().size == expenses.size) { "Expense IDs must be unique" }
+        require((pools.map { it.id } + expenses.map { it.id }).distinct().size == pools.size + expenses.size) { "Pool and expense IDs must not overlap" }
+        require(household.activePriorityRules().map { it.targetType to it.targetId }.distinct().size == household.activePriorityRules().size) { "Priority targets must be unique" }
+        require(household.annualIncome.value >= 0L && household.incomeStreams.all { it.initialAnnualAmount.value >= 0L }) { "Income must be nonnegative" }
+        require(pools.all { it.currentBalance.value >= 0L && it.returnVolatility.isFinite() && it.returnVolatility >= 0.0 && it.expectedNominalReturn.isFinite() && it.expectedNominalReturn >= -1.0 }) { "Invalid asset balance, return or volatility" }
+        for (home in household.lifeEvents.filterIsInstance<HomePurchaseTemplate>()) {
+            require(home.parentAgeAtPurchase >= household.currentAge) { "Use existing asset pools for properties purchased before the plan starts" }
+            require(home.downPaymentPercent in 0.0..1.0 && home.propertyValue.value > 0L && home.loanTermYears > 0) { "Invalid home purchase" }
+            require(home.mortgageInterestRate.isFinite() && home.mortgageInterestRate >= 0.0 && home.annualPropertyCosts.value >= 0L && home.annualMortgageAndTax >= home.annualPropertyCosts) { "Invalid mortgage payment or interest rate" }
+        }
+    }
+
+    fun simulateHousehold(household: Household, inflationRate: Double = 0.025): List<YearCategoryBreakdown> {
+        validate(household, inflationRate)
+        val projection = Projection(household)
+        val years = household.lifeExpectancy - household.currentAge
+        return (0 until years).map { year ->
+            projection.step(year, inflationRate) { pool, calendarYear -> pool.expectedReturnInYear(calendarYear, household.findEntity(pool.entityId)) }
+        } + projection.snapshot(years)
+    }
+
+    private fun gaussian(random: Random): Double = sqrt(-2.0 * ln(max(1e-10, random.nextDouble()))) * cos(2.0 * kotlin.math.PI * random.nextDouble())
+
+    private fun percentile(paths: Array<LongArray>, year: Int, fraction: Double): Money {
+        val values = LongArray(paths.size) { paths[it][year] }.apply { sort() }
+        return Money(values[((values.size - 1) * fraction).toInt()])
+    }
+
     fun runHouseholdMonteCarlo(
         household: Household,
         simulationsCount: Int = 500,
         inflationRate: Double = 0.025,
         randomSeed: Long? = null,
-    ): HouseholdProjectionResult {
-        val random = if (randomSeed != null) Random(randomSeed) else Random.Default
-        val totalYears = max(1, household.lifeExpectancy - household.currentAge)
-        val pools = household.allAssetPools()
-        val allExpenses = household.allExpenses()
-        val priorityRules = household.activePriorityRules()
-
-        val allPathBalances = Array(simulationsCount) { LongArray(totalYears + 1) }
-        var successfulSims = 0
-
-        for (sim in 0 until simulationsCount) {
-            val poolBalances = pools.associate { it.id to it.currentBalance.value }.toMutableMap()
-            val initialTotal = poolBalances.values.sum()
-            allPathBalances[sim][0] = initialTotal
-            var failed = false
-
-            for (year in 0 until totalYears) {
-                val calendarYear = household.baseYear + year
-                val primary = household.primaryEntity()
-                val age = primary.ageInYear(calendarYear)
-                val isWorking = age < primary.retirementAge
-
-                // 1. Calculate expenses
-                var yearExpenses = 0L
-                for (exp in allExpenses) {
-                    val entity = household.findEntity(exp.entityId)
-                    yearExpenses += exp.amountInYear(calendarYear, household.baseYear, entity, inflationRate).value
-                }
-
-                // 2. Calculate income
-                val yearIncome = household.totalIncomeInYear(calendarYear, inflationRate).value
-
-                // 3. Investment growth with Box-Muller Gaussian noise per pool
-                for (pool in pools) {
-                    val bal = poolBalances[pool.id] ?: 0L
-                    if (bal > 0) {
-                        val u1 = max(1e-10, random.nextDouble())
-                        val u2 = random.nextDouble()
-                        val z0 = sqrt(-2.0 * ln(u1)) * cos(2.0 * kotlin.math.PI * u2)
-
-                        val nominalReturn = pool.expectedNominalReturn + z0 * pool.returnVolatility
-                        val realReturn = (1.0 + nominalReturn) / (1.0 + inflationRate) - 1.0
-                        val growth = (bal.toDouble() * realReturn).toLong()
-                        poolBalances[pool.id] = max(0L, bal + growth)
-                    }
-                }
-
-                // 4. Waterfall contributions from available income
-                var availableCash = yearIncome
-                for (rule in priorityRules.filter { it.enabled }) {
-                    if (rule.targetType == PriorityTargetType.EXPENSE_PAYOUT) {
-                        val exp = allExpenses.firstOrNull { it.id == rule.targetId }
-                        if (exp != null) {
-                            val ent = household.findEntity(exp.entityId)
-                            val target = exp.amountInYear(calendarYear, household.baseYear, ent, inflationRate).value
-                            val paid = min(availableCash, target)
-                            availableCash -= paid
-                        }
-                    } else if (rule.targetType == PriorityTargetType.POOL_CONTRIBUTION) {
-                        val pool = pools.firstOrNull { it.id == rule.targetId }
-                        if (pool != null) {
-                            val owner = household.findEntity(pool.entityId) ?: primary
-                            val target = pool.targetContributionInYear(calendarYear, owner).value
-                            if (target > 0L) {
-                                val invested = min(availableCash, target)
-                                availableCash -= invested
-                                poolBalances[pool.id] = (poolBalances[pool.id] ?: 0L) + invested
-                            }
-                        }
-                    }
-                }
-
-                // 5. Net cashflow
-                val netCash = yearIncome - yearExpenses
-                if (netCash < 0) {
-                    var deficit = -netCash
-                    val priority =
-                        listOf(
-                            AssetCategory.CASH_EMERGENCY,
-                            AssetCategory.TAXABLE_BROKERAGE,
-                            AssetCategory.PRE_TAX_401K,
-                            AssetCategory.ROTH_IRA,
-                            AssetCategory.OTHER,
-                        )
-                    for (cat in priority) {
-                        if (deficit <= 0) break
-                        for (p in pools.filter { it.category == cat }) {
-                            val b = poolBalances[p.id] ?: 0L
-                            if (b > 0) {
-                                val d = min(b, deficit)
-                                poolBalances[p.id] = b - d
-                                deficit -= d
-                                if (deficit <= 0) break
-                            }
-                        }
-                    }
-                } else if (availableCash > 0 && isWorking) {
-                    val defaultPool = pools.firstOrNull { it.category == AssetCategory.TAXABLE_BROKERAGE } ?: pools.firstOrNull()
-                    if (defaultPool != null) {
-                        poolBalances[defaultPool.id] = (poolBalances[defaultPool.id] ?: 0L) + availableCash
-                    }
-                }
-
-                val currentNetWorth = max(0L, poolBalances.values.sum())
-                allPathBalances[sim][year + 1] = currentNetWorth
-                if (currentNetWorth <= 0) {
-                    failed = true
-                }
-            }
-
-            if (!failed && allPathBalances[sim][totalYears] > 0) {
-                successfulSims++
-            }
-        }
-
-        // Calculate percentiles P10, P50, P90
-        val p10List = mutableListOf<Money>()
-        val p50List = mutableListOf<Money>()
-        val p90List = mutableListOf<Money>()
-
-        for (year in 0..totalYears) {
-            val yearVals = LongArray(simulationsCount) { sim -> allPathBalances[sim][year] }
-            yearVals.sort()
-            val p10Idx = (simulationsCount * 0.10).toInt().coerceIn(0, simulationsCount - 1)
-            val p50Idx = (simulationsCount * 0.50).toInt().coerceIn(0, simulationsCount - 1)
-            val p90Idx = (simulationsCount * 0.90).toInt().coerceIn(0, simulationsCount - 1)
-
-            p10List.add(Money(yearVals[p10Idx]))
-            p50List.add(Money(yearVals[p50Idx]))
-            p90List.add(Money(yearVals[p90Idx]))
-        }
-
-        val deterministicTimeline = simulateHousehold(household, inflationRate)
-
-        return HouseholdProjectionResult(
-            householdId = household.id,
-            householdName = household.name,
-            timeline = deterministicTimeline,
-            finalNetWorth = deterministicTimeline.lastOrNull()?.totalNetWorth ?: Money.ZERO,
-            p10Path = p10List,
-            p50Path = p50List,
-            p90Path = p90List,
-            successRate = (successfulSims.toDouble() / simulationsCount.toDouble()) * 100.0,
-        )
-    }
+    ): HouseholdProjectionResult = simulatePlan(
+        FinancialPlan(baseYear = household.baseYear, households = listOf(household), inflationRate = inflationRate),
+        simulationsCount,
+        randomSeed,
+    ).householdResults.single()
 
     /**
-     * Consolidates projections across multiple households.
+     * Joint runs share a market shock per calendar year. Correlation is the common
+     * variance fraction (0 = independent, 1 = identical standardized shocks).
+     * Success means all scheduled expenses were funded in every household.
+     * Balances are carried forward after a household's terminal snapshot; no later
+     * income or spending is assumed and households do not cross-fund one another.
      */
     fun simulatePlan(
         plan: FinancialPlan,
         simulationsCount: Int = 500,
+        randomSeed: Long? = null,
+        returnCorrelation: Double = 0.75,
     ): ConsolidatedPlanResult {
-        val householdResults =
-            plan.households.map {
-                runHouseholdMonteCarlo(it, simulationsCount, plan.inflationRate)
-            }
-
-        if (householdResults.isEmpty()) {
-            return ConsolidatedPlanResult(
-                timeline = emptyList(),
-                householdResults = emptyList(),
-                finalNetWorth = Money.ZERO,
-                p10Path = emptyList(),
-                p50Path = emptyList(),
-                p90Path = emptyList(),
-                overallSuccessRate = 100.0,
-            )
+        require(simulationsCount > 0) { "Simulation count must be positive" }
+        require(returnCorrelation.isFinite() && returnCorrelation in 0.0..1.0) { "Correlation must be between zero and one" }
+        require(plan.households.map { it.id }.distinct().size == plan.households.size) { "Household IDs must be unique" }
+        plan.households.forEach {
+            validate(it, plan.inflationRate)
+            require(it.baseYear == plan.baseYear) { "Households must use the plan's base year" }
         }
-
-        val maxTimelineLength = householdResults.maxOfOrNull { it.timeline.size } ?: 0
-        val consolidatedTimeline = mutableListOf<YearCategoryBreakdown>()
-        val p10Consolidated = mutableListOf<Money>()
-        val p50Consolidated = mutableListOf<Money>()
-        val p90Consolidated = mutableListOf<Money>()
-
-        val baseAge =
-            plan.households.firstOrNull { it.isPrimary }?.currentAge
-                ?: plan.households.firstOrNull()?.currentAge ?: 30
-
-        for (year in 0 until maxTimelineLength) {
-            val assetMap = mutableMapOf<AssetCategory, Long>()
-            val expenseMap = mutableMapOf<ExpenseCategory, Long>()
-            var totalNW = 0L
-            var totalInc = 0L
-            var totalExp = 0L
-            var p10Total = 0L
-            var p50Total = 0L
-            var p90Total = 0L
-            val consolidatedFundings = mutableListOf<YearlyItemFunding>()
-
-            for (res in householdResults) {
-                if (year < res.timeline.size) {
-                    val bk = res.timeline[year]
-                    bk.assetBalances.forEach { (cat, m) ->
-                        assetMap[cat] = (assetMap[cat] ?: 0L) + m.value
-                    }
-                    bk.expenseBalances.forEach { (cat, m) ->
-                        expenseMap[cat] = (expenseMap[cat] ?: 0L) + m.value
-                    }
-                    totalNW += bk.totalNetWorth.value
-                    totalInc += bk.totalIncome.value
-                    totalExp += bk.totalExpenses.value
-                    consolidatedFundings.addAll(bk.itemFundings)
+        val timelines = plan.households.map { simulateHousehold(it, plan.inflationRate) }
+        val years = timelines.maxOfOrNull { it.size - 1 } ?: 0
+        val paths = plan.households.map { Array(simulationsCount) { LongArray(years + 1) } }
+        val combined = Array(simulationsCount) { LongArray(years + 1) }
+        val successes = IntArray(plan.households.size)
+        var successfulPlans = 0
+        val random = randomSeed?.let { Random(it) } ?: Random.Default
+        repeat(simulationsCount) { sim ->
+            val states = plan.households.map { Projection(it) }
+            for (year in 0..years) {
+                states.forEachIndexed { index, state ->
+                    val worth = state.snapshot(year).totalNetWorth.value
+                    paths[index][sim][year] = worth
+                    combined[sim][year] += worth
                 }
-                if (year < res.p10Path.size) p10Total += res.p10Path[year].value
-                if (year < res.p50Path.size) p50Total += res.p50Path[year].value
-                if (year < res.p90Path.size) p90Total += res.p90Path[year].value
+                if (year < years) {
+                    val market = gaussian(random)
+                    states.forEach { state ->
+                        if (year < state.household.lifeExpectancy - state.household.currentAge) {
+                            state.step(year, plan.inflationRate) { pool, calendarYear ->
+                                val shock = sqrt(returnCorrelation) * market + sqrt(1.0 - returnCorrelation) * gaussian(random)
+                                pool.expectedReturnInYear(calendarYear, state.household.findEntity(pool.entityId)) + pool.returnVolatility * shock
+                            }
+                        }
+                    }
+                }
             }
-
-            consolidatedTimeline.add(
-                YearCategoryBreakdown(
-                    yearIndex = year,
-                    calendarYear = plan.baseYear + year,
-                    age = baseAge + year,
-                    assetBalances = assetMap.mapValues { Money(it.value) },
-                    expenseBalances = expenseMap.mapValues { Money(it.value) },
-                    totalNetWorth = Money(totalNW),
-                    totalIncome = Money(totalInc),
-                    totalExpenses = Money(totalExp),
-                    netCashFlow = Money(totalInc - totalExp),
-                    itemFundings = consolidatedFundings,
-                ),
-            )
-
-            p10Consolidated.add(Money(p10Total))
-            p50Consolidated.add(Money(p50Total))
-            p90Consolidated.add(Money(p90Total))
+            states.forEachIndexed { i, state -> if (!state.failed) successes[i]++ }
+            if (states.none { it.failed }) successfulPlans++
         }
-
-        val avgSuccess =
-            if (householdResults.isNotEmpty()) {
-                householdResults.map { it.successRate }.average()
-            } else {
-                100.0
-            }
-
+        val householdResults = plan.households.mapIndexed { i, household ->
+            val length = timelines[i].size
+            HouseholdProjectionResult(
+                household.id,
+                household.name,
+                timelines[i],
+                timelines[i].last().totalNetWorth,
+                List(length) { percentile(paths[i], it, 0.10) },
+                List(length) { percentile(paths[i], it, 0.50) },
+                List(length) { percentile(paths[i], it, 0.90) },
+                successes[i] * 100.0 / simulationsCount,
+            )
+        }
+        if (householdResults.isEmpty()) return ConsolidatedPlanResult(emptyList(), emptyList(), Money.ZERO, emptyList(), emptyList(), emptyList(), 100.0)
+        val timeline = (0..years).map { year ->
+            val rows = timelines.map { it.getOrNull(year) ?: it.last().copy(totalIncome = Money.ZERO, totalExpenses = Money.ZERO, netCashFlow = Money.ZERO, itemFundings = emptyList(), unfundedCount = 0) }
+            val fundings = rows.flatMap { it.itemFundings }
+            YearCategoryBreakdown(
+                year, plan.baseYear + year, (plan.households.firstOrNull { it.isPrimary } ?: plan.households.first()).currentAge + year,
+                AssetCategory.entries.associateWith { cat -> Money(rows.sumOf { it.assetBalances[cat]?.value ?: 0L }) },
+                ExpenseCategory.entries.associateWith { cat -> Money(rows.sumOf { it.expenseBalances[cat]?.value ?: 0L }) },
+                Money(rows.sumOf { it.totalNetWorth.value }), Money(rows.sumOf { it.totalIncome.value }),
+                Money(rows.sumOf { it.totalExpenses.value }), Money(rows.sumOf { it.netCashFlow.value }), fundings,
+                unfundedCount = rows.sumOf { it.unfundedCount },
+                totalLiabilities = Money(rows.sumOf { it.totalLiabilities.value }),
+                unfundedExpenses = Money(rows.sumOf { it.unfundedExpenses.value }),
+                closingNetWorth = Money(rows.sumOf { it.closingNetWorth.value }),
+            )
+        }
         return ConsolidatedPlanResult(
-            timeline = consolidatedTimeline,
-            householdResults = householdResults,
-            finalNetWorth = consolidatedTimeline.lastOrNull()?.totalNetWorth ?: Money.ZERO,
-            p10Path = p10Consolidated,
-            p50Path = p50Consolidated,
-            p90Path = p90Consolidated,
-            overallSuccessRate = avgSuccess,
+            timeline,
+            householdResults,
+            timeline.last().totalNetWorth,
+            List(years + 1) { percentile(combined, it, 0.10) },
+            List(years + 1) { percentile(combined, it, 0.50) },
+            List(years + 1) { percentile(combined, it, 0.90) },
+            successfulPlans * 100.0 / simulationsCount,
         )
     }
 }

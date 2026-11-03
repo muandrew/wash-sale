@@ -66,10 +66,17 @@ fun NetWorthChart(
     val maxNetWorthCents = max(
         1L,
         max(
-            timeline.maxOfOrNull { it.totalNetWorth.value } ?: 1L,
+            timeline.maxOfOrNull { it.assetBalances.values.sumOf { balance -> balance.value } } ?: 1L,
             p90Path.maxOfOrNull { it.value } ?: 1L,
         ),
     )
+
+    val minNetWorthCents = minOf(
+        0L,
+        timeline.minOf { it.totalNetWorth.value },
+        p10Path.minOfOrNull { it.value } ?: 0L,
+    )
+    val chartRange = maxNetWorthCents.toDouble() - minNetWorthCents.toDouble()
 
     val activeYearIndex = hoveredYearIndex ?: (timeline.size - 1)
     val activeYearData = timeline.getOrNull(activeYearIndex) ?: timeline.last()
@@ -89,13 +96,13 @@ fun NetWorthChart(
             ) {
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
-                        "Stacked Net Worth & Category Growth Over Time",
+                        "Assets & Net Worth Over Time (Nominal Dollars)",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colors.primary,
                     )
                     Text(
-                        "Drag or tap chart to inspect at specific ages. Click categories to highlight.",
+                        "Colored areas show assets; the white line subtracts mortgage debt. Tap to inspect.",
                         fontSize = 11.sp,
                         color = Color(0xFFAAAAAA),
                     )
@@ -212,12 +219,12 @@ fun NetWorthChart(
                         val conePath = Path()
                         for (i in timeline.indices) {
                             val x = i * stepX
-                            val yTop = height - (p90Path[i].value.toFloat() / maxNetWorthCents) * height
+                            val yTop = height - ((p90Path[i].value.toDouble() - minNetWorthCents) / chartRange).toFloat() * height
                             if (i == 0) conePath.moveTo(x, yTop) else conePath.lineTo(x, yTop)
                         }
                         for (i in timeline.indices.reversed()) {
                             val x = i * stepX
-                            val yBottom = height - (p10Path[i].value.toFloat() / maxNetWorthCents) * height
+                            val yBottom = height - ((p10Path[i].value.toDouble() - minNetWorthCents) / chartRange).toFloat() * height
                             conePath.lineTo(x, yBottom)
                         }
                         conePath.close()
@@ -239,8 +246,8 @@ fun NetWorthChart(
                         for (i in timeline.indices) {
                             val x = i * stepX
                             val catVal = timeline[i].assetBalances[cat]?.value ?: 0L
-                            val startY = height - (bottomHeights[i] / maxNetWorthCents) * height
-                            val layerHeight = (catVal.toFloat() / maxNetWorthCents) * height
+                            val startY = height - ((bottomHeights[i].toDouble() - minNetWorthCents) / chartRange).toFloat() * height
+                            val layerHeight = (catVal.toDouble() / chartRange).toFloat() * height
                             val endY = startY - layerHeight
                             topYCoords[i] = endY
 
@@ -254,7 +261,7 @@ fun NetWorthChart(
 
                         for (i in timeline.indices.reversed()) {
                             val x = i * stepX
-                            val startY = height - (bottomHeights[i] / maxNetWorthCents) * height
+                            val startY = height - ((bottomHeights[i].toDouble() - minNetWorthCents) / chartRange).toFloat() * height
                             areaPath.lineTo(x, startY)
                         }
                         areaPath.close()
@@ -277,6 +284,14 @@ fun NetWorthChart(
                             bottomHeights[i] += catVal.toFloat()
                         }
                     }
+
+                    val netWorthPath = Path()
+                    timeline.forEachIndexed { index, row ->
+                        val x = index * stepX
+                        val y = height - ((row.totalNetWorth.value.toDouble() - minNetWorthCents) / chartRange).toFloat() * height
+                        if (index == 0) netWorthPath.moveTo(x, y) else netWorthPath.lineTo(x, y)
+                    }
+                    drawPath(netWorthPath, Color.White, style = Stroke(width = 2f))
 
                     // 4. Draw Cursor line at active hovered year
                     if (hoveredYearIndex != null && hoveredYearIndex!! in timeline.indices) {
@@ -314,15 +329,16 @@ private fun InspectionBadge(
             Divider(modifier = Modifier.height(24.dp).width(1.dp), color = Color(0xFF444444))
             Column {
                 Text(
-                    "Total: ${activeData.totalNetWorth.toFormattedString()}",
+                    "Net worth: ${activeData.totalNetWorth.toFormattedString()} | Debt: ${activeData.totalLiabilities.toFormattedString()}",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF81C784),
                 )
                 if (selectedCategory != null) {
                     val catVal = activeData.assetBalances[selectedCategory] ?: Money.ZERO
-                    val pct = if (activeData.totalNetWorth.value > 0) {
-                        (catVal.value.toDouble() / activeData.totalNetWorth.value.toDouble() * 100.0).toInt()
+                    val totalAssets = activeData.assetBalances.values.sumOf { it.value }
+                    val pct = if (totalAssets > 0) {
+                        (catVal.value.toDouble() / totalAssets.toDouble() * 100.0).toInt()
                     } else {
                         0
                     }

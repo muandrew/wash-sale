@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -35,7 +34,6 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.ScrollableTabRow
 import androidx.compose.material.Surface
 import androidx.compose.material.Tab
-import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.material.darkColors
 import androidx.compose.runtime.Composable
@@ -68,7 +66,6 @@ import com.muandrew.forecast.model.PriorityRule
 import com.muandrew.forecast.model.PriorityTargetType
 import com.muandrew.forecast.model.SchedulePhase
 import com.muandrew.forecast.model.TimeMode
-import kotlin.math.max
 import kotlin.math.min
 
 private val DarkColors = darkColors(
@@ -195,7 +192,7 @@ fun ForecastApp() {
 
             // Run simulation engine
             val planResult = remember(plan) {
-                MultiAssetEngine.simulatePlan(plan, simulationsCount = 500)
+                MultiAssetEngine.simulatePlan(plan, simulationsCount = 500, randomSeed = 0L)
             }
 
             // Determine active timeline for chart display
@@ -286,7 +283,7 @@ fun ForecastApp() {
                         }
 
                         // Budget Balancer Banner if any years have shortfalls
-                        val problemYears = activeResult.timeline.filter { it.unfundedCount > 0 || it.netCashFlow.value < 0 }
+                        val problemYears = activeResult.timeline.filter { it.unfundedCount > 0 }
                         if (problemYears.isNotEmpty()) {
                             item {
                                 BudgetBalancerBanner(
@@ -460,12 +457,12 @@ private fun SummaryMetricsGrid(
         MetricCard(
             title = "Monte Carlo Success Rate",
             value = "${(success * 10).toInt() / 10.0}%",
-            subtitle = "500 multi-asset stochastic runs",
+            subtitle = "All household expenses covered in every year",
             color = if (success >= 85.0) Color(0xFF81C784) else Color(0xFFFFB74D),
             modifier = Modifier.weight(1f),
         )
         MetricCard(
-            title = "Ending Median Net Worth",
+            title = "Projected Ending Net Worth",
             value = finalNW.toFormattedString(),
             subtitle = "P10: ${p10.toFormattedString()} | P90: ${p90.toFormattedString()}",
             color = MaterialTheme.colors.primary,
@@ -890,44 +887,35 @@ private fun FinancialStreamsManager(
             // Special Cash Available (Total Cash Line & Annual Net Cashflow Bars)
             val cashAvailablePoints = remember(household, selectedEntityFilter) {
                 val primary = household.primaryEntity()
-                val startYr = household.baseYear
-                val endYr = household.baseYear + 40
-
-                val filteredIncomes = household.incomeStreams.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
-                val filteredExpenses = household.expenses.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
-                val filteredPools = household.assetPools.filter { selectedEntityFilter == null || it.entityId == selectedEntityFilter }
-
-                var runningTotalCash = filteredPools.filter { it.category == AssetCategory.CASH_EMERGENCY || it.category == AssetCategory.TAXABLE_BROKERAGE }.sumOf { it.currentBalance.value }
-                if (runningTotalCash == 0L) {
-                    runningTotalCash = filteredPools.sumOf { it.currentBalance.value }
+                fun belongs(entityId: String): Boolean = selectedEntityFilter == null || household.findEntity(entityId)?.id == selectedEntityFilter
+                val filtered = if (selectedEntityFilter == null) {
+                    household
+                } else {
+                    household.copy(
+                        incomeStreams = household.incomeStreams.filter { belongs(it.entityId) },
+                        annualIncome = if (household.incomeStreams.isEmpty() && belongs(primary.id)) household.annualIncome else Money.ZERO,
+                        assetPools = household.assetPools.filter { belongs(it.entityId) },
+                        expenses = household.expenses.filter { belongs(it.entityId) },
+                        directExpenses = household.directExpenses.filter { belongs(it.entityId) },
+                        lifeEvents = if (belongs(primary.id)) household.lifeEvents else emptyList(),
+                        priorityRules = household.priorityRules.filter { belongs(it.entityId) },
+                    )
                 }
-
-                (startYr..endYr).map { yr ->
-                    val age = primary.ageInYear(yr)
-                    val inAmt = filteredIncomes.sumOf { it.amountInYear(yr, household.baseYear, household.findEntity(it.entityId) ?: primary, inflationRate = 0.025).value }
-                    val outAmt = filteredExpenses.sumOf { it.amountInYear(yr, household.baseYear, household.findEntity(it.entityId) ?: primary, inflationRate = 0.025).value }
-                    val contribAmt = filteredPools.sumOf { it.targetContributionInYear(yr, household.findEntity(it.entityId) ?: primary).value }
-                    val withdrAmt = filteredPools.sumOf { it.targetWithdrawalInYear(yr, household.findEntity(it.entityId) ?: primary).value }
-
-                    val netCashCents = (inAmt + withdrAmt) - (outAmt + contribAmt)
-                    val totalBeforeDeficit = runningTotalCash + netCashCents
-                    val isDepleted = totalBeforeDeficit < 0L
-                    runningTotalCash = max(0L, totalBeforeDeficit)
-
+                MultiAssetEngine.simulateHousehold(filtered).map { row ->
                     YearTrajectoryPoint(
-                        calendarYear = yr,
-                        age = age,
-                        balance = Money(runningTotalCash),
-                        inflow = Money(inAmt + withdrAmt),
-                        outflow = Money(outAmt + contribAmt),
-                        isDeficit = isDepleted || netCashCents < 0L,
-                        shortfall = if (isDepleted) Money(-totalBeforeDeficit) else Money.ZERO,
-                        netCash = Money(netCashCents),
+                        calendarYear = row.calendarYear,
+                        age = row.age,
+                        balance = row.assetBalances[AssetCategory.CASH_EMERGENCY] ?: Money.ZERO,
+                        inflow = row.totalIncome,
+                        outflow = row.totalExpenses,
+                        isDeficit = row.unfundedExpenses.value > 0L,
+                        shortfall = row.unfundedExpenses,
+                        netCash = row.netCashFlow,
                     )
                 }
             }
 
-            val deficitYearsCount = cashAvailablePoints.count { it.netCash.value < 0L }
+            val deficitYearsCount = cashAvailablePoints.count { it.isDeficit }
 
             Column(
                 modifier = Modifier
@@ -1164,10 +1152,10 @@ private fun IncomeStreamCard(
             // Trajectory Chart Preview
             val trajectoryPoints = remember(stream, associatedEntity, household.baseYear) {
                 val startYr = household.baseYear
-                val endYr = household.baseYear + 40
+                val endYr = household.baseYear + household.lifeExpectancy - household.currentAge
                 (startYr..endYr).map { yr ->
                     val age = associatedEntity.ageInYear(yr)
-                    val inAmt = stream.amountInYear(yr, household.baseYear, associatedEntity, inflationRate = 0.025)
+                    val inAmt = if (yr < endYr) stream.amountInYear(yr, household.baseYear, associatedEntity, inflationRate = 0.025) else Money.ZERO
                     YearTrajectoryPoint(
                         calendarYear = yr,
                         age = age,
@@ -1560,31 +1548,17 @@ private fun EditableAssetPoolCard(
             )
 
             // Trajectory Chart Preview
-            val trajectoryPoints = remember(pool, associatedEntity, household.baseYear) {
-                val startYr = household.baseYear
-                val endYr = household.baseYear + 40
-                var runningBalance = pool.currentBalance.value
-
-                (startYr..endYr).map { yr ->
-                    val age = associatedEntity.ageInYear(yr)
-                    val (returnRate, contrib, withdr) = pool.effectiveAttributesInYear(yr, associatedEntity)
-                    val realReturn = (1.0 + returnRate) / (1.0 + 0.025) - 1.0
-                    val growth = if (runningBalance > 0L) (runningBalance * realReturn).toLong() else 0L
-
-                    val netBeforeWithdrawal = runningBalance + growth + contrib.value
-                    val isDeficit = withdr.value > 0L && netBeforeWithdrawal < withdr.value
-                    val shortfallCents = if (isDeficit) withdr.value - netBeforeWithdrawal else 0L
-
-                    runningBalance = max(0L, netBeforeWithdrawal - withdr.value)
-
+            val trajectoryPoints = remember(household, pool.id) {
+                MultiAssetEngine.simulateHousehold(household).map { row ->
+                    val flow = row.poolFlows[pool.id]
                     YearTrajectoryPoint(
-                        calendarYear = yr,
-                        age = age,
-                        balance = Money(runningBalance),
-                        inflow = contrib,
-                        outflow = withdr,
-                        isDeficit = isDeficit || (runningBalance == 0L && withdr.value > 0L),
-                        shortfall = Money(shortfallCents),
+                        calendarYear = row.calendarYear,
+                        age = associatedEntity.ageInYear(row.calendarYear),
+                        balance = row.poolBalances[pool.id] ?: Money.ZERO,
+                        inflow = flow?.contribution ?: Money.ZERO,
+                        outflow = flow?.withdrawal ?: Money.ZERO,
+                        isDeficit = (flow?.withdrawalShortfall?.value ?: 0L) > 0L,
+                        shortfall = flow?.withdrawalShortfall ?: Money.ZERO,
                     )
                 }
             }
@@ -1967,55 +1941,26 @@ private fun EditableExpenseCard(
                 onUpdateExpense = onUpdate,
             )
 
-            val isLoanDebt = expense.expenseType == ExpenseType.COMPOUNDING_DEBT
-            val trajectoryPoints = remember(expense, associatedEntity, household.baseYear) {
-                val startYr = household.baseYear
-                val endYr = household.baseYear + 40
-
-                if (isLoanDebt) {
-                    val effStart = expense.effectiveStartYear(associatedEntity)
-                    val effEnd = expense.effectiveEndYear(associatedEntity)
-                    val totalYears = max(1, effEnd - effStart + 1)
-                    val annualPmt = expense.annualAmount.value
-                    var remainingDebt = annualPmt * totalYears.toLong()
-
-                    (startYr..endYr).map { yr ->
-                        val age = associatedEntity.ageInYear(yr)
-                        val pmt = expense.amountInYear(yr, household.baseYear, associatedEntity, inflationRate = 0.025)
-                        if (yr in effStart..effEnd && remainingDebt > 0L) {
-                            val interest = (remainingDebt * expense.compoundingInterestRate).toLong()
-                            remainingDebt = max(0L, remainingDebt + interest - pmt.value)
-                        } else if (yr > effEnd) {
-                            remainingDebt = 0L
-                        }
-                        YearTrajectoryPoint(
-                            calendarYear = yr,
-                            age = age,
-                            balance = Money(remainingDebt),
-                            inflow = Money.ZERO,
-                            outflow = pmt,
-                        )
-                    }
-                } else {
-                    (startYr..endYr).map { yr ->
-                        val age = associatedEntity.ageInYear(yr)
-                        val outAmt = expense.amountInYear(yr, household.baseYear, associatedEntity, inflationRate = 0.025)
-                        YearTrajectoryPoint(
-                            calendarYear = yr,
-                            age = age,
-                            balance = Money.ZERO,
-                            inflow = Money.ZERO,
-                            outflow = outAmt,
-                        )
-                    }
+            val trajectoryPoints = remember(household, expense.id) {
+                MultiAssetEngine.simulateHousehold(household).map { row ->
+                    val funding = row.itemFundings.firstOrNull { it.id == expense.id && it.targetType == PriorityTargetType.EXPENSE_PAYOUT }
+                    YearTrajectoryPoint(
+                        calendarYear = row.calendarYear,
+                        age = associatedEntity.ageInYear(row.calendarYear),
+                        balance = Money.ZERO,
+                        inflow = Money.ZERO,
+                        outflow = funding?.actualAmount ?: Money.ZERO,
+                        isDeficit = funding?.status?.isProblem == true,
+                        shortfall = funding?.shortfall ?: Money.ZERO,
+                    )
                 }
             }
 
             EntryTrajectoryChart(
-                title = if (isLoanDebt) "${expense.name} - Outstanding Debt Balance & Payments (Inverse)" else "${expense.name} - Annual Outflow (Bar)",
+                title = "${expense.name} - Funded Annual Outflow",
                 points = trajectoryPoints,
-                chartMode = if (isLoanDebt) EntryChartMode.COMPOUNDING_DEBT else EntryChartMode.EXPENSE_STREAM,
-                accentColor = if (isLoanDebt) Color(0xFFEF5350) else Color(expense.category.hexColor),
+                chartMode = EntryChartMode.EXPENSE_STREAM,
+                accentColor = Color(expense.category.hexColor),
             )
         }
     }

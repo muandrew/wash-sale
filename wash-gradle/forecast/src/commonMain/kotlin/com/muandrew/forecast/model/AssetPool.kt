@@ -48,7 +48,20 @@ data class AssetPool(
         owner: Entity?,
     ): Pair<Double, Money> {
         var rate = expectedNominalReturn
-        var flow = baseFlow()
+        val age = owner?.ageInYear(calendarYear) ?: startAge
+        val begins = when (timeMode) {
+            TimeMode.ENTITY_AGE -> owner?.yearAtAge(startAge) ?: startYear
+            TimeMode.CALENDAR_YEAR -> startYear
+        }
+        val withdrawalActive = annualWithdrawal.value > 0L &&
+            age >= (withdrawalStartAge ?: contributionEndAge ?: owner?.retirementAge ?: 65) &&
+            (withdrawalEndAge == null || age <= withdrawalEndAge)
+        var flow = when {
+            annualFlow.value != 0L -> if (calendarYear >= begins) annualFlow else Money.ZERO
+            withdrawalActive -> Money(-annualWithdrawal.value)
+            calendarYear >= begins && age < (contributionEndAge ?: owner?.retirementAge ?: 65) -> annualContribution
+            else -> Money.ZERO
+        }
 
         // Legacy phases bridge if present and no overrides
         if (phases.isNotEmpty() && overrides.isEmpty()) {
@@ -57,7 +70,7 @@ data class AssetPool(
             val contrib =
                 matchingContrib?.amount
                     ?: (
-                        if ((owner?.ageInYear(calendarYear) ?: 30) <
+                        if (contribPhases.isEmpty() && calendarYear >= begins && (owner?.ageInYear(calendarYear) ?: 30) <
                             (contributionEndAge ?: owner?.retirementAge ?: 65)
                         ) {
                             annualContribution
@@ -71,9 +84,7 @@ data class AssetPool(
             val withdr =
                 matchingWithdr?.amount
                     ?: (
-                        if ((owner?.ageInYear(calendarYear) ?: 30) >=
-                            (withdrawalStartAge ?: contributionEndAge ?: owner?.retirementAge ?: 60)
-                        ) {
+                        if (withdrPhases.isEmpty() && withdrawalActive) {
                             annualWithdrawal
                         } else {
                             Money.ZERO

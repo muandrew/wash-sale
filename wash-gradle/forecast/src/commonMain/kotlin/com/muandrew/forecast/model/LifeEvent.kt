@@ -96,6 +96,9 @@ data class HomePurchaseTemplate(
     val downPaymentPercent: Double = 0.20,
     val annualMortgageAndTax: Money = Money.ofDollars(36_000),
     val loanTermYears: Int = 30,
+    val mortgageInterestRate: Double = 0.06,
+    // Portion of the annual budget spent on property costs rather than debt service.
+    val annualPropertyCosts: Money = Money.ZERO,
 ) : LifeEvent {
     override val name: String = "Home Purchase: $propertyName"
 
@@ -109,6 +112,8 @@ data class HomePurchaseTemplate(
                 annualAmount = downPayment,
                 startAge = parentAgeAtPurchase,
                 endAge = parentAgeAtPurchase,
+                expenseType = ExpenseType.ONE_TIME,
+                inflationAdjusted = false,
             ),
             ExpenseItem(
                 id = "${id}_mortgage",
@@ -117,6 +122,7 @@ data class HomePurchaseTemplate(
                 annualAmount = annualMortgageAndTax,
                 startAge = parentAgeAtPurchase + 1,
                 endAge = parentAgeAtPurchase + loanTermYears,
+                inflationAdjusted = false,
             ),
         )
     }
@@ -126,7 +132,8 @@ data class HomePurchaseTemplate(
             id = "${id}_asset",
             name = propertyName,
             category = AssetCategory.REAL_ESTATE,
-            currentBalance = propertyValue,
+            currentBalance = Money.ZERO, // Acquired by the annual ledger when the down payment is funded.
+            startAge = parentAgeAtPurchase,
             expectedNominalReturn = 0.045,
             returnVolatility = 0.06,
         ),
