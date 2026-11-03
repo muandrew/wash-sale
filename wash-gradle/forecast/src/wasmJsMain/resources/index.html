@@ -17,17 +17,6 @@
     </style>
 </head>
 <body>
-    <script>
-        // Dynamically load forecast.js relative to the current path / subpath (e.g. /cs/ or /)
-        (function() {
-            var script = document.createElement('script');
-            var basePath = window.location.pathname;
-            if (!basePath.endsWith('/')) {
-                basePath += '/';
-            }
-            script.src = basePath + 'forecast.js';
-            document.body.appendChild(script);
-        })();
-    </script>
+    <script src="./forecast.js"></script>
 </body>
 </html>

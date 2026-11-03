@@ -1,3 +1,11 @@
+# Web app paths
+
+The app loads `./forecast.js`, and webpack resolves WebAssembly assets relative
+to that bundle. It can be hosted at `/` or under a directory such as `/i/cs/`
+without configuring a prefix. Use a trailing slash for directory URLs. The
+development server serves the page and its assets at either path without redirects.
+For static hosting, place the complete generated distribution in that directory.
+
 # Forecast calculation conventions
 
 `MultiAssetEngine` uses one annual ledger for deterministic projections, Monte
